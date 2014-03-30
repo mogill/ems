@@ -28,7 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require("../Addon/index.js")(process.argv[2])
+var ems = require('ems')(process.argv[2])
 var singleton = ems.new(1)
 var nTimes = 10000
 var sum = 0

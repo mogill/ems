@@ -193,15 +193,16 @@ cd ems/ems/
 node-gyp configure
 node-gyp build
 
-# To make this development build the one the examples use,
-# set up a local node_modules that's linked to the current build
+# To make this EMS development build the one used by the examples,
+# set up a local node_modules that's symbolically linked to the current build.
+# Replace "Examples" with "Tests" to execute tests from the development build.
 cd ../Examples/
 mkdir node_modules
 cd node_modules/
 ln -s ../../ems/ ems
+cd ../
 
 # Run an example on 8 threads
-cd ../
 node concurrent_Q_and_TM.js 8
 ```
 Note that because EMS fortks threads that also use the EMS module, 

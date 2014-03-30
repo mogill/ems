@@ -28,7 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require("../Addon/index.js")(process.argv[2])
+var ems = require('ems')(process.argv[2])
 var assert = require('assert')
 
 function getRandomInt (min, max) {

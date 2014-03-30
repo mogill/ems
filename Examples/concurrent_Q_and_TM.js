@@ -27,13 +27,26 @@
  |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
+ +-----------------------------------------------------------------------------+
+ |  Program Description:                                                       |
+ |                                                                             |
+ |  Sequentially enqueue transactions from thread 0 while all other            |
+ |  threads consume them.  When all the operations have been queued            |
+ |  thread 0 also begins dequeing work and processing transactions.            |
+ |                                                                             |
+ |  Unlike the workQ_and_TM.js example, randomInRange() is only called         |
+ |  from thread 0 so it is defined only in the main thread's context.          |
+ |                                                                             |
  +-----------------------------------------------------------------------------*/
 // Initialize EMS to use the fork-join execution model instead of BSP
 var ems = require('ems')(parseInt(process.argv[2]), true, true)
 
 
+
+
 //---------------------------------------------------------------------------
 //  Generate a random integer within a range (inclusive) from 'low' to 'high'
+//
 function randomInRange(low, high) {
     return( Math.floor((Math.random() * (high - low)) + low) ) 
 }

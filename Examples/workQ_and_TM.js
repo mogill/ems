@@ -27,8 +27,36 @@
  |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
+ +-----------------------------------------------------------------------------+
+ |  Program Description:                                                       |
+ |                                                                             |
+ |  Enqueue the transactions from a parallel loop.                             |
+ |  When all the operations have been queued they all begin                    |
+ |  processing transactions.                                                   |
+ |                                                                             |
+ |  Unlike the concurrent_Q_and_TM.js example, randomInRange() is called       |
+ |  from every thread, so it is declared from every thread.                    |
+ |                                                                             |
  +-----------------------------------------------------------------------------*/
 var ems = require('ems')(parseInt(process.argv[2]), true, true)
+
+//-------------------------------------------------------------------
+//  Timer functions
+function timerStart(){ return new Date().getTime() }
+function timerStop(timer, nOps, label, myID) {
+    function fmtNumber(n) {
+	var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+	if(n < 1) return n
+	else    { return s.substr(s.length - 15, s.length)  }
+    }
+    var now = new Date().getTime()
+    var opsPerSec = (nOps*1000000) / ((now - timer) *1000)
+    if(typeof myID === undefined  ||  myID === 0) {
+        console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
+    }
+}
+
+
 
 //---------------------------------------------------------------------------
 //  Initialize shared data: global scalars, EMS buffers for statistics
@@ -36,20 +64,10 @@ var ems = require('ems')(parseInt(process.argv[2]), true, true)
 //  tables to perform transactions on.
 //
 function initializeSharedData() {
-    //-------------------------------------------------------------------
-    //  Timer functions
-    function timerStart(){ return new Date().getTime() }
-    function timerStop(timer, nOps, label, myID) {
-	function fmtNumber(n) {
-	    var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-	    if(n < 1) return n
-	    else    { return s.substr(s.length - 15, s.length)  }
-	}
-	var now = new Date().getTime()
-	var opsPerSec = (nOps*1000000) / ((now - timer) *1000)
-	if(typeof myID === undefined  ||  myID === 0) {
-            console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
-	}
+    //---------------------------------------------------------------------------
+    //  Generate a random integer within a range (inclusive) from 'low' to 'high'
+    randomInRange = function(low, high) {
+	return( Math.floor((Math.random() * (high - low)) + low) ) 
     }
 
     arrLen = 1000000
@@ -186,10 +204,7 @@ function performTransactions() {
 //------------------------------------------------------------------------
 //  Main program entry point
 //
-startTime = timerStart()
 ems.parallel(initializeSharedData)
-timerStop(startTime, nTables, " tables initialized    ", ems.myID)
-
 totalNops.writeXF(0, 0)
 totalNops.writeXF(1, 0)
 checkNops.writeXF(0, 0)

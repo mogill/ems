@@ -28,7 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require("../Addon/index.js")(parseInt(process.argv[2]), false)
+var ems = require('ems')(parseInt(process.argv[2]), false)
 var arrLen = 1000000
 var heapSize = 0
 var a = ems.new(arrLen)

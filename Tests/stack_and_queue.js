@@ -28,7 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require("../Addon/index.js")(parseInt(process.argv[2]))
+var ems = require('ems')(parseInt(process.argv[2]))
 var arrLen = 1000000
 var a = ems.new( {
     dimensions : [ arrLen ],

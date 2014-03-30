@@ -28,7 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require("../Addon/index.js")(parseInt(process.argv[2]), false)
+var ems = require('ems')(parseInt(process.argv[2]), false)
 var a = ems.new(1, 0, '/tmp/EMS_a')
 var count = ems.new(1)
 
