@@ -189,10 +189,14 @@ Note: Install EMS globally (<code>-g</code>) so forked threads can find the pack
 Download the source code.  Be sure to compile the native code with <code>node-gyp</code>,
 ```csh
 git clone https://github.com/SyntheticSemantics/ems.git
-cd ems/Addon/
+cd ems/ems/
 node-gyp configure
 node-gyp build
 cd ../Examples/
+mkdir node_modules
+cd node_modules/
+ln -s ../../ems/ ems
+cd ../
 node streams.js 8
 ```
 Note that because EMS fortks threads that also use the EMS module, 
