@@ -1,12 +1,27 @@
 {
     "name": "ems",
-    "description": "Extended Memory Semantics -- Shared memory parallelism",
-    "license": "BSD",
     "version": "0.1.0",
-    "main": "./index.js",
-//    "repository": { "type": "git", "url": "https://github.com/geocar/mmap.git" },
-    "scripts": { 
-	"pretest": "npm build .",
-//        "test": "node --expose-gc run_tests.js"
+    "author": "Synthetic Semantics <info@synsem.com>",
+    "description": "Shared Memory Parallelism with Transactional Memory and Extended Memory Semantics",
+    "contributors": [ 
+	{
+	    "name": "Jace A Mogill",
+	    "email": "mogill@synsem.com"
+	} 
+    ],
+    "main": "./Addon/index.js",
+    "repository": {
+	"type": "git",
+	"url": "https://github.com/syntheticsemantics/ems.git"
+    },
+    "keywords": [
+	"multithreading", "multithreaded",
+	"parallel",
+	"shared memory", 
+	"transactional memory", "tm"
+    ],
+    "license": "BSD",
+    "engines": {
+	"node": ">=0.10.25"
     }
 }
