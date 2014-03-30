@@ -34,15 +34,13 @@ are used in both execution modes.
             <td width="50%">
               <center>
   <center>
-  <img style="height:350px; margin-left: 80px;" src="http://synsem.com/DELETEME/EMS.js/Docs/typesOfParallelism.svg" type="image/svg+xml"  />
+  <img style="height:350px; margin-left: 80px;" src="http://synsem.com/EMS.js/typesOfParallelism.svg" type="image/svg+xml"  />
   </center>
               </center>
             </td>
     </tr>
   </table>
 </center>
-
-<br><br><br>
 
 
 ## Examples
@@ -78,7 +76,6 @@ ems.parForEach(0, dir.length,  function(docNum) {
 } )
 ```
 
-<br>
 ### Transactional Memory
 An example of using EMS Transactional Memory to atomically update
 two account balances while simultaneously preventing updates to the user's 
@@ -130,7 +127,7 @@ The EMS array may be indexed directly using an integer, or using a key
     <tr>
       <td>
   <img style="clear:both; width:300px;  margin-left: 30px;"
-   src="http://synsem.com/DELETEME/EMS.js/Docs/memLayoutLogical.svg" type="image/svg+xml" />
+   src="http://synsem.com/EMS.js/memLayoutLogical.svg" type="image/svg+xml" />
     <em>    <br><br> 
     <center>
     EMS memory is an array of JSON primitive values
@@ -145,7 +142,7 @@ The EMS array may be indexed directly using an integer, or using a key
     <td width="50%">
       <center>
   <img style="clear:both; height:200px;  margin-left: 30px;"
-   src="http://synsem.com/DELETEME/EMS.js/Docs/fsmSimple.svg" type="image/svg+xml" />
+   src="http://synsem.com/EMS.js/fsmSimple.svg" type="image/svg+xml" />
     <em>    <br><br> EMS Data Tag Transitions & Atomic operations:
     F=Full, E=Empty, X=Don't Care, RW=Readers-Writer lock (# of current readers)
     CAS=Compare-and-Swap, FAA=Fetch-and-Add</em>
@@ -168,11 +165,11 @@ or application services, making it easy to get started.
 ## More Technical Information
 
 For a more complete description of the principles of operation,
-[visit the EMS web site.](http://synsem.com/DELETEME/EMS.js/Docs/)
+[visit the EMS web site.](http://synsem.com/EMS.js/)
   
 <br>
 <center>
-  <img src="http://synsem.com/DELETEME/EMS.js/Docs/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
+  <img src="http://synsem.com/EMS.js/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
     <br><br>
     A logical overview of what program statements cause threads to be created
     and how shared data is referenced.
@@ -196,7 +193,7 @@ Presently Mac/Darwin and Linux are supported.
 BSD, other commercial licenses are available.
 
 ## Links
-[Visit the EMS web site.](http://synsem.com/DELETEME/EMS.js/)
+[Visit the EMS web site.](http://synsem.com/EMS.js/)
 
 ## About
 <img src="http://synsem.com/synsem_logo_black.svg" type="image/svg+xml" height="30px" style="vertical-align:middle;"> [SynSem](http://synsem.com) provides tools and services for shared memory parallelism, 
