@@ -1,0 +1,12 @@
+{
+    "name": "ems",
+    "description": "Extended Memory Semantics -- Shared memory parallelism",
+    "license": "BSD",
+    "version": "0.1.0",
+    "main": "./index.js",
+//    "repository": { "type": "git", "url": "https://github.com/geocar/mmap.git" },
+    "scripts": { 
+	"pretest": "npm build .",
+//        "test": "node --expose-gc run_tests.js"
+    }
+}

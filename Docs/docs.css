@@ -1,0 +1,483 @@
+/*-----------------------------------------------------------------------------+
+ |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
+ +-----------------------------------------------------------------------------+
+ |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |                                                                             |
+ | Redistribution and use in source and binary forms, with or without          |
+ | modification, are permitted provided that the following conditions are met: |
+ |    * Redistributions of source code must retain the above copyright         |
+ |      notice, this list of conditions and the following disclaimer.          |
+ |    * Redistributions in binary form must reproduce the above copyright      |
+ |      notice, this list of conditions and the following disclaimer in the    |
+ |      documentation and/or other materials provided with the distribution.   |
+ |    * Neither the name of the Synthetic Semantics nor the names of its       |
+ |      contributors may be used to endorse or promote products derived        |
+ |      from this software without specific prior written permission.          |
+ |                                                                             |
+ |    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS      |
+ |    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT        |
+ |    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR    |
+ |    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SYNTHETIC         |
+ |    SEMANTICS LLC BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,   |
+ |    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,      |
+ |    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR       |
+ |    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF   |
+ |    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     |
+ |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
+ |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
+ |                                                                             |
+ +-----------------------------------------------------------------------------*/
+
+@font-face {
+  font-family: 'Gotthard';
+  font-style: normal;
+  src: local('Gotthard'), url(./Fonts/gotthard.ttf) format('truetype');
+}
+
+@font-face {
+  font-family: 'Alegreya SC';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Alegreya SC'), local('AlegreyaSC-Regular'), url(./Fonts/AlegreyaSC-Regular.woff) format('woff');
+}
+
+@font-face {
+  font-family: 'Gafata';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Gafata'), local('Gafata-Regular'), url(./Fonts/Gafata-Regular.woff) format('woff');
+}
+
+
+
+body {
+/*
+  background: #1c1e20;
+  background: -moz-radial-gradient(center, circle cover, #555a5f 0%, #1c1e20 100%);
+  background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%, #555a5f), color-stop(100%, #1c1e20));
+  background: -webkit-radial-gradient(center, circle cover, #555a5f 0%, #1c1e20 100%);
+  background: -o-radial-gradient(center, circle cover, #555a5f 0%, #1c1e20 100%);
+  background: -ms-radial-gradient(center, circle cover, #555a5f 0%, #1c1e20 100%);
+  background: radial-gradient(center, circle cover, #555a5f 0%, #1c1e20 100%);
+  background-color: #2b2b2b; 
+  font-size: 0.15em;
+*/
+  background-image:url('fabric_of_squares_gray_@2X.png');
+  font-family: "Gafata";
+}
+
+h1 {
+  font-size: 2.5em;
+  line-height: 1.0em;
+  color: #404080;
+  font-family: "Alegreya SC";
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  background-color:rgba(0,0,0,.2);
+  box-shadow: 6px 6px 6px rgba(0,0,0,.7);
+  margin-right: 1%;   margin-left: 1%;
+  margin-top: 5px;    margin-bottom:5px;
+  /*
+  border-left-width:10px;  border-left-style:solid;
+  border-right-width:10px; border-right-style:solid;
+  */
+  padding-left:2%;         padding-right:2%;
+  padding-top:0px;         padding-bottom:0px;
+  border-top-width:2px;  border-top-style:solid;
+  border-bottom-width:2px; border-bottom-style:solid;
+}
+
+
+h2 {
+  font-size: 2.0em;
+  line-height: 1.0em;
+  color: #404080;
+  font-family: "Alegreya SC";
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  background-color:rgba(0,0,0,.25);
+  box-shadow: 4px 4px 4px rgba(0,0,0,.5);
+  margin-right: 1.1%;   margin-left: 1.1%;
+  margin-top: 5px;    margin-bottom:5px;
+  /*
+  border-left-width:7px;  border-left-style:solid;
+  border-right-width:7px; border-right-style:solid;
+  */
+  border-top-width:2px;  border-top-style:solid;
+  border-bottom-width:2px; border-bottom-style:solid;
+  padding-left:2%;         padding-right:2%;
+  padding-top:0px;         padding-bottom:0px;
+}
+
+
+
+
+h3 {
+  font-size: 1.75em;
+  line-height: 1.0em;
+  color: #404080;
+  font-family: "Alegreya SC";
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  background-color:rgba(0,0,0,.2);
+  box-shadow: 2px 2px 2px rgba(0,0,0,.3);
+  margin-right: 1.2%;   margin-left: 1.2%;
+  margin-top: 2px;    margin-bottom:2px;
+  /*
+  border-left-width:4px;  border-left-style:solid;
+  border-right-width:4px; border-right-style:solid;
+  */
+  border-top-width:2px;  border-top-style:solid;
+  border-bottom-width:2px; border-bottom-style:solid;
+  padding-left:2%;         padding-right:2%;
+  padding-top:0px;         padding-bottom:0px;
+}
+
+
+h4 {
+  font-size: 1.5em;
+  line-height: 1.0em;
+  color: #404080;
+  font-family: "Alegreya SC";
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  background-color:rgba(0,0,0,.1);
+  box-shadow: 2px 2px 2px rgba(0,0,0,.3);
+  margin-right: 1.3%;   margin-left: 1.3%;
+  margin-top: 2px;    margin-bottom:2px;
+  border-left-width:2px;  border-left-style:solid;
+  border-right-width:2px; border-right-style:solid;
+  padding-left:2%;         padding-right:2%;
+  padding-top:0px;         padding-bottom:0px;
+}
+
+
+h5 {
+  font-size: 1.5em;
+  line-height: 1.0em;
+  color: #404080;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  background-color:rgba(0,0,0,.1);
+  margin-left: 5.0%;
+  margin-right: 5%;  
+  margin-top: 20px;    margin-bottom:2px;
+  border-top-width:2px;  border-top-style:solid;
+  border-bottom-width:2px; border-bottom-style:solid;
+  /*  padding-left:2%;         padding-right:2%;*/
+  padding-top:0px;         padding-bottom:2px;
+}
+
+h6 {
+  font-size: 1.25em;
+  line-height: 1.0em;
+  color: #404080;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  margin-right: 5%;   
+  margin-left: 5%;
+  margin-top: 2px;   
+  margin-bottom:2px;
+  /*  border-top-width:2px;  border-top-style:solid; */
+  border-bottom-width:2px; border-bottom-style:solid;
+  /*  padding-left:2%;         padding-right:2%;*/
+  padding-top:0px;         padding-bottom:2px;
+}
+
+
+
+a:link    {color:#404040; text-decoration:none;}      /* unvisited link */
+a:visited {color:#404040; text-decoration:none;}  /* visited link */
+a:hover   {color:#c02020; background-color: rgba(200,0,0,0.1); text-decoration:none;}  /* mouse over link */
+a:active  {color:#0000FF; text-decoration:none;}  /* selected link */
+
+
+p {
+/*
+  margin-top: 5%;
+  margin-bottom: 5%;
+  text-indent: 1.5em;
+*/
+  margin-right: 5%;
+  margin-left: 5%;
+}
+
+
+/*
+p + p {
+  text-indent: 1.5em;
+  margin-right: 5%;
+  margin-left: 5%;
+}
+*/
+
+
+.pmulti {
+  text-indent: 1.5em;
+  text-align:justify;
+  text-justify:inter-word;
+
+  -webkit-column-count:2; /* Chrome, Safari, Opera */
+  -moz-column-count:2; /* Firefox */
+  column-count:2;
+
+  -webkit-column-gap:40px; /* Chrome, Safari, Opera */
+  -moz-column-gap:40px; /* Firefox */
+  column-gap:40px;
+
+  -webkit-column-rule:3px outset rgba(0, 0, 0, 0.1); /* Chrome, Safari, Opera */
+  -moz-column-rule:3px outset rgba(0, 0, 0, 0.1); /* Firefox */
+  column-rule:3px outset rgba(0, 0, 0, 0.1);
+}
+
+
+.figcaption {
+  font-size: 0.85em;
+  font-style:italic;
+  text-align:left;
+  text-justify:none;
+/*  color: rgba(0,0,0,0.7); */
+}
+
+
+TODO {
+ color: #d03030;
+  background-color: rgba(200,0,0,0.1);
+}
+
+
+/* ---------    Code Inline -------------------- */
+*#xfoo {
+  font-family:"Monaco";
+  font-size: 1.95em;
+ background-color: rgba(200,0,0,0.5);
+/*  color: rgba(200,0,0,0.5);  */
+    color: #ff0000  ! important;
+}
+
+
+
+
+
+.apiBlock {
+  margin-left: 6%;  
+  margin-right: 6%;  
+/*  border-left-width:2px;  border-left-style:solid;*/
+/*  border-right-width:2px; border-right-style:solid;*/
+}
+
+
+
+.apiBlock .Label {
+/*
+  margin-left: 200px;  
+  padding-left: 2.5%;  
+  padding-right: 2.5%;  
+  margin-right: 20px;   
+  padding-bottom: 20px;
+*/
+  font-family:"Monaco";
+  font-size: 1.0em;
+  width: 120px;
+  color: #7070a0;
+  vertical-align:text-top;
+}
+
+
+.apiBlock .apiFunc .Proto {
+/*
+  margin-left: 0%;   
+  margin-right: 0%;   
+  padding-bottom: 20px;
+*/
+  font-family:"Monaco";
+  font-size: 0.85em;
+  vertical-align:text-top;
+}
+
+
+/* ---------  Synopsis  -------------------- */
+.apiBlock .apiSynopsis {
+  margin-right: 5%;   margin-left: 5%;
+}
+
+
+
+/* ---------   Arguments  --------------------  */
+.apiBlock .apiArgs {
+/*
+  margin-left: 5%;   margin-right: 5%;   
+  color: #00ff00;
+  margin-top: 0px;   margin-bottom:0px;
+*/
+}
+
+
+.apiBlock .apiArgs .argName {
+/* background-color:rgba(100, 0, 0, 0.3);  */
+  font-family:"Monaco";
+  font-size: 0.85em;
+ min-width:100px;
+}
+
+.apiBlock .apiArgs .argType {
+/* background-color:rgba(0, 100, 0, 0.3);  */
+  font-family:"Monaco";
+  font-style:italic;
+  font-size: 0.93em;
+  color: rgba(0, 0, 0, 0.6);
+  width:100px;
+}
+
+.apiBlock .apiArgs .argDesc {
+/* background-color:rgba(0, 100, 0, 0.3);  */
+  /*
+  font-family:"Monaco";
+  font-style:italic;
+  font-size: 0.93em;
+    max-width:350px; 
+  color: rgba(0, 0, 0, 0.6);
+   */
+  padding-top:8px;
+}
+
+
+
+/* ---------  Return Value  -------------------- */
+
+.apiBlock .apiRetVal {
+/*  margin-right: 3%;   margin-left: 3%;
+*/
+}
+
+.apiBlock .apiRetVal .Label {
+ width: 120px;
+ }
+
+.apiBlock .apiRetVal .Type {
+/* background-color:rgba(100, 0, 0, 0.3); */
+  font-family:"Monaco";
+  /*  font-style:italic;*/
+  font-size: 0.80em;
+  white-space: pre;
+  padding-bottom: 20px;
+}
+
+/*
+.apiBlock .apiRetVal .Desc {
+  min-width: 500px;
+ }
+*/
+
+/* ---------  Examples -------------------- */
+
+.apiBlock .Examples {
+/*  margin-right: 5%;   margin-left: 5%;
+*/
+}
+
+
+.apiBlock .Examples .Label {
+ width: 120px;
+ }
+
+.apiBlock .Examples .Example {
+/*
+  display:block; 
+  margin-left: 0%;  
+  margin-right: 20px;   
+  float: left;
+  padding-left:10px;
+  padding-top:7px; 
+  background-color: rgba(0, 0, 0, 0.1);
+*/
+  font-family:"Monaco";
+  font-size: 0.80em;
+  /*  width:450px;*/
+  /*
+  */
+  max-width:500px;
+  /*  min-width:300px; */
+  white-space: pre;
+  padding-bottom:15px;
+  padding-right:20px;
+}
+
+
+
+
+.apiBlock .Examples .Desc {
+  /*
+  display:block; 
+  font-family:'Gafata';
+  background-color:#303030;
+  padding-bottom: 20px;
+  color: #707070;
+
+ width: 500px;
+*/
+  padding-top:8px;
+}
+
+
+/*
+
+function {
+
+  margin-top: 5%;
+
+  margin-right: 10%;
+  margin-left: 10%;
+
+        line-height: 1;
+}
+*/
+
+
+dd {
+  padding-bottom: 10px;
+}
+/*
+
+dt {
+  float:left;
+ width:100px;
+ clear: left;
+  float:left;
+}
+
+
+
+dl.inline dt, dl.inline dd {
+ display: inline;
+  float: left;
+ margin: 0 0.5em 0 0;
+}
+
+dl.inline dd + dt, dl.inline dd + dd {
+ clear: left;
+}
+*/
+  /*
+dd,dt  {
+  padding-top:5px;
+  padding-bottom:5px;
+}
+  */
+
+  /*
+
+dt {
+  float:left; 
+  padding-right: 5px; 
+  min-width:120px;
+    font-weight: bolder; 
+}
+  */
+/* dd {padding-left: 5px;} Does not work */
+/*
+dt {
+   clear: left; 
+}
+*/
+/*
+dt, dd {
+  float:left; 
+    min-height:1.5em;
+}
+*/
