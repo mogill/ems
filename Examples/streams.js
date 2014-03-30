@@ -30,7 +30,7 @@
  +-----------------------------------------------------------------------------*/
 //  Usage:   node wordCount.js <number of threads>
 //    Executes in fork-join mode
-var ems = require("../Addon/index.js")(parseInt(process.argv[2]), true, true)
+var ems = require("ems")(parseInt(process.argv[2]), true, true)
 
 ems.parallel( function() { 
     arrLen = 1000000
