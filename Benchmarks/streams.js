@@ -28,64 +28,79 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require("../Addon/index.js")(parseInt(process.argv[2]), true, true)
-var util = require('../Tests/testUtils')
+//var ems = require('ems')(parseInt(process.argv[2]), true, true)
+var ems = require('../Addon/index.js')(parseInt(process.argv[2]), true, true)
 
-var totalTime = util.timerStart()
 ems.parallel( function() { 
-    util = require('/Users/mogill/Src/EMS.js/Tests/testUtils')
+    //-------------------------------------------------------------------
+    //  Timer functions
+    function timerStart(){ return new Date().getTime() }
+    function timerStop(timer, nOps, label, myID) {
+	function fmtNumber(n) {
+	    var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+	    if(n < 1) return n
+	    else    { return s.substr(s.length - 15, s.length)  }
+	}
+	var now = new Date().getTime()
+	var opsPerSec = (nOps*1000000) / ((now - timer) *1000)
+	if(typeof myID === undefined  ||  myID === 0) {
+            console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
+	}
+    }
+    
+    totalTime = timerStart()
     arrLen = 1000000
     a = ems.new(arrLen)
     b = ems.new(arrLen)
     c = ems.new(arrLen)
 
-    var timeStart = util.timerStart()
+    var startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.write(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " write   ", ems.myID)
+    timerStop(startTime, arrLen, " write   ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.writeXE(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " writeXE ", ems.myID)
+    timerStop(startTime, arrLen, " writeXE ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.writeXF(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " writeXF ", ems.myID)
+    timerStop(startTime, arrLen, " writeXF ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.read(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " read    ", ems.myID)
+    timerStop(startTime, arrLen, " read    ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.read(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " reread  ", ems.myID)
+    timerStop(startTime, arrLen, " reread  ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.readFF(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " readFF  ", ems.myID)
+    timerStop(startTime, arrLen, " readFF  ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.readFE(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " readFE  ", ems.myID)
+    timerStop(startTime, arrLen, " readFE  ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { a.writeEF(idx, idx) } )
-    util.timerStop(timeStart, arrLen, " writeEF ", ems.myID)
+    timerStop(startTime, arrLen, " writeEF ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { b.writeXF(idx, a.readFF(idx)) } )
-    util.timerStop(timeStart, arrLen, " copy    ", ems.myID)
+    timerStop(startTime, arrLen, " copy    ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { b.writeXF(idx, a.readFF(idx)) } )
-    util.timerStop(timeStart, arrLen, " recopy  ", ems.myID)
+    timerStop(startTime, arrLen, " recopy  ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, a.readFF(idx) * b.readFF(idx)) } )
-    util.timerStop(timeStart, arrLen, " c=a*b   ", ems.myID)
+    timerStop(startTime, arrLen, " c=a*b   ", ems.myID)
 
-    timeStart = util.timerStart()
+    startTime = timerStart()
     ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, c.readFF(idx) + (a.readFF(idx) * b.readFF(idx))) } )
-    util.timerStop(timeStart, arrLen, " c+=a*b  ", ems.myID)
+    timerStop(startTime, arrLen, " c+=a*b  ", ems.myID)
 
 } )
 

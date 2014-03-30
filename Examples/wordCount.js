@@ -30,7 +30,8 @@
  +-----------------------------------------------------------------------------*/
 //  Usage:   node wordCount.js <number of threads>
 //    Executes in bulk synchronous parallel mode
-var ems  = require('ems')(process.argv[2])
+//var ems  = require('ems')(process.argv[2])
+var ems = require('../Addon/index.js')(parseInt(process.argv[2]), true, true)
 var fs   = require("fs")
 
 //-------------------------------------------------------------------

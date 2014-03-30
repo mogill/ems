@@ -29,7 +29,8 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 // Initialize EMS to use the fork-join execution model instead of BSP
-var ems = require('ems')(parseInt(process.argv[2]), true, true)
+//var ems = require('ems')(parseInt(process.argv[2]), true, true)
+var ems = require('../Addon/index.js')(parseInt(process.argv[2]), true, true)
 
 
 
