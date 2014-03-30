@@ -29,8 +29,31 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 // Initialize EMS to use the fork-join execution model instead of BSP
-var ems = require("../Addon/index.js")(parseInt(process.argv[2]), true, true)
-var util = require('../Tests/testUtils')
+var ems = require('ems')(parseInt(process.argv[2]), true, true)
+
+
+
+//---------------------------------------------------------------------------
+//  Generate a random integer within a range (inclusive) from 'low' to 'high'
+function randomInRange(low, high) {
+    return( Math.floor((Math.random() * (high - low)) + low) ) 
+}
+
+//-------------------------------------------------------------------
+//  Timer functions
+function timerStart(){ return new Date().getTime() }
+function timerStop(timer, nOps, label, myID) {
+    function fmtNumber(n) {
+	var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+	if(n < 1) return n
+	else    { return s.substr(s.length - 15, s.length)  }
+    }
+    var now = new Date().getTime()
+    var opsPerSec = (nOps*1000000) / ((now - timer) *1000)
+    if(typeof myID === undefined  ||  myID === 0) {
+        console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
+    }
+}
 
 
 //---------------------------------------------------------------------------
@@ -39,7 +62,6 @@ var util = require('../Tests/testUtils')
 //  tables to perform transactions on.
 //
 function initializeSharedData() {
-    util = require('/Users/mogill/Src/EMS.js/Tests/testUtils')
     arrLen = 1000000
     heapSize = 100000
     nTransactions = 1000000
@@ -93,11 +115,11 @@ function generateTransactions() {
     // and enqueue them on the work queue
     for(var transN = 0;  transN < nTransactions;  transN++)  {
 	var ops = []
-	var nOps = util.randomInRange(1, maxNops)
+	var nOps = randomInRange(1, maxNops)
 	var indexes = []
 	for(var opN = 0;  opN < nOps;  opN++) {
-	    var tableN = util.randomInRange(0, nTables)
-	    var idx    = util.randomInRange(0, arrLen)
+	    var tableN = randomInRange(0, nTables)
+	    var idx    = randomInRange(0, arrLen)
 	    if(transN % 2 == 0  ||  opN % 3 > 0)  { ops.push([tableN, idx, true]) }
 	    //	if(opN % 3 > 0)  { ops.push([tableN, idx, true]) }
 	    else             { ops.push([tableN, idx]) }
@@ -141,7 +163,7 @@ function performTransactions() {
     //------------------------------------------------------------------
     //  Generate the transactions concurrently with their consumption
     if(ems.myID == 0) {
-	startTime = util.timerStart()
+	startTime = timerStart()
 	generateTransactions()
 
 	//  After all the work has been enqueued, add DONE semaphores to the
@@ -151,7 +173,7 @@ function performTransactions() {
 	for( var taskN = 0;  taskN < ems.nNodes;  taskN++ ) {
 	    workQ.enqueue("DONE")
 	}
-	util.timerStop(startTime, nTransactions, " transactions enqueued ", ems.myID)
+	timerStop(startTime, nTransactions, " transactions enqueued ", ems.myID)
     }
 
 
@@ -194,9 +216,9 @@ function performTransactions() {
 
 //-------------------------------------------------------
 //  Initialize the shared data
-startTime = util.timerStart()
+startTime = timerStart()
 ems.parallel(initializeSharedData)
-util.timerStop(startTime, nTables, " tables initialized    ", ems.myID)
+timerStop(startTime, nTables, " tables initialized    ", ems.myID)
 
 //  Data to be initialized only once
 totalNops.writeXF(0, 0)
@@ -205,16 +227,16 @@ checkNops.writeXF(0, 0)
 
 
 //  Perform all the transactions
-startTime = util.timerStart()
+startTime = timerStart()
 ems.parallel(performTransactions)
-util.timerStop(startTime, nTransactions, " transactions performed", ems.myID)
-util.timerStop(startTime, totalNops.readFF(0), " table updates         ", ems.myID)
-util.timerStop(startTime, totalNops.readFF(0) + totalNops.readFF(1), " elements referenced   ", ems.myID)
+timerStop(startTime, nTransactions, " transactions performed", ems.myID)
+timerStop(startTime, totalNops.readFF(0), " table updates         ", ems.myID)
+timerStop(startTime, totalNops.readFF(0) + totalNops.readFF(1), " elements referenced   ", ems.myID)
 
 
 //------------------------------------------------------------------
 //  Sum all the values in the tables to account for all the transactions
-startTime = util.timerStart()
+startTime = timerStart()
 ems.parallel( function() {
     ems.parForEach( 0, nTables, function(tableN) {
 	var localSum = 0
@@ -224,7 +246,7 @@ ems.parallel( function() {
 	checkNops.faa(0, localSum)
     } )
 } )
-util.timerStop(startTime, nTables * arrLen, " elements checked      ", ems.myID)
+timerStop(startTime, nTables * arrLen, " elements checked      ", ems.myID)
 
 if(checkNops.readFF(0) != totalNops.readFF(0)) {
     ems.diag("Error in final sum = " + checkNops.readFF(0) + "   should be=" + totalNops.readFF(0))

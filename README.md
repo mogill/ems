@@ -1,6 +1,6 @@
 # Extended Memory Semantics (EMS)
 
-EMS is a NPM Package that makes possible shared memory multithreaded parallelism in Node.js.
+EMS is a Node.js NPM Package that makes possible shared memory multithreaded parallelism.
 
 ### <em>EMS is targeted at problems too large for one core, but too small for a scalable cluster.</em>
 
@@ -83,8 +83,8 @@ customer records.
 
 ```javascript
 var ems = require('ems')(process.argv[2])        // Initialize EMS
-var customers = ems.new(...)                     // Allocate EMS memory with a heap
-var accounts  = ems.new(...)                     // Allocate scalars only, no heap for objects
+var customers = ems.new(...)                     // Allocate EMS memory for customer records
+var accounts  = ems.new(...)                     // Allocate accounts
 ...
 // Start a transaction involving Bob and Sue
 var transaction= ems.tmStart( [ [customers, 'Bob Smith', true],  // Read-only:  Bob's customer record
@@ -108,17 +108,17 @@ if(balance > paymentAmount) {                               // Test for overdraf
 
 
 <br><br>
-## Synchronization As a Property of the Data, Not a Duty for Tasks
+## Synchronization as a Property of the Data, Not a Duty for Tasks
 
-  EMS internally stores tags that are used for synchronization of
-  user data, allowing synchronization to happen independently of
-  the number or kind of processes accessing the data.  The tags
-  can be thought of as being in one of three states, <em>Empty,                                                            
-  Full,</em> or <em>Read-Only</em>, and the EMS primitives enforce
-  atomic access through automatic state transitions.
+EMS internally stores tags that are used for synchronization of
+user data, allowing synchronization to happen independently of
+the number or kind of processes accessing the data.  The tags
+can be thought of as being in one of three states, <em>Empty,
+Full,</em> or <em>Read-Only</em>, and the EMS intrinsic functions
+enforce atomic access through automatic state transitions.
 
-The EMS array may be indexed directly using an integer, or using a key
-  mapping of any primitive type.  When a map is used, the key and data
+The EMS array may be indexed directly using an integer, or using a key-index
+mapping from any primitive type.  When a map is used, the key and data
   itself are updated atomically.
   
 
@@ -126,10 +126,10 @@ The EMS array may be indexed directly using an integer, or using a key
   <table >
     <tr>
       <td>
-  <img style="clear:both; width:300px;  margin-left: 30px;"
-   src="http://synsem.com/EMS.js/memLayoutLogical.svg" type="image/svg+xml" />
-    <em>    <br><br> 
     <center>
+      <img style="width:350px; "
+	   src="http://synsem.com/EMS.js/memLayoutLogical.svg" type="image/svg+xml" />
+      <em>    <br><br> 
     EMS memory is an array of JSON primitive values
         (Number, Boolean, String, or Undefined) accessed using atomic
         operators and/or transactional memory.  Safe parallel access
@@ -141,7 +141,7 @@ The EMS array may be indexed directly using an integer, or using a key
     </td>
     <td width="50%">
       <center>
-  <img style="clear:both; height:200px;  margin-left: 30px;"
+  <img style="height:270px; "
    src="http://synsem.com/EMS.js/fsmSimple.svg" type="image/svg+xml" />
     <em>    <br><br> EMS Data Tag Transitions & Atomic operations:
     F=Full, E=Empty, X=Don't Care, RW=Readers-Writer lock (# of current readers)
@@ -153,13 +153,12 @@ The EMS array may be indexed directly using an integer, or using a key
   </center>  
 
 ### Less is More
-The reduced complexity of
-lightweight threads executing on a multicore server and 
-communicating through shared memory
-is reflected in a rapid code-debug cycle for easy development.
-And because all systems are already multicore, 
+Because all systems are already multicore, 
 multithreading requires no additional equipment, system permissions,
 or application services, making it easy to get started.
+The reduced complexity of
+lightweight threads communicating through shared memory
+is reflected in a rapid code-debug cycle for ad-hoc application development.
 
 
 ## More Technical Information
@@ -170,9 +169,6 @@ For a more complete description of the principles of operation,
 <br>
 <center>
   <img src="http://synsem.com/EMS.js/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
-    <br><br>
-    A logical overview of what program statements cause threads to be created
-    and how shared data is referenced.
 </center>
 
 <br>
@@ -182,15 +178,36 @@ For a more complete description of the principles of operation,
 EMS is available as a NPM Package.  It has no external dependencies,
 but does require compiling native C++ functions using <code>node-gyp</code>,
 which is also available as a NPM.
+<br>
+```csh
+npm -g install ems
+```
+Note: Install EMS globally (<code>-g</code>) so forked threads can find the package.
+
 
 #### GitHub
-This is the GitHub page.
+Download the source code.  Be sure to compile the native code with <code>node-gyp</code>,
+```csh
+git clone https://github.com/SyntheticSemantics/ems.git
+cd ems/Addon/
+node-gyp configure
+node-gyp build
+cd ../Examples/
+node streams.js 8
+```
+Note that because EMS fortks threads that also use the EMS module, 
+developers modifying EMS source code must ensure the <code>emsThreadStub</code>
+is set to use the development EMS package, not the one installed system-wide,
+which will be used by default.
+
 
 ## Platforms Supported
-Presently Mac/Darwin and Linux are supported.
+Presently Mac/Darwin and Linux are supported.  There is no technical reason it would not 
+also work on Windows with POSIX functions replaced using the MS equivalent.
+Contributions are welcomed!
 
 ## License
-BSD, other commercial licenses are available.
+BSD, other commercial and open source licenses are available.
 
 ## Links
 [Visit the EMS web site.](http://synsem.com/EMS.js/)

@@ -449,7 +449,7 @@ function ems_wrapper(nNodesArg, pinThreadsArg, useSlaveTasks) {
     //  The master thread has completed initialization, other threads may now
     //  safely join and they are forked presently
     if(retObj.myID == 0) {
-	var emsThreadStub = 'ems = require("/Users/mogill/Src/EMS.js/Addon/index.js")(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
+	var emsThreadStub = 'ems = require(\'ems\')(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
 	fs.writeFileSync('/tmp/EMSthreadStub.js', emsThreadStub, {flag:'w+'})
 	for( var taskN = 1;  taskN < nNodes;  taskN++) {
 	    retObj.tasks.push(

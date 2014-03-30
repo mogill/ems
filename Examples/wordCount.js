@@ -30,9 +30,24 @@
  +-----------------------------------------------------------------------------*/
 //  Usage:   node wordCount.js <number of threads>
 //    Executes in bulk synchronous parallel mode
-var ems  = require("../Addon/index.js")(process.argv[2])
-var util = require('../Tests/testUtils')
+var ems  = require('ems')(process.argv[2])
 var fs   = require("fs")
+
+//-------------------------------------------------------------------
+//  Timer functions
+function timerStart(){ return new Date().getTime() }
+function timerStop(timer, nOps, label, myID) {
+    function fmtNumber(n) {
+	var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+	if(n < 1) return n
+	else    { return s.substr(s.length - 15, s.length)  }
+    }
+    var now = new Date().getTime()
+    var opsPerSec = (nOps*1000000) / ((now - timer) *1000)
+    if(typeof myID === undefined  ||  myID === 0) {
+        console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
+    }
+}
 
 //-------------------------------------------------------------------
 //  Allocate the word count dictionary
@@ -68,9 +83,9 @@ var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\
 
 //-------------------------------------------------------------------
 //  Loop over the files in parallel, counting words
-var totalTime    = util.timerStart()
+var totalTime    = timerStart()
 ems.parForEach(0, 200,  function(bufNum) {  // First 200 docs, not entire collection
-    var fileTimer = util.timerStart()
+    var fileTimer = timerStart()
     var text = fs.readFileSync('/Users/mogill/Src/Data/Gutenberg/all/' + dir[bufNum], 'utf8', "r")
     var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
     words.forEach( function(word, wordN) {
@@ -82,9 +97,9 @@ ems.parForEach(0, 200,  function(bufNum) {  // First 200 docs, not entire collec
     stats.faa('nWords', words.length)
     stats.faa('nBytesRead', text.length)
     //  Note:  This diagnostic only prints on node 0, so not all iterations produce output
-    util.timerStop(fileTimer, words.length, " words in file " + dir[bufNum] + " processed at ", ems.myID)
+    timerStop(fileTimer, words.length, " words in file " + dir[bufNum] + " processed at ", ems.myID)
 } )
 
 
-util.timerStop(totalTime, stats.read('nWords'), " Words parsed ", ems.myID)
-util.timerStop(totalTime, stats.read('nBytesRead'), " bytes read   ", ems.myID)
+timerStop(totalTime, stats.read('nWords'), " Words parsed ", ems.myID)
+timerStop(totalTime, stats.read('nBytesRead'), " bytes read   ", ems.myID)
