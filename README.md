@@ -208,10 +208,6 @@ cd ../
 # Run an example on 8 threads
 node concurrent_Q_and_TM.js 8
 ```
-Note that because EMS fortks threads that also use the EMS module, 
-developers modifying EMS source code must ensure the <code>emsThreadStub</code>
-is set to use the development EMS package, not the one installed system-wide,
-which will be used by default.
 
 
 ## Platforms Supported
