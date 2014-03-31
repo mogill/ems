@@ -1,6 +1,6 @@
 {
     "name": "ems",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "author": "Synthetic Semantics <info@synsem.com>",
     "description": "Shared Memory Parallelism with Transactional Memory and Extended Memory Semantics",
     "contributors": [ 
@@ -19,9 +19,11 @@
     },
     "keywords": [
 	"multithreading", "multithreaded",
-	"parallel",
+	"parallel", "parallelism", "concurrency",
 	"shared memory", 
-	"transactional memory", "tm"
+	"multicore", "manycore",
+	"transactional memory", "TM",
+	"Extended Memory Semantics", "EMS"
     ],
     "license": "BSD",
     "engines": {

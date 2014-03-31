@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -1879,7 +1879,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   int       setFEtags   =  args[9]->ToInteger()->Value();
                 EMSmyID = args[10]->ToInteger()->Value();
   int       pinThreads  = args[11]->ToBoolean()->Value();
-  int       nNodes      = args[12]->ToInteger()->Value();
+  int       nThreads    = args[12]->ToInteger()->Value();
 
   int fd;
 
@@ -1914,7 +1914,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   bottomOfHeap = bottomOfMalloc + sizeof(struct emsMem) + (nMemBlocksPow2 * 2 -2);
 
   if(nElements <= 0) {
-    filesize = EMS_CB_LOCKS + nNodes;   // EMS Control Block
+    filesize = EMS_CB_LOCKS + nThreads;   // EMS Control Block
     filesize *= sizeof(int);
   } else {
     filesize = bottomOfHeap + (nMemBlocksPow2 * EMS_MEM_BLOCKSZ);
@@ -1939,13 +1939,13 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
 
   if(EMSmyID == 0) {
     if(nElements <= 0) {   // This is the EMS CB
-      bufInt32[EMS_CB_NTHREADS]   = nNodes;
-      bufInt32[EMS_CB_NBAR0]    = nNodes;
-      bufInt32[EMS_CB_NBAR1]    = nNodes;
+      bufInt32[EMS_CB_NTHREADS]   = nThreads;
+      bufInt32[EMS_CB_NBAR0]    = nThreads;
+      bufInt32[EMS_CB_NBAR1]    = nThreads;
       bufInt32[EMS_CB_BARPHASE] = 0;
       bufInt32[EMS_CB_CRITICAL] = 0;
       bufInt32[EMS_CB_SINGLE]   = 0;
-      for(int i = EMS_CB_LOCKS;  i < EMS_CB_LOCKS + nNodes;  i++) {
+      for(int i = EMS_CB_LOCKS;  i < EMS_CB_LOCKS + nThreads;  i++) {
 	bufInt32[i] = EMS_BUSY;  //  Reset all locks
       }
     } else {   //  This is a user data domain
@@ -1973,13 +1973,13 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
 #if defined(__linux)
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET((EMSmyID % nNodes), &cpuset);  // Round-robin over-subscribed systems
+    CPU_SET((EMSmyID % nThreads), &cpuset);  // Round-robin over-subscribed systems
     sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
 #endif
   }
   EMStag    tag;
   tag.tags.rw   = 0;
-  int64_t  iterPerThread = (nElements / nNodes) + 1;
+  int64_t  iterPerThread = (nElements / nThreads) + 1;
   int64_t  startIter     = iterPerThread * EMSmyID;
   int64_t  endIter       = iterPerThread * (EMSmyID+1);
   if(endIter > nElements)  endIter = nElements;

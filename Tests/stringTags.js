@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -39,13 +39,13 @@ var computed = "init"+ems.myID
 assert(data.readFF(ems.myID) == 100+ems.myID, "Readback FF was wrong: "+readback+ " != "+computed)
 
 ems.barrier()
-assert(data.readFE(ems.myID)  ==  100+(ems.myID)%ems.nNodes, "Bad wrap one " + data.read(ems.myID)+ " "+
-       (100+((ems.myID)%ems.nNodes)) )
+assert(data.readFE(ems.myID)  ==  100+(ems.myID)%ems.nThreads, "Bad wrap one " + data.read(ems.myID)+ " "+
+       (100+((ems.myID)%ems.nThreads)) )
 
-data.writeEF((ems.myID+2)%ems.nNodes, "second"+ems.myID)
+data.writeEF((ems.myID+2)%ems.nThreads, "second"+ems.myID)
 
 var readback = data.readFF(ems.myID)
-var computed = "second"+(ems.myID-2+ems.nNodes)%ems.nNodes
+var computed = "second"+(ems.myID-2+ems.nThreads)%ems.nThreads
 assert(readback == computed, "Bad snake shift: "+readback+" != "+computed)
 
 

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -60,7 +60,7 @@ for(var old=0;  old < data.length;  old++ ) {
     }
 }
 ems.barrier()
-var id = (ems.myID + 1) % ems.nNodes;
+var id = (ems.myID + 1) % ems.nThreads;
 for(var memIdx=0;  memIdx < data.length;  memIdx++ ) {
     for(var oldIdx=0;  oldIdx < data.length;  oldIdx++ ) {
 	for(var newIdx=0;  newIdx < data.length;  newIdx++ ) {

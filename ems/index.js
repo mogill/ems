@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -113,7 +113,7 @@ function EMSparForEach( start,         // First iteration's index
     switch(scheduleType) {
     case 'static':     // Evenly divide the iterations across threads
 	var range = end - start
-	var blocksz = Math.floor(range / EMSglobal.nNodes)+1
+	var blocksz = Math.floor(range / EMSglobal.nThreads)+1
 	var s = blocksz * EMSglobal.myID
 	var e = blocksz * (EMSglobal.myID+1)
 	if(e > end) { e = end }
@@ -375,7 +375,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 					 emsDescriptor.dataFill,
 					 (emsDescriptor.setFEtags === 'undefined') ? false : true,
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
-					 this.myID, this.pinThreads, this.nNodes)
+					 this.myID, this.pinThreads, this.nThreads)
 	this.barrier()
     } else {
 	this.barrier()
@@ -387,7 +387,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 					 (emsDescriptor.setFEtags === 'undefined') ? false : true,
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
 					 this.myID,
-                                         this.pinThreads, this.nNodes)
+                                         this.pinThreads, this.nThreads)
     }
 
     emsDescriptor.regionN   = this.newRegionN
@@ -418,7 +418,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 //==================================================================
 //  EMS object initialization, invoked by the require statement
 //
-function ems_wrapper(nNodesArg, pinThreadsArg, useSlaveTasks) {
+function ems_wrapper(nThreadsArg, pinThreadsArg, useSlaveTasks) {
     var retObj = { tasks : [] }
 
     // TODO: Determining the thread ID should be done via shared memory
@@ -431,17 +431,17 @@ function ems_wrapper(nNodesArg, pinThreadsArg, useSlaveTasks) {
     var pinThreads = true
     if(typeof pinThreadsArg === 'boolean') { pinThreads = pinThreadsArg }
 
-    var nNodes
-    nNodes = parseInt(nNodesArg)
-    if( !(nNodes > 0) ) {
-	console.log("EMS: Must declare number of nodes to use.  Input:"+nNodesArg)
+    var nThreads
+    nThreads = parseInt(nThreadsArg)
+    if( !(nThreads > 0) ) {
+	console.log("EMS: Must declare number of nodes to use.  Input:"+nThreadsArg)
 	process.exit(1)
     }
 
     //  All arguments are defined -- now do the EMS initialization
     var domainName = '/EMS_MainDomain';
     retObj.data = EMS.initialize(0, 0, false, domainName, false, false,
-				 false, 0, false, 0, retObj.myID, pinThreads, nNodes) 
+				 false, 0, false, 0, retObj.myID, pinThreads, nThreads) 
 
     var targetScript = process.argv[1];
     if(useSlaveTasks) { targetScript = './EMSthreadStub' }
@@ -451,14 +451,14 @@ function ems_wrapper(nNodesArg, pinThreadsArg, useSlaveTasks) {
     if(retObj.myID == 0) {
 	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
 	fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag:'w+'})
-	for( var taskN = 1;  taskN < nNodes;  taskN++) {
+	for( var taskN = 1;  taskN < nThreads;  taskN++) {
 	    retObj.tasks.push(
                 child_process.fork(targetScript,
 				   process.argv.slice(2, process.argv.length).concat('EMS_Subtask', taskN)) )
 	}
     }
 
-    retObj.nNodes     = nNodes
+    retObj.nThreads   = nThreads
     retObj.pinThreads = pinThreads
     retObj.domainName = domainName
     retObj.newRegionN = 0

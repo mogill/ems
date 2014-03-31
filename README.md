@@ -1,6 +1,6 @@
 # Extended Memory Semantics (EMS)
 
-EMS is a Node.js NPM Package that makes possible shared memory multithreaded parallelism.
+EMS makes possible shared memory multithreaded parallelism in Node.js.
 
 ### <em>EMS is targeted at problems too large for one core, but too small for a scalable cluster.</em>
 
@@ -34,7 +34,7 @@ are used in both execution modes.
             <td width="50%">
               <center>
   <center>
-  <img style="height:350px; margin-left: 80px;" src="http://synsem.com/EMS.js/typesOfParallelism.svg" type="image/svg+xml"  />
+  <img height="350px" style="margin-left: 80px;" src="http://synsem.com/EMS.js/typesOfParallelism.svg" type="image/svg+xml"  />
   </center>
               </center>
             </td>
@@ -44,9 +44,9 @@ are used in both execution modes.
 
 
 ## Examples
-### Word Count using Atomic Operations
-The standard example for Map-Reduce is word counting, this program shows EMS
-executing a loop in parallel and atomically incrementing the count of each
+### Word Counting Using Atomic Operations
+The typical Map-Reduce example of word counting, 
+iterating over documents in parallel and atomically incrementing the count of each
 word found.
 
 ```javascript
@@ -77,7 +77,7 @@ ems.parForEach(0, dir.length,  function(docNum) {
 ```
 
 ### Transactional Memory
-An example of using EMS Transactional Memory to atomically update
+Using EMS Transactional Memory to atomically update
 two account balances while simultaneously preventing updates to the user's 
 customer records.
 
@@ -107,7 +107,6 @@ if(balance > paymentAmount) {                               // Test for overdraf
 ```
 
 
-<br><br>
 ## Synchronization as a Property of the Data, Not a Duty for Tasks
 
 EMS internally stores tags that are used for synchronization of
@@ -171,7 +170,6 @@ For a more complete description of the principles of operation,
   <img src="http://synsem.com/EMS.js/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
 </center>
 
-<br>
 
 ## Download
 ### NPM Package
@@ -218,18 +216,18 @@ which will be used by default.
 
 ## Platforms Supported
 Presently Mac/Darwin and Linux are supported.  There is no technical reason it would not 
-also work on Windows with POSIX functions replaced using the MS equivalent.
+also work on Windows with the POSIX functions replaced using the MS equivalent.
 Contributions are welcomed!
 
 ## License
 BSD, other commercial and open source licenses are available.
 
 ## Links
-[Visit the EMS web site.](http://synsem.com/EMS.js/)
+[Visit the EMS web site](http://synsem.com/EMS.js/)
 <BR>
-[Download the NPM.](https://www.npmjs.org/package/ems)
+[Download the NPM](https://www.npmjs.org/package/ems)
 <BR>
-[Get the source at GitHub.](https://github.com/SyntheticSemantics/ems)
+[Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
 <img src="http://synsem.com/synsem_logo_black.svg" type="image/svg+xml" height="30px" style="vertical-align:middle;"> [SynSem](http://synsem.com) provides tools and services for shared memory parallelism, 

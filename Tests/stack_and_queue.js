@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -100,7 +100,7 @@ ems.master( function() {
 	tmp = b.dequeue()
 	count++
     }
-    if(count != ems.nNodes) { ems.diag( "Didn't find enough queued items") }
+    if(count != ems.nThreads) { ems.diag( "Didn't find enough queued items") }
     if(a.pop()  !== undefined) { ems.diag( "dq1: should have been empty") }
 } )
 ems.barrier()

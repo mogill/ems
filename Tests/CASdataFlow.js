@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -55,7 +55,7 @@ function stopTimer(timer, nOps, label) {
 
 //------------------------------------------------------------------------------
 // Compare and Swap numbers
-var casBuf = ems.new(ems.nNodes, 10000, '/tmp/EMS_3dstrings')
+var casBuf = ems.new(ems.nThreads, 10000, '/tmp/EMS_3dstrings')
 
 casBuf.writeXF(ems.myID, 100000+ems.myID);
 
@@ -87,10 +87,10 @@ nIters = 50000;
 for(var i = 0;  i < nIters;  i++) {
     var oldVal = -123
     while(oldVal != ems.myID) {
-	var oldVal = casBuf.cas(0, ems.myID, (ems.myID+1)%ems.nNodes )
+	var oldVal = casBuf.cas(0, ems.myID, (ems.myID+1)%ems.nThreads )
     }
 }
-stopTimer(start, nIters * ems.nNodes, " CAS Numbers      ")
+stopTimer(start, nIters * ems.nThreads, " CAS Numbers      ")
 
 
 ems.barrier()
@@ -104,7 +104,7 @@ nIters = 50000
 for(var i = 0;  i < nIters;  i++) {
     var oldVal = "no match"
     var testMe = 'test'+ems.myID
-    var testNext = 'test'+((ems.myID+1)%ems.nNodes)
+    var testNext = 'test'+((ems.myID+1)%ems.nThreads)
     while(oldVal != testMe) {
 	var oldVal = casBuf.cas(0, testMe, testNext)
     }
@@ -112,7 +112,7 @@ for(var i = 0;  i < nIters;  i++) {
 ems.barrier()
 var rff = casBuf.readFF(0)
 assert(rff == 'test0', "Incorrect final CAS string: "+rff+"  test0")
-stopTimer(start, nIters * ems.nNodes, " CAS Strings      ")
+stopTimer(start, nIters * ems.nThreads, " CAS Strings      ")
 
 ems.barrier()
 

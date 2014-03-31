@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -67,7 +67,7 @@ function stopTimer(timer, nOps, label) {
 // Spinup loop to physically allocate all memory as RW
 ems.barrier()
 start = new Date().getTime()
-for(var k = ems.myID;  k < dims3d[2];  k += ems.nNodes) {
+for(var k = ems.myID;  k < dims3d[2];  k += ems.nThreads) {
     for(var j = 0;  j < dims3d[1];  j += 1) {
 	for(var i = 0;  i < dims3d[0];  i += 1) {
 	    dim3.write([i, j, k], val3d(i, j, k))
@@ -82,13 +82,13 @@ stopTimer( start,  dims3d[0]*dims3d[1]*dims3d[2], " First touch      ")
 // Test read & write on all nodes
 ems.barrier()
 start = new Date().getTime()
-for(var k = ems.myID;  k < dims3d[2];  k += ems.nNodes) {
+for(var k = ems.myID;  k < dims3d[2];  k += ems.nThreads) {
     for(var j = 0;  j < dims3d[1];  j += 1) {
 	for(var i = 0;  i < dims3d[0];  i += 1) {
 	    dim3.write([i, j, k], val3d(k, j, i))  // different pattern
 	} } }
 
-for(var k = ems.myID;  k < dims3d[2];  k += ems.nNodes) {
+for(var k = ems.myID;  k < dims3d[2];  k += ems.nThreads) {
     for(var j = 0;  j < dims3d[1];  j += 1) {
 	for(var i = 0;  i < dims3d[0];  i += 1) {
 	    if(dim3.read([i, j, k]) != val3d(k, j, i)) {
@@ -131,7 +131,7 @@ var prev = dim1.read(30)
 ems.barrier()
 start = new Date().getTime()
 
-var nIters = Math.floor(1000000 / ems.nNodes)
+var nIters = Math.floor(1000000 / ems.nThreads)
 for(var i = 0; i < nIters; i++) {
     ems.critical( function() {	
 	var x = dim1.read(30)
@@ -142,10 +142,10 @@ for(var i = 0; i < nIters; i++) {
 
 
 ems.barrier()
-stopTimer( start, nIters * ems.nNodes, " critical regions ")
+stopTimer( start, nIters * ems.nThreads, " critical regions ")
 ems.master( function() {
-    assert( dim1.read(30) == (prev + (ems.nNodes*nIters)),
-	    "Critical region was racing x="+ dim1.read(30) +"   sum="+(prev+(ems.nNodes*nIters)) +
+    assert( dim1.read(30) == (prev + (ems.nThreads*nIters)),
+	    "Critical region was racing x="+ dim1.read(30) +"   sum="+(prev+(ems.nThreads*nIters)) +
 	    "  prev="+prev )
 } )
 
@@ -157,7 +157,7 @@ ems.master( function() {
 //------------------------------------------------------------------------------
 // Purge D2
 start = new Date().getTime()
-for(var j = ems.myID;  j < dims2d[1];  j += ems.nNodes) {
+for(var j = ems.myID;  j < dims2d[1];  j += ems.nThreads) {
     for(var i = 0;  i < dims2d[0];  i += 1) {	
 	dim2.writeXE([i,j], -val3d(i+10, j+10,0))
     } }
@@ -170,7 +170,7 @@ stopTimer( start, dims2d[0]*dims2d[1], " writeXF purges   ")
 start = new Date().getTime()
 
 if(ems.myID != 0) {
-    for(var j = ems.myID;  j < dims2d[1];  j += ems.nNodes) {
+    for(var j = ems.myID;  j < dims2d[1];  j += ems.nThreads) {
 	for(var i = 0;  i < dims2d[0];  i += 1) {	
 	    if( dim2.readFF([i,j]) !=  val3d(i+10, j+10,0)) {
 		ems.diag("Failed to verify 2D FE data: " +
@@ -196,7 +196,7 @@ stopTimer( start, 2*dims2d[0]*dims2d[1], " FE-EF Dataflow   ")
 //---------------------------------------------------------------
 //  Redo dataflow but using strings
 start = new Date().getTime()
-for(var j = ems.myID;  j < dims2d[1];  j += ems.nNodes) {
+for(var j = ems.myID;  j < dims2d[1];  j += ems.nThreads) {
     for(var i = 0;  i < dims2d[0];  i += 1) {	
 	dim2.writeXE([i,j], 'mem'+(-1 * val3d(i+10, j+10,0)))
     } }
@@ -209,7 +209,7 @@ stopTimer( start, dims2d[0]*dims2d[1], " XF srting purge  ")
 start = new Date().getTime()
 
 if(ems.myID != 0) {
-    for(var j = ems.myID;  j < dims2d[1];  j += ems.nNodes) {
+    for(var j = ems.myID;  j < dims2d[1];  j += ems.nThreads) {
 	for(var i = 0;  i < dims2d[0];  i += 1) {	
 	    if( dim2.readFF([i,j]) !=  'mem'+(val3d(i+10, j+10,0)) ) {
 		ems.diag("Failed to verify 2D string FE data: " +

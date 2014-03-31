@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -58,7 +58,7 @@ ems.barrier()
 startTime = util.timerStart()
 ems.parForEach( start, end, doWork )
 stats.faa(0, sum)
-util.timerStop(startTime, n* ems.nNodes, " Default      ", ems.myID)
+util.timerStop(startTime, n* ems.nThreads, " Default      ", ems.myID)
 
 ems.barrier()
 sum = stats.read(0)
@@ -68,7 +68,7 @@ assert(sum == n, "Default scheduling failed sum="+sum+"  expected "+n)
 sum = 0
 startTime = util.timerStart()
 ems.parForEach( start, end, doWork, 'dynamic')
-util.timerStop(startTime, n* ems.nNodes, " Dynamic      ", ems.myID)
+util.timerStop(startTime, n* ems.nThreads, " Dynamic      ", ems.myID)
 ems.barrier()
 sum = stats.read(0)
 assert(sum == n, "Dyamic scheduling failed sum="+sum+"  expected "+n)
@@ -77,7 +77,7 @@ assert(sum == n, "Dyamic scheduling failed sum="+sum+"  expected "+n)
 sum = 0
 startTime = util.timerStart()
 ems.parForEach( start, end, doWork, 'static')
-util.timerStop(startTime, n* ems.nNodes, " Static       ", ems.myID)
+util.timerStop(startTime, n* ems.nThreads, " Static       ", ems.myID)
 ems.barrier()
 sum = stats.read(0)
 assert(sum == n, "Static scheduling failed sum="+sum+"  expected "+n)
@@ -86,7 +86,7 @@ assert(sum == n, "Static scheduling failed sum="+sum+"  expected "+n)
 sum = 0
 startTime = util.timerStart()
 ems.parForEach( start, end, doWork, 'guided', 20)
-util.timerStop(startTime, n* ems.nNodes, " Guided by 20 ", ems.myID)
+util.timerStop(startTime, n* ems.nThreads, " Guided by 20 ", ems.myID)
 ems.barrier()
 sum = stats.read(0)
 assert(sum == n, "Guided scheduling failed sum="+sum+"  expected "+n)

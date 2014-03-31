@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -54,11 +54,11 @@ if(singleton.read(0) != nTimes) {
 }
 
 
-var arr = ems.new(ems.nNodes)
+var arr = ems.new(ems.nThreads)
 for(var i = 0;  i < nTimes;  i++) {
     arr.write(ems.myID, i)
     ems.barrier()
-    for(var j = 0;  j < ems.nNodes;  j++) {
+    for(var j = 0;  j < ems.nThreads;  j++) {
 	if(arr.read(j) != i) {
 	    ems.diag("Barrier array is wrong: was " + arr.read(j) + ' should have been ' + i)
 	}

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -87,7 +87,7 @@ function initializeSharedData() {
     //  The queue of transactions to perform
     //     [ table#, index, read-only ]
     workQ = ems.new( {
-	dimensions : [ nTransactions + ems.nNodes ],
+	dimensions : [ nTransactions + ems.nThreads ],
 	heapSize  : nTransactions*200,
 	useExisting: false,
 	//dataFill : 0,
@@ -182,7 +182,7 @@ function performTransactions() {
 	//  end of the queue so they are processed only after all the work
 	//  has been issued.  Each thread enqueues one event and can only
 	//  consume one before exiting.
-	for( var taskN = 0;  taskN < ems.nNodes;  taskN++ ) {
+	for( var taskN = 0;  taskN < ems.nThreads;  taskN++ ) {
 	    workQ.enqueue("DONE")
 	}
 	timerStop(startTime, nTransactions, " transactions enqueued ", ems.myID)

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -37,7 +37,7 @@ var nTables = 6
 var maxNops = 5
 var tables = []
 var workQ = ems.new( {
-    dimensions : [ nTransactions + ems.nNodes ],
+    dimensions : [ nTransactions + ems.nThreads ],
     heapSize  : nTransactions*20,
     useExisting: false,
     //dataFill : 0,

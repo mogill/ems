@@ -1,6 +1,6 @@
 <html>
-  <!-----------------------------------------------------------------------------+
-     |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+    <!-----------------------------------------------------------------------------+
+     |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
      |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
      +-----------------------------------------------------------------------------+
      |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -46,7 +46,6 @@
       var pluginUrl = '//www.google-analytics.com/plugins/ga/inpage_linkid.js';
       _gaq.push(['_require', 'inpage_linkid', pluginUrl]);
       _gaq.push(['_setAccount', 'UA-43905673-1']) // SYNSEM   
-      //    _gaq.push(['_setAccount', 'UA-42393560-1']) // WANKERFLOP 
       _gaq.push(['_trackPageview']);
       
       (function() {
@@ -66,11 +65,13 @@
       </a>
     </div>
     <div style="padding-left:3%; font-size:1.2em;">
-      | &nbsp;&nbsp;
       <a href="index.html"> Overview of EMS </a>
       &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="reference.html"> API Reference </a>
       &nbsp;&nbsp;|
+      <a href="https://www.npmjs.org/package/ems"> Node.js NPM </a>
+      &nbsp;&nbsp;|
+      <a href="https://github.com/SyntheticSemantics/ems"> Download at GitHub </a>
     </div>
 
 
@@ -141,7 +142,7 @@
     <table class="apiBlock" >
       <tr class="apiFunc" >
 	<td class="Label"> REQUIRE </td>
-	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nNodes [, threadAffinity [, useForkJoin] ] )</td>
+	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nThreads [, threadAffinity [, useForkJoin] ] )</td>
       </tr>
 
       <tr class="apiSynopsis">
@@ -156,7 +157,7 @@
 
       <tr class="apiArgs">
 	<td class="Label"> ARGUMENTS </td>
-	<td class="argName"> nNodes</td>
+	<td class="argName"> nThreads</td>
 	<td class="argType"> &lt;Number&gt;</td>
 	<td class="argDesc" > Total number of threads the job should use.
 	</td>
@@ -190,8 +191,8 @@
       <tr class="apiRetVal" style="vertical-align:text-top;">
 	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
 	<td class="Type" colspan="2" >ems = {
-  nNodes : Number,  //  Number of threads executing
-  myID   : Number   //  This thread's ID 0..nNodes-1
+  nThreads : Number,  //  Number of threads executing
+  myID     : Number   //  This thread's ID 0..nThreads-1
 }</td>
       </tr>
 
@@ -279,12 +280,12 @@
 	<td class="argDesc"> 
 	  (Alternative to two scalar argument) A complete EMS Array
 	  descriptor may be passed as the only argument instead of
-	  0-2 scalar arguments.<code style="white-space: pre;">
+	  scalar arguments.<code style="white-space: pre;">
 emsArrayDescriptor = {
     dimensions  : 100,        // Required: Max # elements in EMS array
                               // Integer for 1-D, or array of dims [x, y, z]
     heapSize    : 100000,     // Optional, default=0: Space, in bytes, for 
-    // strings, maps, objects, etc.  Rounded up to nearest power of two
+    // strings, maps, and objects.  Rounded up to nearest power of two
     useMap      : true,       // Optional, default=false: Map keys to indexes
     useExisting : true,       // Optional, default=false: 
                               // Preserve data if an file already exists
@@ -349,10 +350,11 @@ emsArrayDescriptor = {
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3> When using fork-join execution, the master
-	  thread creates a parallel region when <code>func</code> is executed
+	  thread creates a parallel region by executing <code>func</code> 
 	  once by each thread.  A join is performed when all the functions have
 	  returned.  No results are returned, any side effects are stored
-	  in shared EMS memory.
+	  in shared EMS memory.  Global Node.js thread state persists from
+	  region to region.
 	</td>
       </tr>
       <tr class="apiArgs">
@@ -360,7 +362,7 @@ emsArrayDescriptor = {
 	<td class="argName"> func </td>
 	<td class="argType"> &lt;Function&gt;</td>
 	<td class="argDesc" > Function execute on every thread.  Takes no arguments and returns no
-	  value because all communication occurrs via shared EMS memory.
+	  value because all communication occurs via shared EMS memory.
 	</td>
       </tr>
     </table>  
@@ -672,7 +674,7 @@ emsArrayDescriptor = {
       EMS Array Methods
     </h3>
 
-    <h5> Intrinsic Atomic Operations </h5>
+    <h5> Intrinsic Atomic Operations (AMOs) </h5>
 
     <h6> Read EMS Memory  </h6>
 
@@ -913,7 +915,7 @@ emsArrayDescriptor = {
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> </td>
 	<td class="argName">value</td>
-	<td class="argType"> &lt; Number | Boolean | String | Undefined<TODO> | Array | Object </todo> &gt;</td>
+	<td class="argType"> &lt; Number | Boolean | String | Undefined <TODO> | Array | Object </todo> &gt;</td>
 	<td class="argDesc" >Value to add to the EMS memory.</td>
       </tr>
     </table>
@@ -969,7 +971,6 @@ emsArrayDescriptor = {
 	  CAS will block until the EMS memory is marked full.  CAS is the
 	  equivalent of atomically performing:<br>
 	  <code>if( arr[idx] == oldValue ) then arr[idx] = newValue</code>
-	  <BR><TODO> This should also use maps, arrays, and objects</todo>
 	  <BR><BR></td>
       </tr>
 

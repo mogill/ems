@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -36,12 +36,12 @@ function getRandomInt (min, max) {
 }
 
 var nIters = 10000
-var sums = ems.new(ems.nNodes)
+var sums = ems.new(ems.nThreads)
 sums.writeXF(ems.myID, 0)
 
 for(var iter = 0;  iter < nIters;  iter++) {
     ems.barrier()
-    var idx    = (ems.myID + iter) % ems.nNodes
+    var idx    = (ems.myID + iter) % ems.nThreads
     var memVal = sums.read(idx)
     if(memVal != iter) {
 	ems.diag("myID="+ems.myID+ "  iter=" +iter+ "  memval=" +memVal)
@@ -55,7 +55,7 @@ ems.barrier()
 
 for(var iter = 0;  iter < nIters;  iter++) {
     ems.barrier()
-    var idx    = (ems.myID + iter) % ems.nNodes
+    var idx    = (ems.myID + iter) % ems.nThreads
     var memVal = sums.read(idx)
     sums.write(idx, memVal + 1)
 }
@@ -87,7 +87,7 @@ assert(tmp == 0, "Didn't initialize to 0, got "+ tmp)
 ems.barrier()
 shared.faa(0, 1)
 ems.barrier()
-assert(shared.read(0) == ems.nNodes, "Didn't count ("+shared.read(0)+") to nnodes ("+ems.nNodes+")")
+assert(shared.read(0) == ems.nThreads, "Didn't count ("+shared.read(0)+") to nnodes ("+ems.nThreads+")")
 ems.barrier()
 if(ems.myID == 0) { shared.write(0, 0) }
 ems.barrier()
@@ -97,12 +97,12 @@ ems.barrier()
 var nIter = 10000
 var m = nIter
 for(var i = 0;  i < nIter;  i++) {
-// for(var i = 0;  i < (nIter / nNodes);  i++) {
+// for(var i = 0;  i < (nIter / nThreads);  i++) {
     var nap = getRandomInt(0, 100000)
     shared.faa(0, 1)
 }
 ems.barrier()
-assert(shared.read(0) == ems.nNodes * nIter, "Random wait FAA failed: count ("+shared.read(0)+") to nnodes ("+nIter+")")
+assert(shared.read(0) == ems.nThreads * nIter, "Random wait FAA failed: count ("+shared.read(0)+") to nnodes ("+nIter+")")
 
 ems.barrier()
 if(ems.myID == 0) { shared.write(0, 0) }
@@ -114,14 +114,14 @@ if(ems.myID != 0) {
 ems.barrier()
 nIter = 1000000
 
-//console.log("ehhh " + nIter + "   " + (nIter / nNodes))
-var m = nIter / nNodes
+//console.log("ehhh " + nIter + "   " + (nIter / nThreads))
+var m = nIter / nThreads
 for(var i = 0;  i < nIter;  i++) {
     shared.faa(0, 1)
 }
 ems.barrier()
 var sr = shared.read(0)
-assert(sr == nNodes*nIter, "Fast Looped FAA failed: count ("+sr+") to nnodes ("+nIter+")")
+assert(sr == nThreads*nIter, "Fast Looped FAA failed: count ("+sr+") to nnodes ("+nIter+")")
 
 
 
