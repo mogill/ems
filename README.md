@@ -174,18 +174,23 @@ For a more complete description of the principles of operation,
 <br>
 
 ## Download
-#### NPM Package
+### NPM Package
 EMS is available as a NPM Package.  It has no external dependencies,
 but does require compiling native C++ functions using <code>node-gyp</code>,
 which is also available as a NPM.
 <br>
+NPM will not install EMS in the same directory as EMS source code itself,
+so an additonal layer of directories (with the NPM installed version
+above the build version's root) may be used, 
+and EMS can always be installed globally:
+
 ```csh
 npm -g install ems
 ```
-Note: Install EMS globally (<code>-g</code>) so forked threads can find the package.
 
 
-#### GitHub
+
+### GitHub
 Download the source code.  Be sure to compile the native code with <code>node-gyp</code>,
 ```csh
 git clone https://github.com/SyntheticSemantics/ems.git
