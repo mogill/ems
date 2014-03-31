@@ -393,15 +393,15 @@ uint64_t EMSreadIndexMap(const v8::Arguments& args)
   v8::HandleScope scope;
   EMS_DECL(args);
   int64_t   idx = 0;
-  int64_t  *bufInt64  = (int64_t *) emsBuf;
-  char     *bufChar   = (char *) emsBuf;
-  EMStag   *bufTags   = (EMStag *) emsBuf;
+  int64_t  *bufInt64    = (int64_t *) emsBuf;
+  char     *bufChar     = (char *) emsBuf;
+  EMStag   *bufTags     = (EMStag *) emsBuf;
   EMStag    mapTags;
-  double   *bufDouble = (double *) emsBuf;
-  int       idxType   = EMSv8toEMStype(args[0]);
-  int64_t   boolArgVal;
-  int64_t   intArgVal;
-  double    floatArgVal;
+  double   *bufDouble   = (double *) emsBuf;
+  int       idxType     = EMSv8toEMStype(args[0]);
+  int64_t   boolArgVal  = false;
+  int64_t   intArgVal   = -1;
+  double    floatArgVal = 0.0;
   int nTries = 0;
   int matched = false;
   int notPresent = false;
@@ -502,15 +502,15 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
   EMS_DECL(args);
 
   int64_t   idx = 0;
-  int64_t  *bufInt64  = (int64_t *) emsBuf;
-  char     *bufChar   = (char *) emsBuf;
-  EMStag   *bufTags   = (EMStag *) emsBuf;
+  int64_t  *bufInt64    = (int64_t *) emsBuf;
+  char     *bufChar     = (char *) emsBuf;
+  EMStag   *bufTags     = (EMStag *) emsBuf;
   EMStag    mapTags;
-  double   *bufDouble = (double *) emsBuf;
-  int       idxType   = EMSv8toEMStype(args[0]);
-  int64_t   boolArgVal;
-  int64_t   intArgVal;
-  double    floatArgVal;
+  double   *bufDouble   = (double *) emsBuf;
+  int       idxType     = EMSv8toEMStype(args[0]);
+  int64_t   boolArgVal  = false;
+  int64_t   intArgVal   = -1;
+  double    floatArgVal = 0.0;
   v8::String::Utf8Value argString(args[0]);
 
   if (args.Length() == 0) {
@@ -976,9 +976,9 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
     char     *bufChar   = (char *) emsBuf;
     EMStag   *bufTags   = (EMStag *) emsBuf;
     EMStag    oldTag, newTag;
-    int64_t   boolMemVal;
-    int64_t   intMemVal;
-    double    floatMemVal;
+    int64_t   boolMemVal  = false;
+    int64_t   intMemVal   = -1;
+    double    floatMemVal = 0.0;
     int64_t   textOffset;
     v8::Handle<v8::String>  stringMemVal;
     v8::String::Utf8Value oldString(args[1]);
@@ -1891,7 +1891,6 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
     fd = open(*filename, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   else 
     fd = shm_open(*filename,  O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-
   size_t  nMemBlocks = (heapSize / EMS_MEM_BLOCKSZ)+1;
   size_t  nMemBlocksPow2 = emsNextPow2(nMemBlocks);
   size_t  nMemLevels     = __builtin_ctzl(nMemBlocksPow2);
@@ -1914,13 +1913,10 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   } else {
     filesize = bottomOfHeap + (nMemBlocksPow2 * EMS_MEM_BLOCKSZ);
   }
-  ftruncate(fd, filesize);
-
-#if defined(__linux)
-  // TODO Why MacOS works but reports error?!
-  if(errno != 0) {
-    return v8::ThrowException(node::ErrnoException(errno, "EMS", "Unable to resize domain memory"));  }
-#endif
+  if( ftruncate(fd, filesize) != 0 ) {
+    fprintf(stderr, "EMS: Error during initialization, unable to set memory size to %lld bytes\n", (long long int)filesize);
+    return v8::ThrowException(node::ErrnoException(errno, "EMS", "Unable to resize domain memory"));
+  }
 
   char* emsBuf = (char *) mmap(0, filesize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, (off_t)0);
   if(emsBuf == MAP_FAILED)  {

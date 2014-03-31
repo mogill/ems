@@ -315,7 +315,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	heapSize    : 0,     // Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
 	useMap      : false, // Optional, default=false: Use a map from keys to indexes
 	useExisting : false, // Optional, default=false: Preserve data if a file already exists
-	persist     : false, // Optional, default=true: Preserve the file after threads exit
+	persist     : true,  // Optional, default=true: Preserve the file after threads exit
 	setFEtags   : 'empty',
 //	dataFill    : undefined,
 	dimStride   : []     //  Stride factors for each dimension of multidimensal arrays
@@ -361,6 +361,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     // Name the region if a name wasn't given
     if( !EMSisDefined(emsDescriptor.filename) ) {
 	emsDescriptor.filename = '/EMS_region_' + this.newRegionN
+        emsDescriptor.persist = false
     }
 
     //  init() is first called from thread 0 to perform one-thread
