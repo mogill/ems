@@ -30,8 +30,8 @@
  +-----------------------------------------------------------------------------*/
 //  Usage:   node wordCount.js <number of threads>
 //    Executes in bulk synchronous parallel mode
-var ems = require('ems')(parseInt(process.argv[2]), true, true)
-var fs   = require("fs")
+var ems = require('ems')(parseInt(process.argv[2]))
+var fs  = require('fs')
 
 //-------------------------------------------------------------------
 //  Timer functions
@@ -80,12 +80,11 @@ var dir          = fs.readdirSync('/Users/mogill/Src/Data/Gutenberg/all/');
 var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/)
 
 
-
 //-------------------------------------------------------------------
 //  Loop over the files in parallel, counting words
 var totalTime    = timerStart()
 ems.parForEach(0, 200,  function(bufNum) {  // First 200 docs, not entire collection
-    var fileTimer = timerStart()
+    var fileTimer = timerStart() 
     var text = fs.readFileSync('/Users/mogill/Src/Data/Gutenberg/all/' + dir[bufNum], 'utf8', "r")
     var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
     words.forEach( function(word, wordN) {
