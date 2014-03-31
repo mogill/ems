@@ -38,7 +38,9 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
-#define _GNU_SOURCE
+#if !defined _GNU_SOURCE
+#  define _GNU_SOURCE
+#endif
 #include <sched.h>
 #include "ems_alloc.h"
 
@@ -422,6 +424,7 @@ uint64_t EMSreadIndexMap(const v8::Arguments& args)
   case EMS_FLOAT:
     floatArgVal = args[0]->ToNumber()->Value();
     idx = labs(*((int64_t*)&floatArgVal));
+    break;
   case EMS_STRING: 
     idx = EMShashString(&argString);
     break;
@@ -436,7 +439,7 @@ uint64_t EMSreadIndexMap(const v8::Arguments& args)
       // Wait until the map key is FULL, mark it busy while map lookup is performed
       mapTags.byte = EMStranitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
       if(mapTags.tags.type  ==  idxType) {
-	switch(mapTags.tags.type) {
+	switch(idxType) {
 	case EMS_BOOLEAN:
 	  if(boolArgVal == bufInt64[EMSmapData(idx)]) matched = true;
 	  break;
@@ -527,6 +530,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
   case EMS_FLOAT:
     floatArgVal = args[0]->ToNumber()->Value();
     idx = *((int64_t*)&floatArgVal);
+    break;
   case EMS_STRING:
     idx = EMShashString(&argString);
     break;
@@ -544,7 +548,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
       mapTags.byte = EMStranitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
       mapTags.tags.fe = EMS_FULL;  // When written back, mark FULL
       if(mapTags.tags.type  ==  idxType  ||  mapTags.tags.type == EMS_UNDEFINED) {
-	switch(mapTags.tags.type) {
+	switch(idxType) {
 	case EMS_BOOLEAN:
 	  if(boolArgVal == bufInt64[EMSmapData(idx)]) matched = true;
 	  break;
@@ -617,7 +621,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
 
   if(nTries >= MAX_OPEN_HASH_STEPS) {
     idx = -1;
-    fprintf(stderr, "EMSwriteIndexMap ran out of key mappings (returning %lld)\n", idx);
+    fprintf(stderr, "EMSwriteIndexMap ran out of key mappings (returning %lld)\n", (long long int) idx);
   }
   return(idx);
 }
@@ -810,7 +814,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
 	int64_t  len = argString.length() + 1 + MAX_NUMBER2STR_LEN;
 	int64_t  textOffset;
 	EMS_ALLOC(textOffset, len, "EMSfaa(int+string): out of memory to store string" );
-	sprintf( EMSheapPtr(textOffset), "%lld%s", bufInt64[ EMSdataData(idx) ], *argString);
+	sprintf( EMSheapPtr(textOffset), "%lld%s", (long long int)bufInt64[ EMSdataData(idx) ], *argString);
 	bufInt64[EMSdataData(idx)] = textOffset;
 	oldTag.tags.type = EMS_STRING;
       }
@@ -869,7 +873,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
 	EMS_ALLOC(textOffset, len, "EMSfaa(string+int): out of memory to store string");
 	sprintf( EMSheapPtr(textOffset), "%s%lld",
 		 EMSheapPtr(bufInt64[EMSdataData(idx)]),
-		 args[1]->ToInteger()->Value() );
+		 (long long int) args[1]->ToInteger()->Value() );
 	break;
       case EMS_FLOAT:   // string + dbl
 	len = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)])) + 1 + MAX_NUMBER2STR_LEN;
@@ -1568,10 +1572,8 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
   EMStag   *bufTags   = (EMStag *) emsBuf;
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
-  EMStag    stackTag, newTag;
 
   //  Wait until the heap top is full, and mark it busy while data is enqueued
-  stackTag.byte = EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)] % bufInt64[EMScbData(EMS_ARR_NELEM)];
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
   if(bufInt64[EMScbData(EMS_ARR_STACKTOP)] - bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] > 
@@ -1580,7 +1582,6 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
   }
 
   //  Wait for data pointed to by heap top to be empty, then set to Full while it is filled
-  newTag.byte = EMStranitionFEtag( &bufTags[EMSdataTag(idx)], EMS_EMPTY, EMS_BUSY, EMS_ANY);
   bufTags[EMSdataTag(idx)].tags.rw   = 0;
   bufTags[EMSdataTag(idx)].tags.type = EMSv8toEMStype(args[0]);
   switch(bufTags[EMSdataTag(idx)].tags.type) {
@@ -1792,22 +1793,15 @@ v8::Handle<v8::Value> EMSloopChunk(const v8::Arguments& args)
 v8::Handle<v8::Value> EMSsync(const v8::Arguments& args)
 {
   v8::HandleScope scope;
+#if 0
   EMS_DECL(args);
-  //  size_t length = bufInt64[EMScbData(EMS_ARR_FILESZ)];
   int64_t  *bufInt64  = (int64_t *) emsBuf;
   EMStag   *bufTags   = (EMStag *) emsBuf;
-  size_t     length;
   int64_t    idx;
   if(args[0]->IsUndefined()) {
     idx    = 0;
-    length = bufInt64[EMScbData(EMS_ARR_FILESZ)];
   } else {
     idx    = args[0]->ToInteger()->Value();
-    if(args[1]->IsUndefined()) {
-      length = 64;  //  Just one word includes tags up to 8 words away
-    } else {
-      length = (sizeof(int64_t) * args[1]->ToInteger()->Value()) + 64;
-    }
   }
   
   EMStag     tag;
@@ -1847,6 +1841,7 @@ v8::Handle<v8::Value> EMSsync(const v8::Arguments& args)
   if(resultIdx == 0  &&  resultStr == 0  &&  resultTag == 0)
     return v8::True();
   else
+#endif
     return v8::False();
 }
 

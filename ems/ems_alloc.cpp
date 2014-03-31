@@ -240,10 +240,10 @@ int64_t emsMem_size(struct emsMem * self, int64_t offset) {
 static void  EMS_dump(struct emsMem * self, int64_t index, int32_t level) {
   switch (self->tree[index]) {
   case BUDDY_UNUSED:
-    printf("(%lld:%ld)", EMS_index_offset(index, level, self->level) , 1L << (self->level - level));
+    printf("(%lld:%ld)", (long long int)EMS_index_offset(index, level, self->level) , 1L << (self->level - level));
     break;
   case BUDDY_USED:
-    printf("[%lld:%ld]", EMS_index_offset(index, level, self->level) , 1L << (self->level - level));
+    printf("[%lld:%ld]", (long long int)EMS_index_offset(index, level, self->level) , 1L << (self->level - level));
     break;
   case BUDDY_FULL:
     printf("{");
