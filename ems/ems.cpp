@@ -31,20 +31,18 @@
 #include <node.h>
 #include <v8.h>
 #include <node_buffer.h>
-
 #include <sys/mman.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
+#include <math.h>
 #if !defined _GNU_SOURCE
 #  define _GNU_SOURCE
 #endif
 #include <sched.h>
 #include "ems_alloc.h"
-
-#define NaN (0.0/0.0)
 
 static v8::Persistent<v8::String> readRW_symbol;
 static v8::Persistent<v8::String> releaseRW_symbol;
@@ -538,7 +536,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
     fprintf(stderr, "EMS ERROR: EMSwriteIndexMap: Unknown mem type\n");
     return(-1);
   }
- 
+
  int nTries = 0;
   if(EMSisMapped) {
     int matched = false;
@@ -548,7 +546,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
       mapTags.byte = EMStranitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
       mapTags.tags.fe = EMS_FULL;  // When written back, mark FULL
       if(mapTags.tags.type  ==  idxType  ||  mapTags.tags.type == EMS_UNDEFINED) {
-	switch(idxType) {
+	switch(mapTags.tags.type) {
 	case EMS_BOOLEAN:
 	  if(boolArgVal == bufInt64[EMSmapData(idx)]) matched = true;
 	  break;
@@ -562,8 +560,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
 	  int64_t  keyStrOffset = bufInt64[EMSmapData(idx)];
 	  if(strcmp(*argString, EMSheapPtr(keyStrOffset)) == 0) {
 	    matched = true;
-	  }
-	}
+	  } }
 	  break;
 	case EMS_UNDEFINED:
 	  // This map key index is still unused, so there was no match.
@@ -623,6 +620,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
     idx = -1;
     fprintf(stderr, "EMSwriteIndexMap ran out of key mappings (returning %lld)\n", (long long int) idx);
   }
+
   return(idx);
 }
 
@@ -765,7 +763,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_UNDEFINED: //  Bool + undefined
-	bufDouble[EMSdataData(idx)] = NaN;	
+	bufDouble[EMSdataData(idx)] = NAN;	
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_BOOLEAN:   //  Bool + Bool
@@ -803,7 +801,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_UNDEFINED: // Int + undefined
-	bufDouble[EMSdataData(idx)] = NaN;	
+	bufDouble[EMSdataData(idx)] = NAN;	
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_BOOLEAN:   // Int + bool
@@ -851,7 +849,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
       }
 	break;
       case EMS_UNDEFINED: // Float + Undefined
-	bufDouble[EMSdataData(idx)] = NaN;
+	bufDouble[EMSdataData(idx)] = NAN;
 	break;
       default:
 	return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSfaa: Data is FLOAT, but arg type unknown"));
@@ -928,7 +926,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
       case EMS_FLOAT:
       case EMS_BOOLEAN:
       case EMS_UNDEFINED: 
-        bufDouble[EMSdataData(idx)] = NaN;
+        bufDouble[EMSdataData(idx)] = NAN;
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_STRING: { // Undefined + string

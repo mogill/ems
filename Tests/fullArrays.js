@@ -34,7 +34,7 @@ var arrLen = 10000
 var arr = ems.new(arrLen)
 var map = ems.new( {
     dimensions : [ arrLen ],
-    heapSize  : 0,
+    heapSize  : arrLen * 10,
     useMap: true, 
     useExisting: false,
     persist: true, 
