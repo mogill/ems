@@ -226,7 +226,9 @@ BSD, other commercial and open source licenses are available.
 
 ## Links
 [Visit the EMS web site.](http://synsem.com/EMS.js/)
+<BR>
 [Download the NPM.](https://www.npmjs.org/package/ems)
+<BR>
 [Get the source at GitHub.](https://github.com/SyntheticSemantics/ems)
 
 ## About
