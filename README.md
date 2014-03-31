@@ -226,6 +226,8 @@ BSD, other commercial and open source licenses are available.
 
 ## Links
 [Visit the EMS web site.](http://synsem.com/EMS.js/)
+[Download the NPM.](https://www.npmjs.org/package/ems)
+[Get the source at GitHub.](https://github.com/SyntheticSemantics/ems)
 
 ## About
 <img src="http://synsem.com/synsem_logo_black.svg" type="image/svg+xml" height="30px" style="vertical-align:middle;"> [SynSem](http://synsem.com) provides tools and services for shared memory parallelism, 
