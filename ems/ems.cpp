@@ -145,7 +145,7 @@ static v8::Persistent<v8::String> buffer_symbol;
 //  using resources/
 //  Used within spin-loops to reduce hot-spotting
 //
-#define RESET_NAP_TIME  int EMScurrentNapTime = 1
+#define RESET_NAP_TIME  int EMScurrentNapTime = 100
 #define MAX_NAP_TIME  500000
 #define NANOSLEEP    {				\
     struct timespec     sleep_time;		\
@@ -1437,10 +1437,10 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   EMStag   *bufTags   = (EMStag *) emsBuf;
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
-  EMStag    stackTag, newTag;
+  EMStag    newTag;
 
   // Wait until the stack top is full, then mark it busy while updating the stack
-  stackTag.byte = EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)];
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
   if(idx == bufInt64[EMScbData(EMS_ARR_NELEM)] - 1) {
@@ -1483,8 +1483,7 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   bufTags[EMSdataTag(idx)].byte = newTag.byte;
 
   //  Push is complete, Mark the stack pointer as full
-  stackTag.tags.fe = EMS_FULL;
-  bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte =  stackTag.byte;
+  bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe =  EMS_FULL;
 
   return scope.Close(v8::Integer::New(idx));
 }
@@ -1502,17 +1501,16 @@ v8::Handle<v8::Value> Pop(const v8::Arguments& args)
   EMStag   *bufTags   = (EMStag *) emsBuf;
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
-  EMStag    stackTag, dataTag;
+  EMStag    dataTag;
 
   //  Wait until the stack pointer is full and mark it empty while pop is performed
-  stackTag.byte = EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]--;
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)];
-  stackTag.tags.fe = EMS_FULL;
   if(idx < 0) {
     //  Stack is empty, return undefined
     bufInt64[EMScbData(EMS_ARR_STACKTOP)] = 0;
-    bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(v8::Undefined());
   }
 
@@ -1523,19 +1521,19 @@ v8::Handle<v8::Value> Pop(const v8::Arguments& args)
   case EMS_BOOLEAN: {
     int64_t retBool = bufInt64[EMSdataData(idx)];
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
-    bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(v8::Boolean::New(retBool));
   }
   case EMS_INTEGER: {
     int64_t retInt = bufInt64[EMSdataData(idx)];
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
-    bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(v8::Integer::New(retInt));
   }
   case EMS_FLOAT: {
     double retFloat = bufDouble[EMSdataData(idx)];
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
-    bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(v8::Number::New(retFloat));
   }
   case EMS_STRING: {
@@ -1543,12 +1541,12 @@ v8::Handle<v8::Value> Pop(const v8::Arguments& args)
       v8::String::New((const char*)EMSheapPtr(bufInt64[EMSdataData(idx)]));
     EMS_FREE(bufInt64[EMSdataData(idx)]);
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
-    bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(retStr);
   }
   case EMS_UNDEFINED: {
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
-    bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(v8::Undefined());
   }
   default:
@@ -1572,6 +1570,7 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
   char     *bufChar   = (char *) emsBuf;
 
   //  Wait until the heap top is full, and mark it busy while data is enqueued
+  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)] % bufInt64[EMScbData(EMS_ARR_NELEM)];
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
   if(bufInt64[EMScbData(EMS_ARR_STACKTOP)] - bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] > 
@@ -1628,7 +1627,7 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
   EMStag   *bufTags   = (EMStag *) emsBuf;
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
-  EMStag    stackTag, dataTag;
+  EMStag    dataTag;
 
   /*
   int64_t  index;
@@ -1650,14 +1649,12 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
   //==========================================================================
 
   //  Wait for bottom of heap pointer to be full, and mark it busy while data is dequeued
-  stackTag.byte = EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)], EMS_FULL, EMS_BUSY, EMS_ANY);
-  stackTag.tags.fe = EMS_FULL;
-
+  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t   idx    = bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] % bufInt64[EMScbData(EMS_ARR_NELEM)];
   //  If Queue is empty, return undefined
   if(bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]  >= bufInt64[EMScbData(EMS_ARR_STACKTOP)]) {
     bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] = bufInt64[EMScbData(EMS_ARR_STACKTOP)] ;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(v8::Undefined());
   }
 
@@ -1670,19 +1667,19 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
   case EMS_BOOLEAN: {
     int64_t retBool = bufInt64[EMSdataData(idx)];
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(v8::Boolean::New(retBool));
   }
   case EMS_INTEGER: {
     int64_t retInt = bufInt64[EMSdataData(idx)];
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(v8::Integer::New(retInt));
   }
   case EMS_FLOAT: {
     double retFloat = bufDouble[EMSdataData(idx)];
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(v8::Number::New(retFloat));
   }
   case EMS_STRING: {
@@ -1690,17 +1687,15 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
       v8::String::New((const char*)(EMSheapPtr(bufInt64[EMSdataData(idx)])));
     EMS_FREE(bufInt64[EMSdataData(idx)]);
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(retStr);
   }
   case EMS_UNDEFINED: {
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
+    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(v8::Undefined());
   }
   default:
-    bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-    bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte = stackTag.byte;
     return scope.Close(v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSdequeue unknown type")));
   }
 }
@@ -1912,8 +1907,10 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
     filesize = bottomOfHeap + (nMemBlocksPow2 * EMS_MEM_BLOCKSZ);
   }
   if( ftruncate(fd, filesize) != 0 ) {
-    fprintf(stderr, "EMS: Error during initialization, unable to set memory size to %lld bytes\n", (long long int)filesize);
-    return v8::ThrowException(node::ErrnoException(errno, "EMS", "Unable to resize domain memory"));
+    if(errno != EINVAL) {
+      fprintf(stderr, "EMS: Error during initialization, unable to set memory size to %lld bytes\n", (long long int)filesize);
+      return v8::ThrowException(node::ErrnoException(errno, "EMS", "Unable to resize domain memory"));
+    }
   }
 
   char* emsBuf = (char *) mmap(0, filesize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, (off_t)0);
