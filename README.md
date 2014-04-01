@@ -76,6 +76,17 @@ ems.parForEach(0, dir.length,  function(docNum) {
 } )
 ```
 
+<P>
+  Word Count of documents from Project Gutenberg in a variety of languages.  Average document was
+  about 250kb in length.
+  The performance of this program using an Amazon EC2 instance:<br>
+  <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 240 GB of
+  local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
+  <br>
+  ![chart](http://synsem.com/EMS.js/wordCount.png)  
+</P>
+
+
 ### Transactional Memory
 Using EMS Transactional Memory to atomically update
 two account balances while simultaneously preventing updates to the user's 
@@ -105,6 +116,18 @@ if(balance > paymentAmount) {                               // Test for overdraf
     ems.tmEnd(transaction, false)                           // Not Sufficient Funds, roll back transaction
 }
 ```
+
+<P>
+  The performance of this program using an Amazon EC2 instance:<br>
+  <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 240 GB of
+  local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
+  <br>
+  ![chart](http://synsem.com/EMS.js/TMfromLoop.png)
+  ![chart](http://synsem.com/EMS.js/TMfromQ.png)
+</P>
+
+
+
 
 
 ## Synchronization as a Property of the Data, Not a Duty for Tasks
@@ -228,3 +251,4 @@ BSD, other commercial and open source licenses are available.
 ## About
 <img src="http://synsem.com/synsem_logo_black.svg" type="image/svg+xml" height="30px" style="vertical-align:middle;"> [SynSem](http://synsem.com) provides tools and services for shared memory parallelism, 
 GPU/FPGA/DSP/CPU hybrid computing, high performance computing, and hardware/software co-design.
+From embedded devices to supercomputers to JavaScript: Zoom, not Boom!
