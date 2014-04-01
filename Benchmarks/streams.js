@@ -28,8 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-//var ems = require('ems')(parseInt(process.argv[2]), true, true)
-var ems = require('../Addon/index.js')(parseInt(process.argv[2]), true, true)
+var ems = require('ems')(parseInt(process.argv[2]), true, true)
 
 ems.parallel( function() { 
     //-------------------------------------------------------------------
