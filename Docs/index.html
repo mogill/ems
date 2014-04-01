@@ -1,6 +1,6 @@
 <html>
     <!-----------------------------------------------------------------------------+
-     |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
+     |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
      |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
      +-----------------------------------------------------------------------------+
      |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -223,7 +223,37 @@
     </center>
 
 
-    <h5>Built-In Composed Operations and Parallel Data Structures</h5>
+    <h3>Performance</h3>
+    <p>
+      These experiments were run on an Amazon EC2 instance:<br>
+      <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 240 GB of local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
+    </p>
+    <p class="pmulti" >
+      <img src="./TMfromQ.png" type="image/svg+xml" height="260px" style="vertical-align:text-top;"/>
+      <span class="figcaption"><br>
+	Using the general transactional memory capabilities to process
+	randomly generated operations stored in a shared work queue.
+      </span>
+      <br><br><br><br>
+	<img src="./TMfromLoop.png" type="image/svg+xml" height="260px" style="vertical-align:text-top;"/>
+      <span class="figcaption"><br>
+	Transaction processing but generating the work from a loop instead of reading it from a shared queue.
+      </span>
+      <br><br><br><br>
+      <img src="./ccab.png" type="image/svg+xml" height="260px" style="vertical-align:text-top;"/>
+      <span class="figcaption"><br>
+	Perform the operation <code>c[i] = c[i] + a[i] * b[i]</code> atomically
+      </span>
+            <br><br><br><br>
+      <img src="./wordCount.png" type="image/svg+xml" height="260px" style="vertical-align:text-top;"/>
+      <span class="figcaption"><br>
+	Word Count of documents from Project Gutenberg in a variety of languages.  Average document was
+	about 250kb in length.
+      </span>
+    </p>
+
+
+    <h3>Built-In Composed Operations and Parallel Data Structures</h3>
     <p>
       High-level data abstractions can be constructed from the EMS primitives,
       and EMS itself 

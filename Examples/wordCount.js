@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.7   |
+ |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -83,7 +83,7 @@ var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\
 //-------------------------------------------------------------------
 //  Loop over the files in parallel, counting words
 var totalTime    = timerStart()
-ems.parForEach(0, 200,  function(bufNum) {  // First 200 docs, not entire collection
+ems.parForEach(0, dir.length,  function(bufNum) {
     var fileTimer = timerStart() 
     var text = fs.readFileSync('/Users/mogill/Src/Data/Gutenberg/all/' + dir[bufNum], 'utf8', "r")
     var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
