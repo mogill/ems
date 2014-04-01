@@ -77,13 +77,13 @@ ems.parForEach(0, dir.length,  function(docNum) {
 ```
 
 <P>
+  <img style="vertical-align:text-top;" height="350px" src="http://synsem.com/EMS.js/wordCount.png" />
   Word Count of documents from Project Gutenberg in a variety of languages.  Average document was
   about 250kb in length.
   The performance of this program using an Amazon EC2 instance:<br>
   <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 
 240 GB of local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
   <br>
-  ![chart](http://synsem.com/EMS.js/wordCount.png "word count performance")  
 </P>
 
 
@@ -118,12 +118,13 @@ if(balance > paymentAmount) {                               // Test for overdraf
 ```
 
 <P>
+  <img style="vertical-align:text-top;" height="350px" src="http://synsem.com/EMS.js/TMfromLoop.png" />
+  <img style="vertical-align:text-top;" height="350px" src="http://synsem.com/EMS.js/TMfromQ.png" />
+  <br>
   The performance of this program using an Amazon EC2 instance:<br>
   <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 240 GB of
   local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
   <br>
-  ![chart](http://synsem.com/EMS.js/TMfromLoop.png)
-  ![chart](http://synsem.com/EMS.js/TMfromQ.png)
 </P>
 
 
