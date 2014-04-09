@@ -17,6 +17,7 @@
 	"type": "git",
 	"url": "https://github.com/syntheticsemantics/ems.git"
     },
+    "homepage": "https://synsem.com/EMS.js",
     "keywords": [
 	"multithreading", "multithreaded",
 	"parallel", "parallelism", "concurrency",

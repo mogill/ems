@@ -329,7 +329,7 @@ static void EMSarrFinalize(char *data, void*hint)
 //  Wait until the FE tag is a particular state, then transition it to the new state
 //  Return new tag state
 //
-char EMStranitionFEtag( EMStag volatile *tag, char oldFE,  char newFE, char oldType )
+char EMStransitionFEtag( EMStag volatile *tag, char oldFE,  char newFE, char oldType )
 {
   RESET_NAP_TIME;
   EMStag oldTag;           //  Desired tag value to start of the transition
@@ -435,7 +435,7 @@ uint64_t EMSreadIndexMap(const v8::Arguments& args)
     while(nTries < MAX_OPEN_HASH_STEPS  &&  !matched  && !notPresent) {
       idx = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
       // Wait until the map key is FULL, mark it busy while map lookup is performed
-      mapTags.byte = EMStranitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
+      mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
       if(mapTags.tags.type  ==  idxType) {
 	switch(idxType) {
 	case EMS_BOOLEAN:
@@ -543,7 +543,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
     while(nTries < MAX_OPEN_HASH_STEPS  &&  !matched) {
       idx = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
       // Wait until the map key is FULL, mark it busy while map lookup is performed
-      mapTags.byte = EMStranitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
+      mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
       mapTags.tags.fe = EMS_FULL;  // When written back, mark FULL
       if(mapTags.tags.type  ==  idxType  ||  mapTags.tags.type == EMS_UNDEFINED) {
 	switch(mapTags.tags.type) {
@@ -746,7 +746,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
     }
 
     // Wait until the data is FULL, mark it busy while FAA is performed
-    oldTag.byte = EMStranitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
+    oldTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
     oldTag.tags.fe = EMS_FULL;  // When written back, mark FULL
     int argType = EMSv8toEMStype(args[1]);
     switch(oldTag.tags.type) {
@@ -990,7 +990,7 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
     int memType = bufTags[EMSdataTag(idx)].tags.type;
 
     //  Wait for the memory to be Full, then mark it Busy while CAS works
-    oldTag.byte = EMStranitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
+    oldTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
     oldTag.tags.fe = EMS_FULL;
     int swapped = false;
 
@@ -1250,7 +1250,6 @@ v8::Handle<v8::Value> EMSreleaseRW(const v8::Arguments& args)
 	  if( newTag.tags.rw == 0 ) { newTag.tags.fe = EMS_FULL; }
 	  //  Attempt to commit the RW reference count & FE tag
 	  if( __sync_bool_compare_and_swap( &(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte) )
-	    // bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
 	    return scope.Close( v8::Integer::New( newTag.tags.rw ) );
 	}
       } else {
@@ -1295,7 +1294,7 @@ v8::Handle<v8::Value> EMSwriteUsingTags(const v8::Arguments& args,  // Index to 
 
     // Wait for the memory to be in the initial F/E state and transition to Busy
     if(initialFE != EMS_ANY) {
-      EMStranitionFEtag(&bufTags[EMSdataTag(idx)], initialFE, EMS_BUSY, EMS_ANY);
+      EMStransitionFEtag(&bufTags[EMSdataTag(idx)], initialFE, EMS_BUSY, EMS_ANY);
     }
 
     while(true) {
@@ -1440,7 +1439,7 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   EMStag    newTag;
 
   // Wait until the stack top is full, then mark it busy while updating the stack
-  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)];
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
   if(idx == bufInt64[EMScbData(EMS_ARR_NELEM)] - 1) {
@@ -1448,7 +1447,7 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   }
 
   //  Wait until the target memory at the top of the stack is empty
-  newTag.byte = EMStranitionFEtag( &bufTags[EMSdataTag(idx)], EMS_EMPTY, EMS_BUSY, EMS_ANY);
+  newTag.byte = EMStransitionFEtag( &bufTags[EMSdataTag(idx)], EMS_EMPTY, EMS_BUSY, EMS_ANY);
   newTag.tags.rw   = 0;
   newTag.tags.type = EMSv8toEMStype(args[0]);
   newTag.tags.fe   = EMS_FULL;
@@ -1504,7 +1503,7 @@ v8::Handle<v8::Value> Pop(const v8::Arguments& args)
   EMStag    dataTag;
 
   //  Wait until the stack pointer is full and mark it empty while pop is performed
-  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]--;
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)];
   if(idx < 0) {
@@ -1516,7 +1515,7 @@ v8::Handle<v8::Value> Pop(const v8::Arguments& args)
 
   //  Wait until the data pointed to by the stack pointer is full, then mark it
   //  busy while it is copied, and set it to EMPTY when finished
-  dataTag.byte = EMStranitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
   switch(dataTag.tags.type) {
   case EMS_BOOLEAN: {
     int64_t retBool = bufInt64[EMSdataData(idx)];
@@ -1570,7 +1569,7 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
   char     *bufChar   = (char *) emsBuf;
 
   //  Wait until the heap top is full, and mark it busy while data is enqueued
-  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t idx =  bufInt64[EMScbData(EMS_ARR_STACKTOP)] % bufInt64[EMScbData(EMS_ARR_NELEM)];
   bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
   if(bufInt64[EMScbData(EMS_ARR_STACKTOP)] - bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] > 
@@ -1649,7 +1648,7 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
   //==========================================================================
 
   //  Wait for bottom of heap pointer to be full, and mark it busy while data is dequeued
-  EMStranitionFEtag(&bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)], EMS_FULL, EMS_BUSY, EMS_ANY);
   int64_t   idx    = bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] % bufInt64[EMScbData(EMS_ARR_NELEM)];
   //  If Queue is empty, return undefined
   if(bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]  >= bufInt64[EMScbData(EMS_ARR_STACKTOP)]) {
@@ -1661,7 +1660,7 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
   bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]++;
   //  Wait for the data pointed to by the bottom of the heap to be full,
   //  then mark busy while copying it, and finally set it to empty when done
-  dataTag.byte = EMStranitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
+  dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
   dataTag.tags.fe    = EMS_EMPTY;
   switch(dataTag.tags.type) {
   case EMS_BOOLEAN: {
@@ -2022,7 +2021,12 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   v8::Local<v8::Object> globalObj = v8::Context::GetCurrent()->Global();
   v8::Local<v8::Function> bufferConstructor = v8::Local<v8::Function>::Cast(globalObj->Get(buffer_symbol));
   //  v8::Handle<v8::Value> constructorArgs[3] = { slowBuffer->handle_, v8::Integer::New(filesize), v8::Integer::New(0) };
-  //  JQM TODO  This kludge allows over-indexing 
+  //  JQM TODO  This kludge is required because Node checks the size and
+  //            fails if the buffer is too large.  This limit does not appear
+  //            to be documented or even necessary.  Indeed, the point of a
+  //            buffer is to act as linearly addressable memory, so the buffer
+  //            is declared to be length 1 and always over-indexed.  This is a
+  //            kludge made necessary by the unnecessary size check.
   v8::Handle<v8::Value> constructorArgs[3] = { slowBuffer->handle_, v8::Integer::New(1), v8::Integer::New(0) };
   v8::Local<v8::Object> actualBuffer = bufferConstructor->NewInstance(3, constructorArgs);
 

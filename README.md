@@ -64,13 +64,13 @@ var wordCounts   = ems.new( {
 
 //  Get the list of files to process
 var dir          = fs.readdirSync('/Data/Gutenberg/all/');
-var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/)
+var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\{\}\?\—]/)
 
 //  Parallel loop over documents
 ems.parForEach(0, dir.length,  function(docNum) {
     var text = fs.readFileSync('/Data/Gutenberg/all/' + dir[bufNum], 'utf8', "r")    
     var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
-    words.forEach( function(word, wordN) {
+    words.forEach( function(word) {
         wordCounts.faa(word, 1)  // Atomic Fetch-and-Add updates word count
     } )
 } )
@@ -188,6 +188,8 @@ is reflected in a rapid code-debug cycle for ad-hoc application development.
 
 For a more complete description of the principles of operation,
 [visit the EMS web site.](http://synsem.com/EMS.js/)
+
+[ Complete API reference ](http://synsem.com/EMS.js/reference.html)
   
 <br>
 <center>
@@ -207,6 +209,7 @@ above the build version's root) may be used,
 and EMS can always be installed globally:
 
 ```csh
+npm install ems
 npm -g install ems
 ```
 
@@ -221,7 +224,7 @@ node-gyp configure
 node-gyp build
 
 # To make this EMS development build the one used by the examples,
-# set up a local node_modules that's symbolically linked to the current build.
+# set up a local node_modules that is symbolically linked to the current build.
 # Replace "Examples" with "Tests" to execute tests from the development build.
 cd ../Examples/
 mkdir node_modules
@@ -244,9 +247,9 @@ BSD, other commercial and open source licenses are available.
 
 ## Links
 [Visit the EMS web site](http://synsem.com/EMS.js/)
-<BR>
+
 [Download the NPM](https://www.npmjs.org/package/ems)
-<BR>
+
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
