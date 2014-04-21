@@ -57,6 +57,7 @@ var wordCounts   = ems.new( {
     heapSize   : maxNKeys * 10, // 10 bytes of storage per key, used for key (dictionary word) itself
     useMap     : true,          // Use a key-index mapping, not integer indexes
     setFEtags  : 'full',        // Initial full/empty state of array elements
+    doDataFill : true,          // Initialize data values
     dataFill   : 0              // Initial value of new keys
 } )
 
@@ -69,6 +70,7 @@ var stats       = ems.new( {
     heapSize   : nStats*20,     // 20 bytes per entry for key and data values
     useMap     : true,          // Use a key-index mapping, not integer indexes
     setFEtags  : 'full',        // Initial full/empty state of array elements
+    doDataFill : true,          // Initialize data values
     dataFill   : 0              // Initial value of new keys
 } )
 

@@ -38,7 +38,7 @@
  |  from every thread, so it is declared from every thread.                    |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), true, true)
+var ems = require('ems')(parseInt(process.argv[2]), true, 'fj')
 
 //-------------------------------------------------------------------
 //  Timer functions
@@ -102,6 +102,7 @@ function initializeSharedData() {
 	    //	persist: true, 
 	    filename  : '/tmp/EMS_tm' + tableN, 
 	    dataFill : 0, 
+	    doDataFill : true,
 	    setFEtags : 'full'
 	} )
     }

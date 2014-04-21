@@ -129,14 +129,14 @@ function EMSparForEach( start,         // First iteration's index
 	//  Do not enter loop until all threads have completed initialization
 	//  If the barrier is present at the loop end, this may replaced
 	//  with first-thread initialization.
+	var extents
 	EMSglobal.data.barrier()  
-	var extents = EMSglobal.data.loopChunk()
-	while(extents.end - extents.start > 0) {
+	do {
+	    extents = EMSglobal.data.loopChunk()
 	    for(var idx = extents.start;  idx < extents.end;  idx++) {
 		loopBody(idx) 
 	    }
-	    extents = EMSglobal.data.loopChunk()
-	}
+	} while(extents.end - extents.start > 0)
     }
 
     // Do not proceed until all iterations have completed
@@ -316,8 +316,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	useMap      : false, // Optional, default=false: Use a map from keys to indexes
 	useExisting : false, // Optional, default=false: Preserve data if a file already exists
 	persist     : true,  // Optional, default=true: Preserve the file after threads exit
-	setFEtags   : 'empty',
-//	dataFill    : undefined,
+	doDataFill  : false, // Optional, default=false: Data values should be initialized
+	dataFill    : undefined,//Optional, default=false: Value to initialize data to
 	dimStride   : []     //  Stride factors for each dimension of multidimensal arrays
     }
 
@@ -331,7 +331,10 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	    if(typeof arg0.filename    !== 'undefined') { emsDescriptor.filename    = arg0.filename }
 	    if(typeof arg0.persist     !== 'undefined') { emsDescriptor.persist     = arg0.persist }
 	    if(typeof arg0.useExisting !== 'undefined') { emsDescriptor.useExisting = arg0.useExisting }
-	    if(typeof arg0.dataFill    !== 'undefined') { emsDescriptor.dataFill    = arg0.dataFill }
+	    if(typeof arg0.doDataFill  !== 'undefined') { 
+		emsDescriptor.doDataFill  = true,
+		emsDescriptor.dataFill    = arg0.dataFill 
+	    }
 	    if(typeof arg0.setFEtags   !== 'undefined') { emsDescriptor.setFEtags   = arg0.setFEtags }
 	    if(typeof arg0.hashFunc    !== 'undefined') { emsDescriptor.hashFunc    = arg0.hashFunc }
 	} else {
@@ -372,9 +375,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
 					 emsDescriptor.useMap,            emsDescriptor.filename,
 					 emsDescriptor.persist,           emsDescriptor.useExisting,
-					 (emsDescriptor.dataFill === 'undefined') ? false : true,
-					 emsDescriptor.dataFill,
-					 (emsDescriptor.setFEtags === 'undefined') ? false : true,
+					 emsDescriptor.doDataFill,        emsDescriptor.dataFill,
+					 (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
 					 this.myID, this.pinThreads, this.nThreads)
 	this.barrier()
@@ -383,12 +385,10 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
 					 emsDescriptor.useMap,            emsDescriptor.filename,
 					 emsDescriptor.persist,           emsDescriptor.useExisting,
-					 (emsDescriptor.dataFill === 'undefined') ? false : true,
-					 emsDescriptor.dataFill,
-					 (emsDescriptor.setFEtags === 'undefined') ? false : true,
+					 emsDescriptor.doDataFill,        emsDescriptor.dataFill,
+					 (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
-					 this.myID,
-                                         this.pinThreads, this.nThreads)
+					 this.myID, this.pinThreads, this.nThreads)
     }
 
     emsDescriptor.regionN   = this.newRegionN
@@ -419,7 +419,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 //==================================================================
 //  EMS object initialization, invoked by the require statement
 //
-function ems_wrapper(nThreadsArg, pinThreadsArg, useSlaveTasks) {
+function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType) {
     var retObj = { tasks : [] }
 
     // TODO: Determining the thread ID should be done via shared memory
@@ -444,12 +444,25 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, useSlaveTasks) {
     retObj.data = EMS.initialize(0, 0, false, domainName, false, false,
 				 false, 0, false, 0, retObj.myID, pinThreads, nThreads) 
 
-    var targetScript = process.argv[1];
-    if(useSlaveTasks) { targetScript = './EMSthreadStub' }
+    var targetScript;
+    switch(threadingType) {
+    case undefined:
+    case 'bsp':
+	targetScript = process.argv[1]
+	threadingType = 'bsp'
+	break
+    case 'fj':
+	targetScript = './EMSthreadStub'
+	break
+    case 'user':
+    default:
+	targetScript = undefined
+	break
+    }
 
     //  The master thread has completed initialization, other threads may now
-    //  safely join and they are forked presently
-    if(retObj.myID == 0) {
+    //  safely execute.
+    if(targetScript !== undefined  &&  retObj.myID == 0) {
 	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
 	fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag:'w+'})
 	for( var taskN = 1;  taskN < nThreads;  taskN++) {
@@ -460,6 +473,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, useSlaveTasks) {
     }
 
     retObj.nThreads   = nThreads
+    retObj.threadingType = threadingType
     retObj.pinThreads = pinThreads
     retObj.domainName = domainName
     retObj.newRegionN = 0

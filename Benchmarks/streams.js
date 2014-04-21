@@ -28,8 +28,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), true, true)
-
+var ems = require('ems')(parseInt(process.argv[2]), true, 'fj')
 ems.parallel( function() { 
     //-------------------------------------------------------------------
     //  Timer functions
@@ -46,9 +45,9 @@ ems.parallel( function() {
             console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
 	}
     }
-    
+
     totalTime = timerStart()
-    arrLen = 1000000
+    arrLen = 2000000
     a = ems.new(arrLen)
     b = ems.new(arrLen)
     c = ems.new(arrLen)
@@ -102,7 +101,6 @@ ems.parallel( function() {
     timerStop(startTime, arrLen, " c+=a*b  ", ems.myID)
 
 } )
-
 
 process.exit(0)
 

@@ -39,7 +39,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 // Initialize EMS to use the fork-join execution model instead of BSP
-var ems = require('ems')(parseInt(process.argv[2]), true, true)
+var ems = require('ems')(parseInt(process.argv[2]), true, 'fj')
 
 
 
@@ -105,6 +105,7 @@ function initializeSharedData() {
 	    useExisting: false, 
 	    //	persist: true, 
 	    filename  : '/tmp/EMS_tm' + tableN, 
+	    doDataFill: true,
 	    dataFill : 0, 
 	    setFEtags : 'full'
 	} )

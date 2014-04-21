@@ -793,15 +793,23 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
     case EMS_INTEGER: {
       int64_t retInt = bufInt64[EMSdataData(idx)];  // Read original value in memory
       switch(argType) {
-      case EMS_INTEGER:   // Int + int
-	bufInt64[EMSdataData(idx)] += args[1]->ToInteger()->Value();
+      case EMS_INTEGER: {  // Int + int
+	int64_t memInt = bufInt64[EMSdataData(idx)];
+	if(memInt >= (1<<30)) {  // Possible integer overflow, convert to float
+	  bufDouble[EMSdataData(idx)] = 
+	    (double)bufInt64[EMSdataData(idx)] + (double)(args[1]->ToInteger()->Value());
+	  oldTag.tags.type = EMS_FLOAT;
+	} else { //  Did not overflow to flow, still an integer
+	  bufInt64[EMSdataData(idx)] += args[1]->ToInteger()->Value();
+	}
+      }
 	break;
       case EMS_FLOAT:     // Int + float
 	bufDouble[EMSdataData(idx)] = (double)bufInt64[EMSdataData(idx)] + args[1]->ToNumber()->Value();
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_UNDEFINED: // Int + undefined
-	bufDouble[EMSdataData(idx)] = NAN;	
+	bufDouble[EMSdataData(idx)] = NAN;
 	oldTag.tags.type = EMS_FLOAT;
 	break;
       case EMS_BOOLEAN:   // Int + bool
@@ -1870,6 +1878,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
 
   int fd;
 
+  // fprintf(stderr, "EMS initialize: nElements=%lld   heapSize=%lld     useMap=%d     fname=%s|    persist=%d   useExisting=%d  doDataFill=%d      doSetFEtags=%d     setFEtags=%d     EMSID=%d    pinThreads=%d   nThreads=%d\n",  nElements, heapSize, useMap, *filename, persist, useExisting, doDataFill, doSetFEtags, setFEtags, EMSmyID, pinThreads, nThreads);
   //  Node 0 is first and always has mutual excusion during intialization
   //  perform once-only initialization here
   if(EMSmyID == 0) {
@@ -1924,7 +1933,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
 
   if(EMSmyID == 0) {
     if(nElements <= 0) {   // This is the EMS CB
-      bufInt32[EMS_CB_NTHREADS]   = nThreads;
+      bufInt32[EMS_CB_NTHREADS] = nThreads;
       bufInt32[EMS_CB_NBAR0]    = nThreads;
       bufInt32[EMS_CB_NBAR1]    = nThreads;
       bufInt32[EMS_CB_BARPHASE] = 0;
@@ -1969,8 +1978,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   int64_t  endIter       = iterPerThread * (EMSmyID+1);
   if(endIter > nElements)  endIter = nElements;
   for(int64_t  idx = startIter;  idx < endIter;  idx++) {
-    tag.tags.fe   = EMS_EMPTY;
-    tag.tags.type = EMS_UNDEFINED;
+    tag.byte = bufTags[EMSdataTag(idx)].byte;
     if(doDataFill) {
       tag.tags.type = EMSv8toEMStype(args[7]);
       switch( EMSv8toEMStype(args[7]) ) {
@@ -1999,17 +2007,19 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
 	return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSinit: type is unknown"));
       }
     }
+
     if(doSetFEtags) {
       if(setFEtags)  tag.tags.fe = EMS_FULL;
       else           tag.tags.fe = EMS_EMPTY;
-   }
+    }
+
     if(doSetFEtags  ||  doDataFill) {
       bufTags[EMSdataTag(idx)].byte = tag.byte;
     }
+
     if(useMap) {
-      tag.tags.fe   = EMS_FULL;
-      tag.tags.type = EMS_UNDEFINED;
-      bufTags[EMSmapTag(idx)].byte = tag.byte;
+      bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+      if(!useExisting) { bufTags[EMSmapTag(idx)].tags.type = EMS_UNDEFINED; }
     }
   }
   
