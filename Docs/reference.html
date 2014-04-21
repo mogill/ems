@@ -142,7 +142,7 @@
     <table class="apiBlock" >
       <tr class="apiFunc" >
 	<td class="Label"> REQUIRE </td>
-	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nThreads [, threadAffinity [, useForkJoin] ] )</td>
+	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nThreads [, threadAffinity [, parallelType] ] )</td>
       </tr>
 
       <tr class="apiSynopsis">
@@ -176,13 +176,13 @@
 
       <tr class="apiArgs" >
 	<td class="Label"> </td>
-	<td class="argName"> useForkJoin </td>
+	<td class="argName"> parallelType </td>
 	<td class="argType"> &lt;Boolean&gt; </td>
-	<td class="argDesc"> (Optional, Default=<code>false</code>)
-	  If <code>true</code> use a fork-join execution model beginning with one
-	  thread and explicitly entering parallel regions, otherwise use
-	  Bulk Synchronous Parallel (BSP) execution in which every thread
-	  begins execution at main and executes the entire program.
+	<td class="argDesc"> (Optional, Default=<code>bsp</code>)
+	  Execution model:
+	  <code>bsp</code> will use EMS' built-in Bulk Synchronous Parallel execution,
+	  <code>fj</code> uses EMS' built-in Fork-join execution
+	  <code>user</code> creates no parallelism
 	</td>
       </tr>
     </table>  
