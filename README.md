@@ -64,7 +64,7 @@ var wordCounts   = ems.new( {
 
 //  Get the list of files to process
 var dir          = fs.readdirSync('/Data/Gutenberg/all/');
-var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\{\}\?\—]/)
+var splitPattern = new RegExp(/[ \n,\.\\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\{\}\?\—]/)
 
 //  Parallel loop over documents
 ems.parForEach(0, dir.length,  function(docNum) {
