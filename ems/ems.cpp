@@ -98,19 +98,20 @@ static v8::Persistent<v8::String> buffer_symbol;
 //
 //        Name          Offset      Description of contents
 //---------------------------------------------------------------------------------------
-#define EMS_ARR_NELEM      0   // Maximum number of elements in the EMS array
-#define EMS_ARR_HEAPSZ     1   // # bytes of storage for array data: strings, JSON, maps, etc.
-#define EMS_ARR_Q_BOTTOM   2   // Current index of the queue bottom
-#define EMS_ARR_STACKTOP   3   // Current index of the top of the stack/queue
-#define EMS_ARR_MAPBOT     4   // Index of the base of the index map
-#define EMS_ARR_MALLOCBOT  5   // Index of the base of the heap -- malloc structs start here
-#define EMS_ARR_HEAPBOT    6   // Index of the base of data on the heap -- strings start here
-#define EMS_ARR_MEM_MUTEX  7   // Mutex lock for thememory allocator of this EMS region's 
-#define EMS_ARR_FILESZ     8   // Total size in bytes of the EMS region
+#define NWORDS_PER_CACHELINE 16
+#define EMS_ARR_NELEM      (0 * NWORDS_PER_CACHELINE)   // Maximum number of elements in the EMS array
+#define EMS_ARR_HEAPSZ     (1 * NWORDS_PER_CACHELINE)   // # bytes of storage for array data: strings, JSON, maps, etc.
+#define EMS_ARR_Q_BOTTOM   (2 * NWORDS_PER_CACHELINE)   // Current index of the queue bottom
+#define EMS_ARR_STACKTOP   (3 * NWORDS_PER_CACHELINE)   // Current index of the top of the stack/queue
+#define EMS_ARR_MAPBOT     (4 * NWORDS_PER_CACHELINE)   // Index of the base of the index map
+#define EMS_ARR_MALLOCBOT  (5 * NWORDS_PER_CACHELINE)   // Index of the base of the heap -- malloc structs start here
+#define EMS_ARR_HEAPBOT    (6 * NWORDS_PER_CACHELINE)   // Index of the base of data on the heap -- strings start here
+#define EMS_ARR_MEM_MUTEX  (7 * NWORDS_PER_CACHELINE)   // Mutex lock for thememory allocator of this EMS region's 
+#define EMS_ARR_FILESZ     (8 * NWORDS_PER_CACHELINE)   // Total size in bytes of the EMS region
 // Tag data may follow data by as much as 8 words, so 
 // A gap of at least 8 words is required to leave space for 
 // the tags associated with header data
-#define EMS_ARR_CB_SIZE   16   // Index of the first EMS array element
+#define EMS_ARR_CB_SIZE   (16 * NWORDS_PER_CACHELINE)   // Index of the first EMS array element
 
 
 //==================================================================
@@ -1943,23 +1944,25 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
 	bufInt32[i] = EMS_BUSY;  //  Reset all locks
       }
     } else {   //  This is a user data domain
-      EMStag  tag;
-      tag.tags.rw   = 0;
-      tag.tags.type = EMS_INTEGER;
-      tag.tags.fe   = EMS_FULL;
-      bufInt64[EMScbData(EMS_ARR_NELEM)]     = nElements;
-      bufInt64[EMScbData(EMS_ARR_HEAPSZ)]    = heapSize;     // Unused?
-      bufInt64[EMScbData(EMS_ARR_MAPBOT)]    = bottomOfMap / EMSwordSize;
-      bufInt64[EMScbData(EMS_ARR_MALLOCBOT)] = bottomOfMalloc;
-      bufInt64[EMScbData(EMS_ARR_HEAPBOT)]   = bottomOfHeap;
-      bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]  = 0;
-      bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte   = tag.byte;
-      bufInt64[EMScbData(EMS_ARR_STACKTOP)]  = 0;
-      bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte   = tag.byte;
-      bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] = EMS_EMPTY;
-      bufInt64[EMScbData(EMS_ARR_FILESZ)]    = filesize;
-      struct emsMem *emsMemBuffer = (struct emsMem *) &bufChar[ bufInt64[EMScbData(EMS_ARR_MALLOCBOT)] ];
-      emsMemBuffer->level = nMemLevels;
+      if(!useExisting) {
+	EMStag  tag;
+	tag.tags.rw   = 0;
+	tag.tags.type = EMS_INTEGER;
+	tag.tags.fe   = EMS_FULL;
+	bufInt64[EMScbData(EMS_ARR_NELEM)]     = nElements;
+	bufInt64[EMScbData(EMS_ARR_HEAPSZ)]    = heapSize;     // Unused?
+	bufInt64[EMScbData(EMS_ARR_MAPBOT)]    = bottomOfMap / EMSwordSize;
+	bufInt64[EMScbData(EMS_ARR_MALLOCBOT)] = bottomOfMalloc;
+	bufInt64[EMScbData(EMS_ARR_HEAPBOT)]   = bottomOfHeap;
+	bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]  = 0;
+	bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].byte   = tag.byte;
+	bufInt64[EMScbData(EMS_ARR_STACKTOP)]  = 0;
+	bufTags[EMScbTag(EMS_ARR_STACKTOP)].byte   = tag.byte;
+	bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] = EMS_EMPTY;
+	bufInt64[EMScbData(EMS_ARR_FILESZ)]    = filesize;
+	struct emsMem *emsMemBuffer = (struct emsMem *) &bufChar[ bufInt64[EMScbData(EMS_ARR_MALLOCBOT)] ];
+	emsMemBuffer->level = nMemLevels;
+      }
     }
   }
 

@@ -35,7 +35,7 @@
 
 // The block size used by the memory allocator for allocating heap space.
 // May be any positive non-zero value
-#define EMS_MEM_BLOCKSZ 20
+#define EMS_MEM_BLOCKSZ 200
 
 
 //  Buddy allocator control structure
