@@ -366,7 +366,6 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	emsDescriptor.filename = '/EMS_region_' + this.newRegionN
         emsDescriptor.persist = false
     }
-
     //  init() is first called from thread 0 to perform one-thread
     //  only operations (ie: unlinking an old file, opening a new
     //  file).  After thread 0 has completed initialization, other
@@ -390,7 +389,6 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
 					 this.myID, this.pinThreads, this.nThreads)
     }
-
     emsDescriptor.regionN   = this.newRegionN
     emsDescriptor.push      = EMSpush
     emsDescriptor.pop       = EMSpop
@@ -419,7 +417,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 //==================================================================
 //  EMS object initialization, invoked by the require statement
 //
-function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType) {
+function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var retObj = { tasks : [] }
 
     // TODO: Determining the thread ID should be done via shared memory
@@ -439,8 +437,9 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType) {
 	process.exit(1)
     }
 
-    //  All arguments are defined -- now do the EMS initialization
     var domainName = '/EMS_MainDomain';
+    if(filename) domainName = filename;
+    //  All arguments are defined -- now do the EMS initialization
     retObj.data = EMS.initialize(0, 0, false, domainName, false, false,
 				 false, 0, false, 0, retObj.myID, pinThreads, nThreads) 
 
@@ -463,7 +462,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType) {
     //  The master thread has completed initialization, other threads may now
     //  safely execute.
     if(targetScript !== undefined  &&  retObj.myID == 0) {
-	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
+	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[process.argv.length-1]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
 	fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag:'w+'})
 	for( var taskN = 1;  taskN < nThreads;  taskN++) {
 	    retObj.tasks.push(

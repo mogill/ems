@@ -68,9 +68,9 @@
       <a href="index.html"> Overview of EMS </a>
       &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="reference.html"> API Reference </a>
-      &nbsp;&nbsp;|
+      &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="https://www.npmjs.org/package/ems"> Node.js NPM </a>
-      &nbsp;&nbsp;|
+      &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="https://github.com/SyntheticSemantics/ems"> Download at GitHub </a>
     </div>
 
@@ -142,7 +142,7 @@
     <table class="apiBlock" >
       <tr class="apiFunc" >
 	<td class="Label"> REQUIRE </td>
-	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nThreads [, threadAffinity [, parallelType] ] )</td>
+	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nThreads [, threadAffinity [, parallelType [, contextName ] ] ] )</td>
       </tr>
 
       <tr class="apiSynopsis">
@@ -150,8 +150,6 @@
 	<td class="Desc" colspan=3> Initialize the EMS module, starting
 	  all the other threads.  Thread identity and processor affinity
 	  is assigned when the thread is created.
-	  <TODO>Optionally take a name to allow multiple instances of EMS
-	    to run on the same system. </TODO>
 	  <BR><BR> </td>
       </tr>
 
@@ -179,12 +177,24 @@
 	<td class="argName"> parallelType </td>
 	<td class="argType"> &lt;String&gt; </td>
 	<td class="argDesc"> (Optional, Default=<code>bsp</code>)
-	  Execution model:
+	  One of <code>bsp</code>, <code>fj</code>, or <code>user</code>.  Execution model:
 	  <code>bsp</code> will use EMS' built-in Bulk Synchronous Parallel execution,
 	  <code>fj</code> uses EMS' built-in Fork-join execution
 	  <code>user</code> creates no parallelism
 	</td>
       </tr>
+
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName"> contextName </td>
+	<td class="argType"> &lt;String&gt; </td>
+	<td class="argDesc"> (Optional, Default=<code>anonymous</code>)
+	  Unique name of parallel context being initialized, required to distinguish
+	  between multiple EMS parallel programs running simultaneously on the
+	  same system.
+	</td>
+      </tr>
+
     </table>  
     <br>
     <table class="apiBlock" >

@@ -65,9 +65,9 @@
       <a href="index.html"> Overview of EMS </a>
       &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="reference.html"> API Reference </a>
-      &nbsp;&nbsp;|
+      &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="https://www.npmjs.org/package/ems"> Node.js NPM </a>
-      &nbsp;&nbsp;|
+      &nbsp;&nbsp;|&nbsp;&nbsp;
       <a href="https://github.com/SyntheticSemantics/ems"> Download at GitHub </a>
     </div>
 
@@ -436,6 +436,15 @@
 
 
 
+    <h3>
+      Bugs
+    </h3>
+    <P>
+      EMS should detect when mapped indexes are used and data is initialized as <code>empty</code>
+      because execution deadlocks: the index is now also marked <code>busy</code>
+      meaning no writers may mark the data as full, but the empty target data is a barrier to
+      releasing the lock.
+      </P>
     <h3>
       Roadmap
     </h3>
