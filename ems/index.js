@@ -374,7 +374,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     var emsDescriptor = {    //  Internal EMS descriptor
 	nElements   : 1,     // Required: Maximum number of elements in array
 	heapSize    : 0,     // Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
-	mlock       : true,  // Optional, Lock EMS memory into RAM
+	mlock       : 100,   // Optional, 0-100% of EMS memory into RAM
 	useMap      : false, // Optional, default=false: Use a map from keys to indexes
 	useExisting : false, // Optional, default=false: Preserve data if a file already exists
 	persist     : true,  // Optional, default=true: Preserve the file after threads exit
@@ -438,27 +438,17 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     //  only operations (ie: unlinking an old file, opening a new
     //  file).  After thread 0 has completed initialization, other
     //  threads can safely share the EMS array.
-    if(this.myID == 0) {
-	emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
-					 emsDescriptor.useMap,            emsDescriptor.filename,
-					 emsDescriptor.persist,           emsDescriptor.useExisting,
-					 emsDescriptor.doDataFill,        emsDescriptor.dataFill, fillIsJSON,
-					 (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
-                                         (emsDescriptor.setFEtags == 'full') ? true : false,
-					 this.myID, this.pinThreads, this.nThreads,
-					 emsDescriptor.mlock )
-	this.barrier()
-    } else {
-	this.barrier()
-	emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
-					 emsDescriptor.useMap,            emsDescriptor.filename,
-					 emsDescriptor.persist,           emsDescriptor.useExisting,
-					 emsDescriptor.doDataFill,        emsDescriptor.dataFill, fillIsJSON,
-					 (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
-                                         (emsDescriptor.setFEtags == 'full') ? true : false,
-					 this.myID, this.pinThreads, this.nThreads,
-					 emsDescriptor.mlock )
-    }
+    if(!emsDescriptor.useExisting  &&  this.myID != 0) 	this.barrier();
+    emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
+				     emsDescriptor.useMap,            emsDescriptor.filename,
+				     emsDescriptor.persist,           emsDescriptor.useExisting,
+				     emsDescriptor.doDataFill,        emsDescriptor.dataFill, fillIsJSON,
+				     (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
+                                     (emsDescriptor.setFEtags == 'full') ? true : false,
+				     this.myID, this.pinThreads, this.nThreads,
+				     emsDescriptor.mlock );
+    if(!emsDescriptor.useExisting  &&  this.myID == 0)  this.barrier();
+
     emsDescriptor.regionN   = this.newRegionN
     emsDescriptor.push      = EMSpush
     emsDescriptor.pop       = EMSpop

@@ -1914,7 +1914,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
                 EMSmyID = args[11]->ToInteger()->Value();
   int       pinThreads  = args[12]->ToBoolean()->Value();
   int       nThreads    = args[13]->ToInteger()->Value();
-  int       doMLock     = args[14]->ToBoolean()->Value();
+  int       pctMLock    = args[14]->ToInteger()->Value();
 
   int fd;
 
@@ -1925,6 +1925,16 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
     if(!useExisting) {
       unlink(*filename);
       shm_unlink(*filename);
+    }
+  }
+  if(useExisting) {
+    struct timespec sleep_time;
+    sleep_time.tv_sec  = 0;
+    sleep_time.tv_nsec = 200000000;
+    struct stat statbuf;
+    while( stat(*filename, &statbuf) != 0 ) { 
+      fprintf(stderr, "EMS %3d: Waiting for %s\n", EMSmyID, *filename);
+      nanosleep(&sleep_time, NULL); 
     }
   }
 
@@ -1966,12 +1976,11 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
     return v8::ThrowException(node::ErrnoException(errno, "EMS", "Unable to map domain memory"));  }
   close(fd);
 
-  if(doMLock  ||  nElements <= 0) {  // lock RAM if requested or is master control block
-    if(mlock((void*) emsBuf, filesize) != 0) {
-      fprintf(stderr, "EMS thread %d did not lock EMS memory to RAM for %s\n", EMSmyID, *filename);
-    } else {
-      // success
-    }
+  if(nElements <= 0) pctMLock = 100;   // lock RAM if master control block
+  if(mlock((void*) emsBuf, (size_t)(filesize * (pctMLock/100))) != 0) {
+    fprintf(stderr, "EMS thread %d was not able to lock EMS memory to RAM for %s\n", EMSmyID, *filename);
+  } else {
+    // success
   }
 
   int64_t  *bufInt64  = (int64_t *) emsBuf;

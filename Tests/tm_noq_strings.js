@@ -47,12 +47,13 @@ var checkNops = ems.new(1)
 for(var tableN = 0;  tableN < nTables;  tableN++) {
     tables[tableN] = ems.new( {
 	dimensions : [ arrLen ],
-	heapSize  : arrLen * 20,
+	heapSize  : arrLen * 40,
 	//useMap: true,
 	useExisting: false, 
 //	persist: true, 
 	filename  : '/tmp/EMS_tm' + tableN, 
-	dataFill : 0, 
+	dataFill : 0,
+	doDataFill: true,
 	setFEtags : 'full'
     } )
 }

@@ -240,7 +240,10 @@
 
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
-	<td class="Desc" colspan=3> Create a new EMS array. <BR><BR> </td>
+	<td class="Desc" colspan=3> Attach to an existing or create a new EMS array. 
+	  Creation of new (do not use existing) EMS memory regions implies a barrier,
+	  whereas using an existing EMS file will block until the file exists.
+	  <BR><BR> </td>
       </tr>
 
       <tr class="apiArgs"  style="vertical-align:text-top;">
@@ -295,7 +298,7 @@ emsArrayDescriptor = {
                               // Integer for 1-D, or array of dims [x, y, z]
     heapSize    : 100000,     // Optional, default=0: Space, in bytes, for 
     // strings, maps, and objects.  Rounded up to nearest power of two
-    mlock       : true,       // Optional, default=true: Lock EMS memory into RAM
+    mlock       : 100,        // Optional, default=100%: % of EMS memory to lock into RAM
     useMap      : true,       // Optional, default=false: Map keys to indexes
     useExisting : true,       // Optional, default=false: 
                               // Preserve data if an file already exists
