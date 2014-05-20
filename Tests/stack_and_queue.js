@@ -32,9 +32,8 @@ var ems = require('ems')(parseInt(process.argv[2]))
 var arrLen = 1000000
 var a = ems.new( {
     dimensions : [ arrLen ],
-    heapSize  : 1000,
+    heapSize  : 10000,
     useExisting : false,
-//    persist : true,
     filename  : '/tmp/EMS_stack',
     setFEtags : 'empty',
     dataFill  : undefined
@@ -42,7 +41,7 @@ var a = ems.new( {
 
 var b = ems.new( {
     dimensions : [ arrLen ],
-    heapSize  : 40000000,
+    heapSize  : 200000000,
     setFEtags : 'empty',
     dataFill  : undefined
 } )
@@ -104,7 +103,6 @@ ems.master( function() {
     if(a.pop()  !== undefined) { ems.diag( "dq1: should have been empty") }
 } )
 ems.barrier()
-
 var tmp = b.dequeue()
 if(tmp !== undefined) { ems.diag( "DQ should be mt: " + tmp) }
 ems.barrier()
@@ -138,7 +136,12 @@ var tmp = b.dequeue()
 if(tmp !== undefined) { ems.diag( "DQend should be mt: " + tmp) }
 
 
-var p = ems.new(arrLen+1, 40000000)
+var p = ems.new({
+    dimensions : [ arrLen+1 ],
+    heapSize  : 200000000,
+    setFEtags : 'empty',
+    dataFill  : undefined
+})
 var timeStart = new Date().getTime()
 ems.parForEach(0, arrLen, function(idx) {
     p.push( 'foo'+idx)
@@ -195,7 +198,12 @@ var tmp = b.dequeue()
 if(tmp !== undefined) { ems.diag( "DQend should be mt: " + tmp) }
 
 
-var p = ems.new(arrLen+1, 40000000)
+var p = ems.new({
+    dimensions : [ arrLen+1 ],
+    heapSize  : 200000000,
+    setFEtags : 'empty',
+    dataFill  : undefined
+})
 var timeStart = new Date().getTime()
 ems.parForEach(0, arrLen, function(idx) {
     p.push(idx)

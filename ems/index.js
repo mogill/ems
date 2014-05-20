@@ -174,9 +174,9 @@ function EMStmStart( emsElems ) {
     sorted.forEach( function(e) {
 	var val
 	if(emsElems[e][2] === true) {
-	    val = emsElems[e][0].readRW( emsElems[e][1])
+	    val = emsElems[e][0].readRW(emsElems[e][1])
 	} else {
-	    val = emsElems[e][0].readFE( emsElems[e][1]) 
+	    val = emsElems[e][0].readFE(emsElems[e][1]) 
 	}
 	tmHandle.push( [ emsElems[e][0], emsElems[e][1], emsElems[e][2], val ] )
     } )
@@ -218,6 +218,17 @@ function EMStmEnd( tmHandle,  //  The returned value from tmStart
 
 
 //==================================================================
+function EMSreturnData( value ) {
+    if(typeof value == 'object') {
+	return JSON.parse(value.data);
+    } else {
+	return value;
+    }
+}
+
+
+
+//==================================================================
 //  Synchronize memory with storage
 //
 function EMSsync(emsArr) { return this.data.sync(emsArr) }
@@ -225,31 +236,80 @@ function EMSsync(emsArr) { return this.data.sync(emsArr) }
 
 //==================================================================
 //  Wrappers around Stacks and Queues
-function EMSpush(value)    { return this.data.push(value) }
-function EMSpop()          { return this.data.pop() }
-function EMSenqueue(value) { return this.data.enqueue(value) }
-function EMSdequeue()      { return this.data.dequeue() }
+function EMSpush(value) {
+    if(typeof value  ==  'object') {
+	return this.data.push(JSON.stringify(value), true);
+    } else {
+	return this.data.push(value);
+    }
+}
+function EMSpop()          { return EMSreturnData(this.data.pop()) }
+function EMSenqueue(value) { return this.data.enqueue(value) }  // Retuns only integers
+function EMSdequeue()      { return EMSreturnData(this.data.dequeue()) }
 
 
 //==================================================================
 //  Wrappers around Primitive AMOs
 //  Translate EMS maps and multi-dimensional array indexes/keys 
 //  into EMS linear addresses 
-function EMSwrite(indexes, val)   { this.data.write(EMSidx(indexes, this), val) }
-function EMSwriteEF(indexes, val) { this.data.writeEF(EMSidx(indexes, this), val) }
-function EMSwriteXF(indexes, val) { this.data.writeXF(EMSidx(indexes, this), val) }
-function EMSwriteXE(indexes, val) { this.data.writeXE(EMSidx(indexes, this), val) }
-function EMSread(indexes)         { return this.data.read(EMSidx(indexes, this)) }
-function EMSreadFE(indexes)       { return this.data.readFE(EMSidx(indexes, this)) }
-function EMSreadFF(indexes)       { return this.data.readFF(EMSidx(indexes, this)) }
-function EMSfaa(indexes, val)     { return this.data.faa(EMSidx(indexes, this), val) }
-function EMSreadRW(indexes)       { return this.data.readRW(EMSidx(indexes, this)) }
-function EMSreleaseRW(indexes)    { return this.data.releaseRW(EMSidx(indexes, this)) }
-function EMSsetTag(indexes, fe)   { return this.data.setTag(EMSidx(indexes, this), 
-					    (fe == 'full' ? true : false) ) }
-function EMScas(indexes, oldVal, newVal) {
-    return this.data.cas(EMSidx(indexes, this), oldVal, newVal)
+//  Apparently it is illegal to pass a native function as an argument
+function EMSwrite(indexes, value)   { 
+    var nativeIndex = EMSidx(indexes, this);
+    if(typeof value  == 'object') {
+	this.data.write(nativeIndex, JSON.stringify(value), true);
+    } else {
+	this.data.write(nativeIndex, value);	
+    }
 }
+function EMSwriteEF(indexes, value) {
+    var nativeIndex = EMSidx(indexes, this);
+    if(typeof value  == 'object') {
+	this.data.writeEF(nativeIndex, JSON.stringify(value), true);
+    } else {
+	this.data.writeEF(nativeIndex, value);	
+    }
+}
+function EMSwriteXF(indexes, value) { 
+    var nativeIndex = EMSidx(indexes, this);
+    if(typeof value  == 'object') {
+	this.data.writeXF(nativeIndex, JSON.stringify(value), true);
+    } else {
+	this.data.writeXF(nativeIndex, value);	
+    }
+}
+function EMSwriteXE(indexes, value) { 
+    var nativeIndex = EMSidx(indexes, this);
+    if(typeof value  == 'object') {
+	this.data.writeXE(nativeIndex, JSON.stringify(value), true);
+    } else {
+	this.data.writeXE(nativeIndex, value);	
+    }
+}
+function EMSread(indexes)         { return EMSreturnData(this.data.read(EMSidx(indexes, this))) }
+function EMSreadFE(indexes)       { return EMSreturnData(this.data.readFE(EMSidx(indexes, this))) }
+function EMSreadFF(indexes)       { return EMSreturnData(this.data.readFF(EMSidx(indexes, this))) }
+function EMSreadRW(indexes)       { return EMSreturnData(this.data.readRW(EMSidx(indexes, this))) }
+function EMSreleaseRW(indexes)    { return EMSreturnData(this.data.releaseRW(EMSidx(indexes, this))) }
+function EMSsetTag(indexes, fe)   { return this.data.setTag(EMSidx(indexes, this), 
+							    (fe == 'full' ? true : false) ) }
+function EMSfaa(indexes, val)     { 
+    if(typeof val == 'object') {
+	console.log("EMSfaa: Cannot add an object to something");
+	return(val);
+    } else {
+	return this.data.faa(EMSidx(indexes, this), val);  // Can only return JSON primitives
+    }
+}
+
+function EMScas(indexes, oldVal, newVal) {
+    if(typeof oldVal == 'object'  ||  typeof newVal == 'object') {
+	console.log("EMScas: Cannot compare objects, only JSON primitives");
+	return(undefined);	
+    } else {
+	return this.data.cas(EMSidx(indexes, this), oldVal, newVal)  // Can only return JSON primitives
+    }
+}
+
 
 
 //==================================================================
@@ -309,10 +369,12 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 		heapSize,    //  #bytes of memory reserved for strings/arrays/objs/maps/etc
 		filename     //  Optional filename for persistent EMS memory
 	       ) {
+    var fillIsJSON = false; 
     var retObj = { }         //  Object returned as the EMS region handle
     var emsDescriptor = {    //  Internal EMS descriptor
 	nElements   : 1,     // Required: Maximum number of elements in array
 	heapSize    : 0,     // Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
+	mlock       : true,  // Optional, Lock EMS memory into RAM
 	useMap      : false, // Optional, default=false: Use a map from keys to indexes
 	useExisting : false, // Optional, default=false: Preserve data if a file already exists
 	persist     : true,  // Optional, default=true: Preserve the file after threads exit
@@ -327,13 +389,19 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	if(EMSisObject(arg0)) {  // User passed in emsArrayDescriptor
 	    if(typeof arg0.dimensions  !== 'undefined') { emsDescriptor.dimensions  = arg0.dimensions }
 	    if(typeof arg0.heapSize    !== 'undefined') { emsDescriptor.heapSize    = arg0.heapSize }
+	    if(typeof arg0.mlock       !== 'undefined') { emsDescriptor.mlock       = arg0.mlock }
 	    if(typeof arg0.useMap      !== 'undefined') { emsDescriptor.useMap      = arg0.useMap }
 	    if(typeof arg0.filename    !== 'undefined') { emsDescriptor.filename    = arg0.filename }
 	    if(typeof arg0.persist     !== 'undefined') { emsDescriptor.persist     = arg0.persist }
 	    if(typeof arg0.useExisting !== 'undefined') { emsDescriptor.useExisting = arg0.useExisting }
 	    if(typeof arg0.doDataFill  !== 'undefined') { 
-		emsDescriptor.doDataFill  = true,
-		emsDescriptor.dataFill    = arg0.dataFill 
+		emsDescriptor.doDataFill  = true;
+		if(typeof arg0.dataFill == 'object') {
+		    emsDescriptor.dataFill    = JSON.stringify(arg0.dataFill);
+		    fillIsJSON = true;
+		} else {
+		    emsDescriptor.dataFill    = arg0.dataFill;
+		}
 	    }
 	    if(typeof arg0.setFEtags   !== 'undefined') { emsDescriptor.setFEtags   = arg0.setFEtags }
 	    if(typeof arg0.hashFunc    !== 'undefined') { emsDescriptor.hashFunc    = arg0.hashFunc }
@@ -374,20 +442,22 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
 	emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
 					 emsDescriptor.useMap,            emsDescriptor.filename,
 					 emsDescriptor.persist,           emsDescriptor.useExisting,
-					 emsDescriptor.doDataFill,        emsDescriptor.dataFill,
+					 emsDescriptor.doDataFill,        emsDescriptor.dataFill, fillIsJSON,
 					 (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
-					 this.myID, this.pinThreads, this.nThreads)
+					 this.myID, this.pinThreads, this.nThreads,
+					 emsDescriptor.mlock )
 	this.barrier()
     } else {
 	this.barrier()
 	emsDescriptor.data   = this.init(emsDescriptor.nElements,         emsDescriptor.heapSize,
 					 emsDescriptor.useMap,            emsDescriptor.filename,
 					 emsDescriptor.persist,           emsDescriptor.useExisting,
-					 emsDescriptor.doDataFill,        emsDescriptor.dataFill,
+					 emsDescriptor.doDataFill,        emsDescriptor.dataFill, fillIsJSON,
 					 (typeof emsDescriptor.setFEtags === 'undefined') ? false : true,
                                          (emsDescriptor.setFEtags == 'full') ? true : false,
-					 this.myID, this.pinThreads, this.nThreads)
+					 this.myID, this.pinThreads, this.nThreads,
+					 emsDescriptor.mlock )
     }
     emsDescriptor.regionN   = this.newRegionN
     emsDescriptor.push      = EMSpush
@@ -441,7 +511,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     if(filename) domainName = filename;
     //  All arguments are defined -- now do the EMS initialization
     retObj.data = EMS.initialize(0, 0, false, domainName, false, false,
-				 false, 0, false, 0, retObj.myID, pinThreads, nThreads) 
+				 false, 0, false, false, 0, retObj.myID, pinThreads, nThreads) 
 
     var targetScript;
     switch(threadingType) {
@@ -462,7 +532,8 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     //  The master thread has completed initialization, other threads may now
     //  safely execute.
     if(targetScript !== undefined  &&  retObj.myID == 0) {
-	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[process.argv.length-1]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
+//	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[process.argv.length-1]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
+	var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );'
 	fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag:'w+'})
 	for( var taskN = 1;  taskN < nThreads;  taskN++) {
 	    retObj.tasks.push(

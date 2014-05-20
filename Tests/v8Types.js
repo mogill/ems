@@ -29,17 +29,94 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 var ems = require('ems')(parseInt(process.argv[2]), false)
-
-var arrLen = 40000
-var a = ems.new(arrLen, arrLen * 40)
+var assert = require('assert');
+var arrLen = 10000
+var a = ems.new(arrLen, arrLen * 400)
 var map = ems.new( {
     dimensions : [ arrLen ],
-    heapSize  : arrLen * 5,
+    heapSize  : arrLen * 10,
     useMap: true, 
     useExisting: false,
     setFEtags : 'full',
     dataFill : 0
 } )
+
+var arrayElem = [ 'abcd', 1234.567, {x:'xxx', y:'yyyyy'}, 987, null, [10,11,12,13] ];
+var objElem = { a: 1, b : 321.653, c: 'asdasd' };
+
+var objMap = ems.new( {
+    dimensions : [ arrLen ],
+    heapSize  : arrLen * 200,
+    useMap: true, 
+    useExisting: false,
+    setFEtags : 'full'
+} )
+
+var arrObj = ems.new( {
+    dimensions : [ arrLen ],
+    heapSize  : arrLen * 200,
+    useMap: false, 
+    useExisting: false,
+    setFEtags : 'full',
+    dataFill : arrayElem,
+    doDataFill : true
+} )
+
+
+if(ems.myID == 0) {
+    objMap.writeXF('any obj', objElem)
+    assert(objMap.readFF('any obj').a === objElem.a)
+    assert(objMap.readFF('any obj').b === objElem.b)
+    assert(objMap.readFE('any obj').c === objElem.c)
+
+    arrayElem.forEach( function(elem, idx) {
+	// console.log(arrObj.readFF(123)[idx], elem, typeof elem);
+	if(typeof elem == 'object') {
+	    if( typeof arrObj.readFF(123)[idx] != 'object') {
+		console.log('Object in array is no longer an object?')
+	    }
+	} else {
+	    assert(arrObj.readFF(123)[idx] === elem);
+	}
+    } );
+    arrObj.readFE(123);
+
+
+    var newObj = { xa: 10000, xb : 32100.653, xc: 'xxxxxxxasdasd' };
+    objMap.writeEF('any obj', newObj);
+    assert(objMap.readFF('any obj').xa === newObj.xa);
+    assert(objMap.readFF('any obj').xb === newObj.xb);
+    assert(objMap.readFE('any obj').xc === newObj.xc);
+
+    arrObj.writeEF(123, 'overwrite the old array');
+    arrObj.writeXF(1, []);
+    var newArr = [9,8,7,6,,,,'abs',{one:1, two:2, three:'threeeeee'}, 1,2,3];
+    arrObj.writeXF(2, newArr);
+
+    assert(arrObj.readFE(123) === 'overwrite the old array');
+    assert(arrObj.readFE(1).length  === 0);
+    newArr.forEach( function(elem, idx) {
+	if(typeof elem == 'object') {
+	    if( typeof arrObj.readFF(2)[idx] != 'object') {
+		console.log('Object in array is no longer an object?')
+	    }
+	} else {
+	    assert(arrObj.readFF(2)[idx] === elem);
+	}
+    } )
+
+    var newerObj = { q:123, r:345, x:[1,2,3,4] };
+    arrObj.writeEF(123, newerObj);
+    assert(arrObj.readFF(123).q === newerObj.q);
+    assert(arrObj.readFF(123).r === newerObj.r);
+    assert(arrObj.readFF(123).x[2] === newerObj.x[2]);
+
+}
+
+ems.barrier();
+
+
+//----------------------------------------
 
 
 var data = [false, true, 1234, 987.654321, 'hello', undefined]

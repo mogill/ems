@@ -36,13 +36,6 @@ var nTransactions = 4000000
 var nTables = 6
 var maxNops = 5
 var tables = []
-var workQ = ems.new( {
-    dimensions : [ nTransactions + ems.nThreads ],
-    heapSize  : nTransactions*20,
-    useExisting: false,
-    //dataFill : 0,
-    setFEtags : 'empty'
-} )
 var totalNops = ems.new(2)
 var checkNops = ems.new(1)
 var totalNops = ems.new(2)

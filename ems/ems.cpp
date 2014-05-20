@@ -147,7 +147,7 @@ static v8::Persistent<v8::String> buffer_symbol;
 //  Used within spin-loops to reduce hot-spotting
 //
 #define RESET_NAP_TIME  int EMScurrentNapTime = 100
-#define MAX_NAP_TIME  500000
+#define MAX_NAP_TIME  1000000
 #define NANOSLEEP    {				\
     struct timespec     sleep_time;		\
     sleep_time.tv_sec  = 0;			\
@@ -219,15 +219,16 @@ static int EMSmyID;   // EMS Thread ID
 
 //==================================================================
 //  Determine the EMS type of a V8 argument
-#define EMSv8toEMStype(arg)			\
-  (						\
-   arg->IsInt32()     ? EMS_INTEGER :		\
-   arg->IsNumber()    ? EMS_FLOAT   :		\
-   arg->IsString()    ? EMS_STRING  : 		\
-   arg->IsBoolean()   ? EMS_BOOLEAN :		\
-   arg->IsUndefined() ? EMS_UNDEFINED:		\
-   arg->IsUint32()    ? EMS_INTEGER : -1	\
-						)
+#define EMSv8toEMStype(arg, stringIsJSON)				\
+  (									\
+   arg->IsInt32()                     ? EMS_INTEGER :			\
+   arg->IsNumber()                    ? EMS_FLOAT   :			\
+   (arg->IsString() && !stringIsJSON) ? EMS_STRING  :			\
+   (arg->IsString() &&  stringIsJSON) ? EMS_JSON  :			\
+   arg->IsBoolean()                   ? EMS_BOOLEAN :			\
+   arg->IsUndefined()                 ? EMS_UNDEFINED:			\
+   arg->IsUint32()                    ? EMS_INTEGER : -1		\
+								)
 
 
 
@@ -397,7 +398,7 @@ uint64_t EMSreadIndexMap(const v8::Arguments& args)
   EMStag   *bufTags     = (EMStag *) emsBuf;
   EMStag    mapTags;
   double   *bufDouble   = (double *) emsBuf;
-  int       idxType     = EMSv8toEMStype(args[0]);
+  int       idxType     = EMSv8toEMStype(args[0], false);
   int64_t   boolArgVal  = false;
   int64_t   intArgVal   = -1;
   double    floatArgVal = 0.0;
@@ -506,7 +507,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
   EMStag   *bufTags     = (EMStag *) emsBuf;
   EMStag    mapTags;
   double   *bufDouble   = (double *) emsBuf;
-  int       idxType     = EMSv8toEMStype(args[0]);
+  int       idxType     = EMSv8toEMStype(args[0], false);
   int64_t   boolArgVal  = false;
   int64_t   intArgVal   = -1;
   double    floatArgVal = 0.0;
@@ -749,7 +750,7 @@ v8::Handle<v8::Value> EMSfaa(const v8::Arguments& args)
     // Wait until the data is FULL, mark it busy while FAA is performed
     oldTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
     oldTag.tags.fe = EMS_FULL;  // When written back, mark FULL
-    int argType = EMSv8toEMStype(args[1]);
+    int argType = EMSv8toEMStype(args[1], false);  // Never add to an object, treat as string
     switch(oldTag.tags.type) {
     case EMS_BOOLEAN: {    //  Bool + _______
       int64_t retBool = bufInt64[EMSdataData(idx)];  // Read original value in memory
@@ -994,8 +995,8 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
       return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMS_CAS: index out of bounds"));
     }
 
-    int oldType = EMSv8toEMStype(args[1]);
-    int newType = EMSv8toEMStype(args[2]);
+    int oldType = EMSv8toEMStype(args[1], false);  // Never CAS an object, treat as string
+    int newType = EMSv8toEMStype(args[2], false);  // Never CAS an object, treat as string
     int memType = bufTags[EMSdataTag(idx)].tags.type;
 
     //  Wait for the memory to be Full, then mark it Busy while CAS works
@@ -1100,90 +1101,99 @@ v8::Handle<v8::Value> EMSreadUsingTags(const v8::Arguments& args, // Index to re
   RESET_NAP_TIME;
   EMS_DECL(args);
   
-  if (args.Length() == 1) {
-    int64_t        idx  = EMSreadIndexMap(args);
-    EMStag   *bufTags   = (EMStag *) emsBuf;
-    int64_t  *bufInt64  = (int64_t *) emsBuf;
-    double   *bufDouble = (double *) emsBuf;
-    char     *bufChar   = (char *) emsBuf;
-    EMStag    newTag, oldTag, memTag;
+  if (args.Length() < 1  ||  args.Length() > 2) {
+    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadFE: Wrong number of args"));
+  }
 
-    if(idx < 0  ||  idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-      if(EMSisMapped) 
-	return v8::Undefined();
-      else
-	return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadUsingTags: index out of bounds"));
-    }
+  int64_t        idx  = EMSreadIndexMap(args);
+  EMStag   *bufTags   = (EMStag *) emsBuf;
+  int64_t  *bufInt64  = (int64_t *) emsBuf;
+  double   *bufDouble = (double *) emsBuf;
+  char     *bufChar   = (char *) emsBuf;
+  EMStag    newTag, oldTag, memTag;
+  if(idx < 0  ||  idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
+    if(EMSisMapped) 
+      return v8::Undefined();
+    else
+      return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadUsingTags: index out of bounds"));
+  }
 
-    while(true) {
-      memTag.byte = bufTags[EMSdataTag(idx)].byte;
-      //  Wait until FE tag is not FULL
-      if( initialFE ==  EMS_ANY  ||  
-	  (initialFE != EMS_RW_LOCK  &&  memTag.tags.fe == initialFE)  ||
-	  (initialFE ==  EMS_RW_LOCK  &&  
-	   (memTag.tags.fe == EMS_RW_LOCK  ||  memTag.tags.fe == EMS_FULL)  &&
-	   (memTag.tags.rw < ((1 << EMS_TYPE_NBITS_RW) -1))// Counter is already saturated
-	   ) 
-	  ) {
-	newTag.byte = memTag.byte;
-	oldTag.byte = memTag.byte;
-	newTag.tags.fe = EMS_BUSY;
-	if(initialFE == EMS_RW_LOCK) {
-	  newTag.tags.rw++;
-	} else {
-	  oldTag.tags.fe = initialFE;
+  while(true) {
+    memTag.byte = bufTags[EMSdataTag(idx)].byte;
+    //  Wait until FE tag is not FULL
+    if( initialFE ==  EMS_ANY  ||  
+	(initialFE != EMS_RW_LOCK  &&  memTag.tags.fe == initialFE)  ||
+	(initialFE ==  EMS_RW_LOCK  &&  
+	 (memTag.tags.fe == EMS_RW_LOCK  ||  memTag.tags.fe == EMS_FULL)  &&
+	 (memTag.tags.rw < ((1 << EMS_TYPE_NBITS_RW) -1))// Counter is already saturated
+	 ) 
+	) {
+      newTag.byte = memTag.byte;
+      oldTag.byte = memTag.byte;
+      newTag.tags.fe = EMS_BUSY;
+      if(initialFE == EMS_RW_LOCK) {
+	newTag.tags.rw++;
+      } else {
+	oldTag.tags.fe = initialFE;
+      }
+      //  Transition FE from FULL to BUSY
+      if( initialFE ==  EMS_ANY  ||
+	  __sync_bool_compare_and_swap( &(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte ) ) {
+	// Under BUSY lock:
+	//   Read the data, then reset the FE tag, then return the original value in memory
+	newTag.tags.fe = finalFE;
+	//	  fprintf(stderr, "XXXX %3d: idx=%lld  type is=%d\n", EMSmyID, idx, newTag.tags.type);
+	switch(newTag.tags.type) {
+	case EMS_BOOLEAN: {
+	  int64_t retBool = bufInt64[EMSdataData(idx)];
+	  if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
+	  if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  return v8::Boolean::New(retBool);
 	}
-	//  Transition FE from FULL to BUSY
-	if( initialFE ==  EMS_ANY  ||
-	    __sync_bool_compare_and_swap( &(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte ) ) {
-	  // Under BUSY lock:
-	  //   Read the data, then reset the FE tag, then return the original value in memory
-	  newTag.tags.fe = finalFE;
-	  switch(newTag.tags.type) {
-	  case EMS_BOOLEAN: {
-	    int64_t retBool = bufInt64[EMSdataData(idx)];
-	    if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
-	    if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
-	    return v8::Boolean::New(retBool);
-	  }
-	  case EMS_INTEGER: {
-	    int64_t retInt = bufInt64[EMSdataData(idx)];
-	    if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
-	    if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
-	    return v8::Integer::New(retInt);
-	  }
-	  case EMS_FLOAT: {
-	    double retFloat = bufDouble[EMSdataData(idx)];
-	    if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
-	    if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
-	    return v8::Number::New(retFloat);
-	  }
-	  case EMS_STRING: {
-	    v8::Handle<v8::String>  retStr =
-	      v8::String::New((const char*)(EMSheapPtr(bufInt64[EMSdataData(idx)])));
-	    if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
-	    if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	case EMS_INTEGER: {
+	  int64_t retInt = bufInt64[EMSdataData(idx)];
+	  if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
+	  if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  return v8::Integer::New(retInt);
+	}
+	case EMS_FLOAT: {
+	  double retFloat = bufDouble[EMSdataData(idx)];
+	  if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
+	  if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  return v8::Number::New(retFloat);
+	}
+	case EMS_JSON:
+	case EMS_STRING: {
+	  v8::Handle<v8::String>  retStr =
+	    v8::String::New((const char*)(EMSheapPtr(bufInt64[EMSdataData(idx)])));
+	  if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
+	  if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  if(newTag.tags.type == EMS_JSON) {
+	    v8::Local<v8::Object> retObj = v8::Object::New();
+	    retObj->Set(v8::String::New("data"), retStr);
+	    //fprintf(stderr, "obj: %s\n", *retStr);
+	    return retObj;
+	  } else {
+	    //fprintf(stderr, "string: %s\n", *retStr);
 	    return retStr;
 	  }
-	  case EMS_UNDEFINED: {
-	    if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
-	    if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
-	    return v8::Undefined();
-	  }
-	  default:
-	    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadFE unknown type"));
-	  }
-	} else {
-	  // Tag was marked BUSY between test read and CAS, must retry
+	}
+	case EMS_UNDEFINED: {
+	  if(finalFE != EMS_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
+	  if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  return v8::Undefined();
+	}
+	default:
+	  return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadFE unknown type"));
 	}
       } else {
-	// Tag was already marked BUSY, must retry
+	// Tag was marked BUSY between test read and CAS, must retry
       }
-      // CAS failed or memory wasn't in initial state, wait and retry
-      NANOSLEEP; 
+    } else {
+      // Tag was already marked BUSY, must retry
     }
-  } else {
-    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadFE: Wrong number of args"));
+    // CAS failed or memory wasn't in initial state, wait and retry
+    NANOSLEEP; 
   }
 }
 
@@ -1288,88 +1298,91 @@ v8::Handle<v8::Value> EMSwriteUsingTags(const v8::Arguments& args,  // Index to 
   v8::HandleScope scope;
   RESET_NAP_TIME;
   EMS_DECL(args);
+  int64_t         idx = EMSwriteIndexMap(args);
+  EMStag   *bufTags   = (EMStag *) emsBuf;
+  int64_t  *bufInt64  = (int64_t *) emsBuf;
+  double   *bufDouble = (double *) emsBuf;
+  char     *bufChar   = (char *) emsBuf;
+  EMStag    newTag, oldTag, memTag;
+  int stringIsJSON = false;
+  if (args.Length() == 3) {
+    stringIsJSON = args[2]->ToBoolean()->Value();
+  }  else {
+    if(args.Length() != 2)
+      return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: Wrong number of args"));
+  }
 
-  if (args.Length() == 2) {
-    int64_t         idx = EMSwriteIndexMap(args);
-    EMStag   *bufTags   = (EMStag *) emsBuf;
-    int64_t  *bufInt64  = (int64_t *) emsBuf;
-    double   *bufDouble = (double *) emsBuf;
-    char     *bufChar   = (char *) emsBuf;
-    EMStag    newTag, oldTag, memTag;
+  if(idx < 0  ||  idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
+    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: index out of bounds"));
+  }
 
-    if(idx < 0  ||  idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-      return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: index out of bounds"));
-    }
+  // Wait for the memory to be in the initial F/E state and transition to Busy
+  if(initialFE != EMS_ANY) {
+    EMStransitionFEtag(&bufTags[EMSdataTag(idx)], initialFE, EMS_BUSY, EMS_ANY);
+  }
 
-    // Wait for the memory to be in the initial F/E state and transition to Busy
-    if(initialFE != EMS_ANY) {
-      EMStransitionFEtag(&bufTags[EMSdataTag(idx)], initialFE, EMS_BUSY, EMS_ANY);
-    }
+  while(true) {
+    memTag.byte = bufTags[EMSdataTag(idx)].byte;
+    //  Wait until FE tag is not BUSY
+    if(initialFE != EMS_ANY  ||  finalFE == EMS_ANY  ||  memTag.tags.fe != EMS_BUSY) {
+      oldTag.byte = memTag.byte;
+      newTag.byte = memTag.byte;
+      if(finalFE != EMS_ANY)  newTag.tags.fe = EMS_BUSY;
+      //  Transition FE from !BUSY to BUSY
+      if( initialFE != EMS_ANY  ||  finalFE == EMS_ANY  ||  
+	  __sync_bool_compare_and_swap( &(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte ) ) {
+	//  If the old data was a string, free it because it will be overwritten
+	if(oldTag.tags.type == EMS_STRING) { EMS_FREE(bufInt64[EMSdataData(idx)]); }
 
-    while(true) {
-      memTag.byte = bufTags[EMSdataTag(idx)].byte;
-      //  Wait until FE tag is not BUSY
-      if(initialFE != EMS_ANY  ||  finalFE == EMS_ANY  ||  memTag.tags.fe != EMS_BUSY) {
-	oldTag.byte = memTag.byte;
-	newTag.byte = memTag.byte;
-	if(finalFE != EMS_ANY)  newTag.tags.fe = EMS_BUSY;
-	//  Transition FE from !BUSY to BUSY
-	if( initialFE != EMS_ANY  ||  finalFE == EMS_ANY  ||  
-	    __sync_bool_compare_and_swap( &(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte ) ) {
-	  //  If the old data was a string, free it because it will be overwritten
-	  if(oldTag.tags.type == EMS_STRING) { EMS_FREE(bufInt64[EMSdataData(idx)]); }
-
-	  // Store argument value into EMS memory
-	  switch(EMSv8toEMStype(args[1])) {
-	  case EMS_BOOLEAN:
-	    bufInt64[EMSdataData(idx)] = args[1]->ToBoolean()->Value();
-	    break;
-	  case EMS_INTEGER:
-	    bufInt64[EMSdataData(idx)] = (int64_t)args[1]->ToInteger()->Value();
-	    break;
-	  case EMS_FLOAT:
-	    bufDouble[EMSdataData(idx)] = args[1]->ToNumber()->Value();
-	    break;
-	  case EMS_STRING:  {
-	    v8::String::Utf8Value string(args[1]);
-	    size_t  len = string.length()+1;
-	    int64_t  textOffset;
-	    EMS_ALLOC(textOffset, len, "EMSwriteUsingTags: out of memory to store string");
-	    bufInt64[EMSdataData(idx)] = textOffset;
-	    strcpy( EMSheapPtr(textOffset) , *string );
-	  }
-	    break;
-	  case EMS_UNDEFINED:
-	    bufInt64[EMSdataData(idx)] = 0xdeadbeef;
-	    break;
-	  default:
-	    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: Unknown arg type"));
-	  }
-
-	  oldTag.byte      = newTag.byte;
-	  if(finalFE != EMS_ANY) {
-	    newTag.tags.fe   = finalFE;
-	    newTag.tags.rw   = 0;
-	  }
-	  newTag.tags.type = EMSv8toEMStype(args[1]);
-	  if( finalFE != EMS_ANY  &&   bufTags[EMSdataTag(idx)].byte != oldTag.byte ) {
-	    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: Lost tag lock while BUSY"));
-	  }
-	  //  Set the tags for the data (and map, if used) back to full to finish the operation
-	  bufTags[EMSdataTag(idx)].byte = newTag.byte;
-	  if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
-	  return v8::Boolean::New(true);
-	} else {
-	  // Tag was marked BUSY between test read and CAS, must retry
+	// Store argument value into EMS memory
+	switch(EMSv8toEMStype(args[1], stringIsJSON)) {
+	case EMS_BOOLEAN:
+	  bufInt64[EMSdataData(idx)] = args[1]->ToBoolean()->Value();
+	  break;
+	case EMS_INTEGER:
+	  bufInt64[EMSdataData(idx)] = (int64_t)args[1]->ToInteger()->Value();
+	  break;
+	case EMS_FLOAT:
+	  bufDouble[EMSdataData(idx)] = args[1]->ToNumber()->Value();
+	  break;
+	case EMS_JSON:
+	case EMS_STRING:  {
+	  v8::String::Utf8Value string(args[1]);
+	  size_t  len = string.length()+1;
+	  int64_t  textOffset;
+	  EMS_ALLOC(textOffset, len, "EMSwriteUsingTags: out of memory to store string");
+	  bufInt64[EMSdataData(idx)] = textOffset;
+	  strcpy( EMSheapPtr(textOffset) , *string );
 	}
+	  break;
+	case EMS_UNDEFINED:
+	  bufInt64[EMSdataData(idx)] = 0xdeadbeef;
+	  break;
+	default:
+	  return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: Unknown arg type"));
+	}
+
+	oldTag.byte      = newTag.byte;
+	if(finalFE != EMS_ANY) {
+	  newTag.tags.fe   = finalFE;
+	  newTag.tags.rw   = 0;
+	}
+	newTag.tags.type = EMSv8toEMStype(args[1], stringIsJSON);
+	if( finalFE != EMS_ANY  &&   bufTags[EMSdataTag(idx)].byte != oldTag.byte ) {
+	  return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: Lost tag lock while BUSY"));
+	}
+	//  Set the tags for the data (and map, if used) back to full to finish the operation
+	bufTags[EMSdataTag(idx)].byte = newTag.byte;
+	if(EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	return v8::Boolean::New(true);
       } else {
-	  // Tag was already marked BUSY, must retry
+	// Tag was marked BUSY between test read and CAS, must retry
       }
-      //  Failed to set the tags, sleep and retry
-      NANOSLEEP; 
+    } else {
+      // Tag was already marked BUSY, must retry
     }
-  } else {
-    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSwriteUsingTags: Wrong number of args"));
+    //  Failed to set the tags, sleep and retry
+    NANOSLEEP; 
   }
 }
 
@@ -1446,6 +1459,11 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
   EMStag    newTag;
+  int       stringIsJSON = false;
+
+  if(args.Length() == 2) {
+    stringIsJSON = args[1]->ToBoolean()->Value();
+  }
 
   // Wait until the stack top is full, then mark it busy while updating the stack
   EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
@@ -1458,7 +1476,7 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   //  Wait until the target memory at the top of the stack is empty
   newTag.byte = EMStransitionFEtag( &bufTags[EMSdataTag(idx)], EMS_EMPTY, EMS_BUSY, EMS_ANY);
   newTag.tags.rw   = 0;
-  newTag.tags.type = EMSv8toEMStype(args[0]);
+  newTag.tags.type = EMSv8toEMStype(args[0], stringIsJSON);
   newTag.tags.fe   = EMS_FULL;
 
   //  Write the value onto the stack
@@ -1472,6 +1490,7 @@ v8::Handle<v8::Value> Push(const v8::Arguments& args)
   case EMS_FLOAT:
     bufDouble[EMSdataData(idx)] = (double)args[0]->ToNumber()->Value();
     break;
+  case EMS_JSON:
   case EMS_STRING: {
     v8::String::Utf8Value string(args[0]);
     size_t  len = string.length()+1;
@@ -1544,13 +1563,20 @@ v8::Handle<v8::Value> Pop(const v8::Arguments& args)
     bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
     return scope.Close(v8::Number::New(retFloat));
   }
+  case EMS_JSON:
   case EMS_STRING: {
     v8::Handle<v8::String>  retStr =
       v8::String::New((const char*)EMSheapPtr(bufInt64[EMSdataData(idx)]));
     EMS_FREE(bufInt64[EMSdataData(idx)]);
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
     bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_FULL;
-    return scope.Close(retStr);
+    if(dataTag.tags.type == EMS_JSON) {
+      v8::Local<v8::Object> retObj = v8::Object::New();
+      retObj->Set(v8::String::New("data"), retStr);
+      return scope.Close(retObj);
+    } else {
+      return scope.Close(retStr);
+    }
   }
   case EMS_UNDEFINED: {
     bufTags[EMSdataTag(idx)].tags.fe = EMS_EMPTY;
@@ -1576,6 +1602,10 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
   EMStag   *bufTags   = (EMStag *) emsBuf;
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
+  int stringIsJSON  = false;
+  if(args.Length() == 2) {
+    stringIsJSON = args[1]->ToBoolean()->Value();
+  }
 
   //  Wait until the heap top is full, and mark it busy while data is enqueued
   EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_FULL, EMS_BUSY, EMS_ANY);
@@ -1588,7 +1618,7 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
 
   //  Wait for data pointed to by heap top to be empty, then set to Full while it is filled
   bufTags[EMSdataTag(idx)].tags.rw   = 0;
-  bufTags[EMSdataTag(idx)].tags.type = EMSv8toEMStype(args[0]);
+  bufTags[EMSdataTag(idx)].tags.type = EMSv8toEMStype(args[0], stringIsJSON);
   switch(bufTags[EMSdataTag(idx)].tags.type) {
   case EMS_BOOLEAN:
     bufInt64[EMSdataData(idx)] = (int64_t)args[0]->ToBoolean()->Value();
@@ -1690,13 +1720,20 @@ v8::Handle<v8::Value> Dequeue(const v8::Arguments& args)
     bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
     return scope.Close(v8::Number::New(retFloat));
   }
+  case EMS_JSON:
   case EMS_STRING: {
     v8::Handle<v8::String>  retStr =
       v8::String::New((const char*)(EMSheapPtr(bufInt64[EMSdataData(idx)])));
     EMS_FREE(bufInt64[EMSdataData(idx)]);
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
     bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_FULL;
-    return scope.Close(retStr);
+    if(dataTag.tags.type == EMS_JSON) {
+      v8::Local<v8::Object> retObj = v8::Object::New();
+      retObj->Set(v8::String::New("data"), retStr);
+      return scope.Close(retObj);
+    } else {
+      return scope.Close(retStr);
+    }
   }
   case EMS_UNDEFINED: {
     bufTags[EMSdataTag(idx)].byte = dataTag.byte;
@@ -1871,15 +1908,17 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   int       useExisting =  args[5]->ToBoolean()->Value();
   int       doDataFill  =  args[6]->ToBoolean()->Value();
   // Data Fill type TBD during fill
-  int       doSetFEtags =  args[8]->ToBoolean()->Value();
-  int       setFEtags   =  args[9]->ToInteger()->Value();
-                EMSmyID = args[10]->ToInteger()->Value();
-  int       pinThreads  = args[11]->ToBoolean()->Value();
-  int       nThreads    = args[12]->ToInteger()->Value();
+  int       fillIsJSON  =  args[8]->ToBoolean()->Value();
+  int       doSetFEtags =  args[9]->ToBoolean()->Value();
+  int       setFEtags   =  args[10]->ToInteger()->Value();
+                EMSmyID = args[11]->ToInteger()->Value();
+  int       pinThreads  = args[12]->ToBoolean()->Value();
+  int       nThreads    = args[13]->ToInteger()->Value();
+  int       doMLock     = args[14]->ToBoolean()->Value();
 
   int fd;
 
-  // fprintf(stderr, "EMS initialize: nElements=%lld   heapSize=%lld     useMap=%d     fname=%s|    persist=%d   useExisting=%d  doDataFill=%d      doSetFEtags=%d     setFEtags=%d     EMSID=%d    pinThreads=%d   nThreads=%d\n",  nElements, heapSize, useMap, *filename, persist, useExisting, doDataFill, doSetFEtags, setFEtags, EMSmyID, pinThreads, nThreads);
+  //fprintf(stderr, "EMS initialize: nElements=%lld   heapSize=%lld     useMap=%d     fname=%s|    persist=%d   useExisting=%d  doDataFill=%d      doSetFEtags=%d     setFEtags=%d     EMSID=%d    pinThreads=%d   nThreads=%d  mlock=%d\n",  nElements, heapSize, useMap, *filename, persist, useExisting, doDataFill, doSetFEtags, setFEtags, EMSmyID, pinThreads, nThreads, doMLock);
   //  Node 0 is first and always has mutual excusion during intialization
   //  perform once-only initialization here
   if(EMSmyID == 0) {
@@ -1926,6 +1965,15 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   if(emsBuf == MAP_FAILED)  {
     return v8::ThrowException(node::ErrnoException(errno, "EMS", "Unable to map domain memory"));  }
   close(fd);
+
+  if(doMLock  ||  nElements <= 0) {  // lock RAM if requested or is master control block
+    if(mlock((void*) emsBuf, filesize) != 0) {
+      fprintf(stderr, "EMS thread %d did not lock EMS memory to RAM for %s\n", EMSmyID, *filename);
+    } else {
+      // success
+    }
+  }
+
   int64_t  *bufInt64  = (int64_t *) emsBuf;
   double   *bufDouble = (double *) emsBuf;
   char     *bufChar   = (char *) emsBuf;
@@ -1983,8 +2031,8 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
   for(int64_t  idx = startIter;  idx < endIter;  idx++) {
     tag.byte = bufTags[EMSdataTag(idx)].byte;
     if(doDataFill) {
-      tag.tags.type = EMSv8toEMStype(args[7]);
-      switch( EMSv8toEMStype(args[7]) ) {
+      tag.tags.type = EMSv8toEMStype(args[7], fillIsJSON);
+      switch(tag.tags.type) {
       case EMS_INTEGER:
 	bufInt64[EMSdataData(idx)] = args[7]->ToInteger()->Value();
 	break;
@@ -1997,6 +2045,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
       case EMS_BOOLEAN:
 	bufInt64[EMSdataData(idx)] = args[7]->ToBoolean()->Value();
 	break;
+      case EMS_JSON:
       case EMS_STRING: {
 	v8::String::Utf8Value argString(args[7]);
 	int64_t  len = argString.length() + 1;  //  String length + Terminating null

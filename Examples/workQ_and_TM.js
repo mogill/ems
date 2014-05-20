@@ -86,7 +86,8 @@ function initializeSharedData() {
 	dimensions : [ nTransactions + ems.nThreads ],
 	heapSize  : nTransactions*200,
 	useExisting: false,
-	//dataFill : 0,
+	dataFill : 0,
+	doDataFill: true,
 	setFEtags : 'empty'
     } )
 
@@ -99,7 +100,6 @@ function initializeSharedData() {
 	    heapSize  : 0, 
 	    //useMap: true,
 	    useExisting: false, 
-	    //	persist: true, 
 	    filename  : '/tmp/EMS_tm' + tableN, 
 	    dataFill : 0, 
 	    doDataFill : true,

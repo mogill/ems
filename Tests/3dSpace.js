@@ -35,7 +35,7 @@ var dim1 = ems.new(1000)
 var dims3d = [800, 120, 50]
 var dims2d = [5000,500]
 var dim3 = ems.new(dims3d, 0, "/tmp/EMS_3d_space")
-var dim2 = ems.new(dims2d, 100000000)
+var dim2 = ems.new(dims2d, 800000000)
 var idx = ems.myID
 dim1.write(idx*10, idx*100)
 var v = dim1.read(idx*10)

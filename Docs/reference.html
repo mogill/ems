@@ -95,13 +95,12 @@
 		<figure>
 		  <img src="./memLayoutLogical.svg" type="image/svg+xml" height="160px" />
 		  <span class="figcaption">
-		    <br>EMS memory is an array of JSON primitive values (Number, Boolean, String, or Undefined)
+		    <br>EMS memory is an array of JSON values 
 		    accessed using atomic operators and/or transactional memory.
 		    Safe parallel access is managed by passing through multiple gates:
 		    First mapping a key to an index, then 
 		    accessing user data protected by EMS tags, and completing the whole
 		    operation atomically.
-		    <TODO> Add Object and Array types with automatic stringification.</TODO>
 		  </span>
 		</figure>
 	      </center>
@@ -296,6 +295,7 @@ emsArrayDescriptor = {
                               // Integer for 1-D, or array of dims [x, y, z]
     heapSize    : 100000,     // Optional, default=0: Space, in bytes, for 
     // strings, maps, and objects.  Rounded up to nearest power of two
+    mlock       : true,       // Optional, default=true: Lock EMS memory into RAM
     useMap      : true,       // Optional, default=false: Map keys to indexes
     useExisting : true,       // Optional, default=false: 
                               // Preserve data if an file already exists
@@ -711,9 +711,7 @@ emsArrayDescriptor = {
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3> The <code>read</code> family of EMS
 	  memory operations return the data stored in an EMS array element.
-	  The value may be any primitive type (boolean, number, or
-	  string).
-	  <TODO> Should also automatically convert arrays and objects </todo>
+	  The value may be any JSON type.
 	  <br>
 	  <dl>
 	    <dt> <code>read</code> </dt>
@@ -751,7 +749,7 @@ emsArrayDescriptor = {
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> ARGUMENTS </td>
 	<td class="argName">index</td>
-	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argType"> &lt;Number | String&gt;</td>
 	<td class="argDesc" > Index in the EMS array of data to read</td>
       </tr>
     </table>
@@ -759,7 +757,7 @@ emsArrayDescriptor = {
     <table class="apiBlock" >
       <tr class="apiRetVal" style="vertical-align:text-top;">
 	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
-	<td class="Type" colspan="2" > read__ : &lt; Number | Boolean | String | Undefined<TODO> | Array | Object </todo>&gt;</td>
+	<td class="Type" colspan="2" > read__ : &lt; Number | Boolean | String | Undefined | Array | Object &gt;</td>
       </tr>
       <tr class="apiRetVal" style="vertical-align:text-top;">
 	<td class="Label" style="vertical-align:text-top"> </td>
@@ -826,7 +824,6 @@ emsArrayDescriptor = {
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3> Write a value to an element of an EMS array.
-	  <TODO>String and Float indexes should be treated as a map</TODO>
 	  <br>
 	  <dl>
             <dt> <code>write</code> </dt> 
@@ -850,13 +847,13 @@ emsArrayDescriptor = {
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> ARGUMENTS </td>
 	<td class="argName">index</td>
-	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argType"> &lt;Number | String&gt;</td>
 	<td class="argDesc" > Index in the EMS array of data to read</td>
       </tr>
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label">  </td>
 	<td class="argName">value</td>
-	<td class="argType"> &lt;Number|Boolean|<br>String|Undefined&gt;</td>
+	<td class="argType"> &lt;Any&gt;</td>
 	<td class="argDesc" > Primitive value to store in the array at element numbered index.</td>
       </tr>
     </table>
@@ -911,7 +908,8 @@ emsArrayDescriptor = {
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3> 
-	  Atomically read the array's element, add the value, and write the new value
+	  Atomically read the array's JSON primitive element (scalar or string, not array or object),
+	  add the value, and write the new value
 	  back to memory.  Return the original contents of the memory.
 	  <BR><BR></td>
       </tr>
@@ -919,14 +917,14 @@ emsArrayDescriptor = {
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> ARGUMENTS </td>
 	<td class="argName">index</td>
-	<td class="argType"> &lt;Integer&gt;</td>
+	<td class="argType"> &lt;Integer | String&gt;</td>
 	<td class="argDesc" >Index of the element in the EMS array <code>emsArray</code>
 	  to atomically add to.</td>
       </tr>
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> </td>
 	<td class="argName">value</td>
-	<td class="argType"> &lt; Number | Boolean | String | Undefined <TODO> | Array | Object </todo> &gt;</td>
+	<td class="argType"> &lt; Number | Boolean | String | Undefined &gt;</td>
 	<td class="argDesc" >Value to add to the EMS memory.</td>
       </tr>
     </table>
@@ -934,7 +932,7 @@ emsArrayDescriptor = {
     <table class="apiBlock" >
       <tr class="apiRetVal" style="vertical-align:text-top;">
 	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
-	<td class="Type"  >&lt; Number | Boolean | String |<br> Undefined<TODO> | Array | Object </todo> &gt;</td>
+	<td class="Type"  >&lt; Number | Boolean | String |<br> Undefined &gt;</td>
 	<td class="Desc"> The results are the same type as if 
 	  <code>a + b</code> were performed. </td>
       </tr>
@@ -973,7 +971,8 @@ emsArrayDescriptor = {
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3>
-	  Atomically read the element stored at the array's index, 
+	  Atomically read the JSON primitive element (scalar or string, not object or array)
+	  stored at the array's index, 
 	  compare the original value to <code>oldValue</code>, and if they are equivalent
 	  store the new value.  
 	  The CAS operation succeeded
@@ -988,7 +987,7 @@ emsArrayDescriptor = {
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> ARGUMENTS </td>
 	<td class="argName"> index </td>
-	<td class="argType"> &lt;Integer&gt;</td>
+	<td class="argType"> &lt;Integer | String&gt;</td>
 	<td class="argDesc" >   Index into the EMS array to update.
 	</td>
       </tr>
@@ -1108,7 +1107,7 @@ emsArrayDescriptor = {
     <table class="apiBlock" >
       <tr class="apiRetVal" style="vertical-align:text-top;">
 	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
-	<td class="Type"  >ems.tmBegin() : &lt; tmHandle &gt;</td>
+	<td class="Type"  >ems.tmStart() : &lt; tmHandle &gt;</td>
 	<td class="Desc">Transaction Handle used later to commit or abort.</td>
       </tr>
       <tr class="Examples" style="vertical-align:text-top;">
@@ -1242,7 +1241,7 @@ emsArray.enqueue() : &lt; Number &gt;</td>
       <tr class="apiArgs"  style="vertical-align:text-top;">
 	<td class="Label"> ARGUMENTS </td>
 	<td class="argName">index</td>
-	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argType"> &lt;String | Number&gt;</td>
 	<td class="argDesc" > 
 	  (Optional, default = entire EMS array)
 	  Index of the element in the EMS array to synchronize to disk </td>

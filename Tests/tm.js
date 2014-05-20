@@ -55,11 +55,10 @@ for(var tableN = 0;  tableN < nTables;  tableN++) {
     tables[tableN] = ems.new( {
 	dimensions : [ arrLen ],
 	heapSize  : 0, 
-	//useMap: true,
 	useExisting: false, 
-//	persist: true, 
 	filename  : '/tmp/EMS_tm' + tableN, 
 	dataFill : 0, 
+	doDataFill: true,
 	setFEtags : 'full'
     } )
 }
