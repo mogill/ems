@@ -1102,7 +1102,7 @@ v8::Handle<v8::Value> EMSreadUsingTags(const v8::Arguments& args, // Index to re
   EMS_DECL(args);
   
   if (args.Length() < 1  ||  args.Length() > 2) {
-    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadFE: Wrong number of args"));
+    return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadUsingTags: Wrong number of args"));
   }
 
   int64_t        idx  = EMSreadIndexMap(args);
@@ -1629,6 +1629,7 @@ v8::Handle<v8::Value> Enqueue(const v8::Arguments& args)
   case EMS_FLOAT:
     bufDouble[EMSdataData(idx)] = (double)args[0]->ToNumber()->Value();
     break;
+  case EMS_JSON:
   case EMS_STRING: {
       v8::String::Utf8Value string(args[0]);
       size_t  len = string.length()+1;
@@ -1932,10 +1933,7 @@ v8::Handle<v8::Value> initialize(const v8::Arguments& args)
     sleep_time.tv_sec  = 0;
     sleep_time.tv_nsec = 200000000;
     struct stat statbuf;
-    while( stat(*filename, &statbuf) != 0 ) { 
-      fprintf(stderr, "EMS %3d: Waiting for %s\n", EMSmyID, *filename);
-      nanosleep(&sleep_time, NULL); 
-    }
+    while( stat(*filename, &statbuf) != 0 )  nanosleep(&sleep_time, NULL); 
   }
 
   if(persist) 

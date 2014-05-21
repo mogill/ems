@@ -244,9 +244,14 @@ function EMSpush(value) {
     }
 }
 function EMSpop()          { return EMSreturnData(this.data.pop()) }
-function EMSenqueue(value) { return this.data.enqueue(value) }  // Retuns only integers
 function EMSdequeue()      { return EMSreturnData(this.data.dequeue()) }
-
+function EMSenqueue(value) { 
+    if(typeof value  == 'object') {
+	return this.data.enqueue(JSON.stringify(value), true);   // Retuns only integers
+    } else {
+	return this.data.enqueue(value);   // Retuns only integers
+    }
+}
 
 //==================================================================
 //  Wrappers around Primitive AMOs

@@ -1,6 +1,6 @@
 {
     "name": "ems",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "author": "Synthetic Semantics <info@synsem.com>",
     "description": "Shared Memory Parallelism with Transactional Memory and Extended Memory Semantics",
     "contributors": [ 
