@@ -492,7 +492,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
 	retObj.myID = 0
     }
 
-    var pinThreads = true
+    var pinThreads = false;
     if(typeof pinThreadsArg === 'boolean') { pinThreads = pinThreadsArg }
 
     var nThreads
@@ -519,9 +519,11 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
 	targetScript = './EMSthreadStub'
 	break
     case 'user':
-    default:
 	targetScript = undefined
 	break
+    default:
+	console.log("EMS: Unknown threading model type:", threadingType);
+	break;
     }
 
     //  The master thread has completed initialization, other threads may now
