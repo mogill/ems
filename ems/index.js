@@ -307,11 +307,15 @@ function EMSfaa(indexes, val)     {
 }
 
 function EMScas(indexes, oldVal, newVal) {
-    if(typeof oldVal == 'object'  ||  typeof newVal == 'object') {
+    if(typeof oldVal == 'object') {
 	console.log("EMScas: Cannot compare objects, only JSON primitives");
 	return(undefined);	
     } else {
-	return this.data.cas(EMSidx(indexes, this), oldVal, newVal)  // Can only return JSON primitives
+	if(typeof newVal  == 'object') {
+	    return this.data.cas(EMSidx(indexes, this), oldVal, JSON.stringify(newVal), true) 
+	} else {
+	    return this.data.cas(EMSidx(indexes, this), oldVal, newVal)
+	}
     }
 }
 

@@ -977,7 +977,7 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
   v8::HandleScope scope;
   EMS_DECL(args);
 
-  if (args.Length() == 3) {
+  if (args.Length() >= 3) {
     int64_t   idx       = EMSwriteIndexMap(args);
     int64_t  *bufInt64  = (int64_t *) emsBuf;
     double   *bufDouble = (double *) emsBuf;
@@ -996,7 +996,12 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
     }
 
     int oldType = EMSv8toEMStype(args[1], false);  // Never CAS an object, treat as string
-    int newType = EMSv8toEMStype(args[2], false);  // Never CAS an object, treat as string
+    int newType;
+    if(args.Length() == 4) {
+      newType = EMSv8toEMStype(args[2], args[3]->ToBoolean()->Value());
+    } else {
+      newType = EMSv8toEMStype(args[2], false);
+    }
     int memType = bufTags[EMSdataTag(idx)].tags.type;
 
     //  Wait for the memory to be Full, then mark it Busy while CAS works
@@ -1006,7 +1011,7 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
 
     //  Compare the value in memory the the "old" CAS value
     if(oldType == memType) {
-      switch(oldTag.tags.type) {
+      switch(memType) {
       case EMS_UNDEFINED:
 	swapped = true;
 	break;
@@ -1022,6 +1027,7 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
 	floatMemVal = bufDouble[EMSdataData(idx)];
 	if(floatMemVal == args[1]->ToNumber()->Value())	  swapped = true;
 	break;
+      case EMS_JSON:
       case EMS_STRING:
 	if(strcmp(EMSheapPtr(bufInt64[EMSdataData(idx)]), *oldString)==0) {
 	  stringMemVal =
@@ -1053,6 +1059,7 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
       case EMS_FLOAT:
 	bufDouble[EMSdataData(idx)] = args[2]->ToNumber()->Value();
 	break;
+      case EMS_JSON:
       case EMS_STRING: {
 	if(memType == EMS_STRING) EMS_FREE(bufInt64[EMSdataData(idx)]);
 	EMS_ALLOC(textOffset, newString.length()+1, "EMS_CAS(string): out of memory to store string");
@@ -1078,6 +1085,7 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
       return scope.Close(v8::Integer::New(intMemVal));
     case EMS_FLOAT:
       return scope.Close(v8::Number::New(floatMemVal));
+    case EMS_JSON:
     case EMS_STRING: 
       return scope.Close(stringMemVal);
     default:
@@ -1305,6 +1313,7 @@ v8::Handle<v8::Value> EMSwriteUsingTags(const v8::Arguments& args,  // Index to 
   char     *bufChar   = (char *) emsBuf;
   EMStag    newTag, oldTag, memTag;
   int stringIsJSON = false;
+
   if (args.Length() == 3) {
     stringIsJSON = args[2]->ToBoolean()->Value();
   }  else {
@@ -1320,7 +1329,6 @@ v8::Handle<v8::Value> EMSwriteUsingTags(const v8::Arguments& args,  // Index to 
   if(initialFE != EMS_ANY) {
     EMStransitionFEtag(&bufTags[EMSdataTag(idx)], initialFE, EMS_BUSY, EMS_ANY);
   }
-
   while(true) {
     memTag.byte = bufTags[EMSdataTag(idx)].byte;
     //  Wait until FE tag is not BUSY
@@ -1332,7 +1340,7 @@ v8::Handle<v8::Value> EMSwriteUsingTags(const v8::Arguments& args,  // Index to 
       if( initialFE != EMS_ANY  ||  finalFE == EMS_ANY  ||  
 	  __sync_bool_compare_and_swap( &(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte ) ) {
 	//  If the old data was a string, free it because it will be overwritten
-	if(oldTag.tags.type == EMS_STRING) { EMS_FREE(bufInt64[EMSdataData(idx)]); }
+	if(oldTag.tags.type == EMS_STRING  ||  oldTag.tags.type == EMS_JSON) { EMS_FREE(bufInt64[EMSdataData(idx)]); }
 
 	// Store argument value into EMS memory
 	switch(EMSv8toEMStype(args[1], stringIsJSON)) {
