@@ -362,7 +362,8 @@ char EMStransitionFEtag( EMStag volatile *tag, char oldFE,  char newFE, char old
 //
 int64_t EMShashString( v8::String::Utf8Value *key )
 {
-#define EMS_MAX_KEY_LENGTH 100
+  // TODO BUG MAGIC Max key length
+#define EMS_MAX_KEY_LENGTH 1000
   char tmpStr[EMS_MAX_KEY_LENGTH];
   int  charN = 0;
   int64_t  hash = 0;
@@ -371,8 +372,8 @@ int64_t EMShashString( v8::String::Utf8Value *key )
     hash = tmpStr[charN] + (hash << 6) + (hash << 16) - hash;
     charN++;
   } 
-  hash *= 1191613;  // Further scramble to prevent close strings from
-                    // having close indexes
+  hash *= 1191613;  // Further scramble to prevent close strings from having close indexes
+  if(charN >= EMS_MAX_KEY_LENGTH)  fprintf(stderr, "ERROR: EMShashString has insufficient temporary space\n");
   return(labs(hash));
 }
 
@@ -441,22 +442,35 @@ uint64_t EMSreadIndexMap(const v8::Arguments& args)
       if(mapTags.tags.type  ==  idxType) {
 	switch(idxType) {
 	case EMS_BOOLEAN:
-	  if(boolArgVal == bufInt64[EMSmapData(idx)]) matched = true;
+	  if(boolArgVal == bufInt64[EMSmapData(idx)]) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	  break;
 	case EMS_INTEGER:
-	  if(intArgVal == bufInt64[EMSmapData(idx)]) matched = true;
+	  if(intArgVal == bufInt64[EMSmapData(idx)]) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	  break;
 	case EMS_FLOAT:
-	  if(floatArgVal == bufDouble[EMSmapData(idx)]) matched = true;
+	  if(floatArgVal == bufDouble[EMSmapData(idx)]) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	  break;
 	case EMS_STRING: {
 	  int64_t  keyStrOffset = bufInt64[EMSmapData(idx)];
-	  if(strcmp(*argString, EMSheapPtr(keyStrOffset)) == 0) matched = true;
+	  if(strcmp(*argString, EMSheapPtr(keyStrOffset)) == 0) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	}
 	  break;
 	case EMS_UNDEFINED:
 	  // Nothing hashed to this map index yet, so the key does not exist
 	  notPresent = true;
+	  bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
 	  break;
 	default:
 	  fprintf(stderr, "EMS ERROR: EMSreadIndexMap: Unknown mem type\n");
@@ -550,18 +564,28 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
       if(mapTags.tags.type  ==  idxType  ||  mapTags.tags.type == EMS_UNDEFINED) {
 	switch(mapTags.tags.type) {
 	case EMS_BOOLEAN:
-	  if(boolArgVal == bufInt64[EMSmapData(idx)]) matched = true;
+	  if(boolArgVal == bufInt64[EMSmapData(idx)]) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	  break;
 	case EMS_INTEGER:
-	  if(intArgVal == bufInt64[EMSmapData(idx)]) matched = true;
+	  if(intArgVal == bufInt64[EMSmapData(idx)]) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	  break;
 	case EMS_FLOAT:
-	  if(floatArgVal == bufDouble[EMSmapData(idx)]) matched = true;
+	  if(floatArgVal == bufDouble[EMSmapData(idx)]) {
+	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
+	  }
 	  break;
 	case EMS_STRING: {
 	  int64_t  keyStrOffset = bufInt64[EMSmapData(idx)];
 	  if(strcmp(*argString, EMSheapPtr(keyStrOffset)) == 0) {
 	    matched = true;
+	    bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
 	  } }
 	  break;
 	case EMS_UNDEFINED:
@@ -605,6 +629,7 @@ uint64_t EMSwriteIndexMap(const v8::Arguments& args)
 	  matched = true;
 	}
       }
+
       if( !matched ) {
 	// No match so set this key map back to full and try the next entry
 	bufTags[EMSmapTag(idx)].tags.fe = EMS_FULL;
@@ -1002,11 +1027,10 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
     } else {
       newType = EMSv8toEMStype(args[2], false);
     }
-    int memType = bufTags[EMSdataTag(idx)].tags.type;
-
     //  Wait for the memory to be Full, then mark it Busy while CAS works
     oldTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_FULL, EMS_BUSY, EMS_ANY);
     oldTag.tags.fe = EMS_FULL;
+    int memType = bufTags[EMSdataTag(idx)].tags.type;
     int swapped = false;
 
     //  Compare the value in memory the the "old" CAS value
@@ -1113,7 +1137,8 @@ v8::Handle<v8::Value> EMSreadUsingTags(const v8::Arguments& args, // Index to re
     return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMSreadUsingTags: Wrong number of args"));
   }
 
-  int64_t        idx  = EMSreadIndexMap(args);
+  //int64_t        idx  = EMSreadIndexMap(args);  // Peek at KV-pair but do not allocate a Key
+  int64_t        idx  = EMSwriteIndexMap(args);
   EMStag   *bufTags   = (EMStag *) emsBuf;
   int64_t  *bufInt64  = (int64_t *) emsBuf;
   double   *bufDouble = (double *) emsBuf;

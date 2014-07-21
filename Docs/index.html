@@ -440,11 +440,16 @@
       Bugs
     </h3>
     <P>
-      EMS should detect when mapped indexes are used and data is initialized as <code>empty</code>
-      because execution deadlocks: the index is now also marked <code>busy</code>
-      meaning no writers may mark the data as full, but the empty target data is a barrier to
-      releasing the lock.
+      The old data argument for CAS requires a deep compare -- this is possible but
+      entirely compatible with JS semantics which compares type, not contents.
+      <br><br>
+      Similarly, FAA does not implement add on object type data, but extending the
+      semantics of JS would make this sensible
       </P>
+
+
+
+
     <h3>
       Roadmap
     </h3>
