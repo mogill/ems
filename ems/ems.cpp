@@ -1033,6 +1033,28 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
     int memType = bufTags[EMSdataTag(idx)].tags.type;
     int swapped = false;
 
+    //  Read the value in memory 
+    switch(memType) {
+    case EMS_UNDEFINED:
+      break;
+    case EMS_BOOLEAN:
+      boolMemVal = bufInt64[EMSdataData(idx)];
+      break;
+    case EMS_INTEGER:
+      intMemVal = bufInt64[EMSdataData(idx)];
+      break;
+    case EMS_FLOAT:
+      floatMemVal = bufDouble[EMSdataData(idx)];
+      break;
+    case EMS_JSON:
+    case EMS_STRING:
+      stringMemVal =
+	v8::String::New((const char*) EMSheapPtr(bufInt64[EMSdataData(idx)]));
+      break;
+    default:
+      return v8::ThrowException(node::ErrnoException(errno, "EMS", "EMS_CAS: oldTag not recognized"));
+    }
+
     //  Compare the value in memory the the "old" CAS value
     if(oldType == memType) {
       switch(memType) {
@@ -1040,22 +1062,17 @@ v8::Handle<v8::Value> EMS_CAS(const v8::Arguments& args)
 	swapped = true;
 	break;
       case EMS_BOOLEAN:
-	boolMemVal = bufInt64[EMSdataData(idx)];
 	if(boolMemVal == args[1]->ToBoolean()->Value())   swapped = true;
 	break;
       case EMS_INTEGER:
-	intMemVal = bufInt64[EMSdataData(idx)];
 	if(intMemVal == args[1]->ToInteger()->Value())	  swapped = true;
 	break;
       case EMS_FLOAT:
-	floatMemVal = bufDouble[EMSdataData(idx)];
 	if(floatMemVal == args[1]->ToNumber()->Value())	  swapped = true;
 	break;
       case EMS_JSON:
       case EMS_STRING:
 	if(strcmp(EMSheapPtr(bufInt64[EMSdataData(idx)]), *oldString)==0) {
-	  stringMemVal =
-	    v8::String::New((const char*) EMSheapPtr(bufInt64[EMSdataData(idx)]));
 	  swapped = true;
 	}
 	break;
