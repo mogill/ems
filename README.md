@@ -68,7 +68,7 @@ var splitPattern = new RegExp(/[ \n,\.\\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\{\}
 
 //  Parallel loop over documents
 ems.parForEach(0, dir.length,  function(docNum) {
-    var text = fs.readFileSync('/Data/Gutenberg/all/' + dir[bufNum], 'utf8', "r")    
+    var text = fs.readFileSync('/Data/Gutenberg/all/' + dir[docNum], 'utf8', "r")    
     var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
     words.forEach( function(word) {
         wordCounts.faa(word, 1)  // Atomic Fetch-and-Add updates word count
