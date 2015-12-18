@@ -10,6 +10,17 @@ As a consequence, jobs requiring a cluster of servers running Map-Reduce 5 years
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
+## Current Support Status
+
+The V8 bindings used in the native C parts of EMS have fallen out of
+date with the current V8 API and EMS no longer compiles.  However, over
+the next few weeks (planned release date of January 4, 2016), we plan
+to re-implement them with NAN to be forward-compatible with all future
+versions of Node.  Additionally, many bug fixes and ES6 features will
+be implemented.
+
+Please check back January 4, 2016 for the new EMS release!
+
 
 ## Types of Concurrency
 <center>
