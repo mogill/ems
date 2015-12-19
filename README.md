@@ -19,6 +19,14 @@ to re-implement them with NAN to be forward-compatible with all future
 versions of Node.  Additionally, many bug fixes and ES6 features will
 be implemented.
 
+EMS has waited patiently for the widespread adoption of technologies
+like persistent and Non-Volatile Memory (NVM), these are now on system
+vendor roadmaps and are only a few years away from going mainstream.
+We are dedicated to supporting [pmem.io](http://pmem.io/), but need
+access to development prototype systems.  If you can help us get
+access to systems with advanced memory architectures, we are very
+anxious to work with you!
+
 Please check back January 4, 2016 for the new EMS release!
 
 
