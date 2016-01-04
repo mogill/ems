@@ -1,6 +1,6 @@
 {
   "name": "ems",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "author": "Synthetic Semantics <info@synsem.com>",
   "description": "Shared Memory Parallelism with Transactional Memory and Extended Memory Semantics",
   "contributors": [
@@ -10,15 +10,13 @@
     }
   ],
   "scripts": {
-    "preinstall": "cd ems; node-gyp configure; node-gyp build; cd ..;"
+    "install": "node-gyp configure; node-gyp build"
   },
   "main": "index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/syntheticsemantics/ems.git"
   },
-  "private": true,
-  "gypfile": true,
   "homepage": "https://synsem.com/EMS.js",
   "keywords": [
     "multithreading",

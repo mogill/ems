@@ -958,11 +958,10 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         fd = open(filename, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     else
         fd = shm_open(filename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-        // fd = open(filename, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd < 0) {
         perror("Error opening shared memory -- Possibly need to be root?");
-        Nan::ErrnoException(errno, "EMS", "Unable to open file");
+        Nan::ThrowError("Unable to open file");
         return;
     }
 
@@ -992,14 +991,14 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         if (errno != EINVAL) {
             fprintf(stderr, "EMS: Error during initialization, unable to set memory size to %" PRIu64 " bytes\n",
                     filesize);
-            Nan::ErrnoException(errno, "EMS", "Unable to resize domain memory");
+            Nan::ThrowError("Unable to resize domain memory");
             return;
         }
     }
 
     char *emsBuf = (char *) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, (off_t) 0);
     if (emsBuf == MAP_FAILED) {
-        Nan::ErrnoException(errno, "EMS", "Unable to map domain memory");
+        Nan::ThrowError("Unable to map domain memory");
     }
     close(fd);
 
@@ -1092,7 +1091,7 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                 }
                     break;
                 default:
-                    Nan::ErrnoException(errno, "EMS", "EMSinit: type is unknown");
+                    Nan::ThrowError("EMSinit: type is unknown");
                     return;
             }
         } else {
