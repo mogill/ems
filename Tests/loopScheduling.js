@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,67 +29,75 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]))
-var util = require('./testUtils')
-var assert = require('assert')
-var startTime, nOps;
-var idx = ems.myID
+var ems = require('ems')(parseInt(process.argv[2]));
+var util = require('./testUtils');
+var assert = require('assert');
+var startTime;
 
-var stats = ems.new(1)
-var sum = 0
-var start = 0
-var end = 1000000
-var nIters = 1000
-var n = nIters * (end-start)
+var stats = ems.new(1);
+var sum = 0;
+var start = 0;
+var end = 1000000;
+var nIters = 100000;
+var n = nIters * (end - start);
 
 function doWork(idx) {
-    if(idx == 0) { console.log("index 0") }
-    if(idx == end-1) { console.log("index final") }
-
-    if(idx < 0  ||  idx >= end) {
-	console.log("Index out of bounds?!")
+    if (idx == 0) {
+        console.log("index 0");
     }
-    for(var i = 0;  i < nIters; i++) {
-	sum++
-    } 
+    if (idx == end - 1) {
+        console.log("index final");
+    }
+
+    if (idx < 0 || idx >= end) {
+        console.log("Index out of bounds?!");
+    }
+    for (var i = 0; i < nIters; i++) {
+        sum++;
+    }
 }
 
-stats.writeXF(0, 0)
-ems.barrier()
-startTime = util.timerStart()
-ems.parForEach( start, end, doWork )
-stats.faa(0, sum)
-util.timerStop(startTime, n* ems.nThreads, " Default      ", ems.myID)
-
-ems.barrier()
-sum = stats.read(0)
-assert(sum == n, "Default scheduling failed sum="+sum+"  expected "+n)
-                                    
-
-sum = 0
-startTime = util.timerStart()
-ems.parForEach( start, end, doWork, 'dynamic')
-util.timerStop(startTime, n* ems.nThreads, " Dynamic      ", ems.myID)
-ems.barrier()
-sum = stats.read(0)
-assert(sum == n, "Dyamic scheduling failed sum="+sum+"  expected "+n)
+stats.writeXF(0, 0);
+ems.barrier();
+startTime = util.timerStart();
+ems.parForEach(start, end, doWork);
+stats.faa(0, sum);
+util.timerStop(startTime, n * ems.nThreads, " Default      ", ems.myID);
+ems.barrier();
+ems.diag("The sum: " + sum);
+ems.barrier();
+sum = stats.read(0);
+assert(sum == n, "Default scheduling failed sum=" + sum + "  expected " + n);
 
 
-sum = 0
-startTime = util.timerStart()
-ems.parForEach( start, end, doWork, 'static')
-util.timerStop(startTime, n* ems.nThreads, " Static       ", ems.myID)
-ems.barrier()
-sum = stats.read(0)
-assert(sum == n, "Static scheduling failed sum="+sum+"  expected "+n)
+sum = 0;
+startTime = util.timerStart();
+ems.parForEach(start, end, doWork, 'dynamic');
+util.timerStop(startTime, n * ems.nThreads, " Dynamic      ", ems.myID);
+ems.barrier();
+ems.diag("The sum: " + sum);
+ems.barrier();
+sum = stats.read(0);
+assert(sum == n, "Dynamic scheduling failed sum=" + sum + "  expected " + n);
 
 
-sum = 0
-startTime = util.timerStart()
-ems.parForEach( start, end, doWork, 'guided', 20)
-util.timerStop(startTime, n* ems.nThreads, " Guided by 20 ", ems.myID)
-ems.barrier()
-sum = stats.read(0)
-assert(sum == n, "Guided scheduling failed sum="+sum+"  expected "+n)
+sum = 0;
+startTime = util.timerStart();
+ems.parForEach(start, end, doWork, 'static');
+util.timerStop(startTime, n * ems.nThreads, " Static       ", ems.myID);
+ems.barrier();
+ems.diag("The sum: " + sum);
+ems.barrier();
+sum = stats.read(0);
+assert(sum == n, "Static scheduling failed sum=" + sum + "  expected " + n);
 
 
+sum = 0;
+startTime = util.timerStart();
+ems.parForEach(start, end, doWork, 'guided', 20);
+util.timerStop(startTime, n * ems.nThreads, " Guided by 20 ", ems.myID);
+ems.barrier();
+ems.diag("The sum: " + sum);
+ems.barrier();
+sum = stats.read(0);
+assert(sum == n, "Guided scheduling failed sum=" + sum + "  expected " + n);

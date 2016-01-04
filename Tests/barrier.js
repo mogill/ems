@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,100 +29,85 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(process.argv[2])
-var assert = require('assert')
+'use strict';
+var ems = require('ems')(process.argv[2]);
+var assert = require('assert');
 
-function getRandomInt (min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+var iter, idx, memVal;
+var nIters = Math.floor(100000 / process.argv[2]);
+var sums = ems.new(ems.nThreads);
+sums.writeXF(ems.myID, 0);
+
+for (iter = 0; iter < nIters; iter += 1) {
+    ems.barrier();
+    idx = (ems.myID + iter) % ems.nThreads;
+    memVal = sums.read(idx);
+    assert(memVal === iter,
+        "myID=" + ems.myID + "  iter=" + iter + "  memval=" + memVal);
+    sums.write(idx, memVal + 1);
+}
+ems.barrier();
+
+
+for (iter = 0; iter < nIters; iter += 1) {
+    ems.barrier();
+    idx = (ems.myID + iter) % ems.nThreads;
+    memVal = sums.read(idx);
+    sums.write(idx, memVal + 1);
+}
+ems.barrier();
+
+assert(sums.read(ems.myID) === (nIters * 2),
+    "myID=" + ems.myID + "  wrong final  memval=" + sums.read(ems.myID) + "  expected=" + (nIters * 2));
+
+ems.barrier();
+
+
+ems.diag("done");
+process.exit(1);
+
+var shared = ems.new(process.argv[2]*2, 0, "/tmp/EMS_mynewFoo");
+
+shared.write(0, 0);
+ems.barrier();
+var tmp = shared.read(0);
+assert(tmp === 0, "Didn't initialize to 0, got " + tmp);
+ems.barrier();
+shared.faa(0, 1);
+ems.barrier();
+assert(shared.read(0) === ems.nThreads, "Didn't count (" + shared.read(0) + ") to nnodes (" + ems.nThreads + ")");
+ems.barrier();
+if (ems.myID === 0) {
+    shared.write(0, 0);
+}
+ems.barrier();
+assert(shared.read(0) === 0, "reinit Didn't initialize to 0, got " + shared.read(0));
+ems.barrier();
+
+var nIter = 10000;
+var i;
+for (i = 0; i < nIter; i += 1) {
+    shared.faa(0, 1);
+}
+ems.barrier();
+assert(shared.read(0) === ems.nThreads * nIter, "Random wait FAA failed: count (" + shared.read(0) + ") to nnodes (" + nIter + ")");
+
+ems.barrier();
+if (ems.myID === 0) {
+    shared.write(0, 0);
+}
+ems.barrier();
+if (ems.myID !== 0) {
+    assert(shared.read(0) === 0, "Didn't pass sync after clearing");
 }
 
-var nIters = 10000
-var sums = ems.new(ems.nThreads)
-sums.writeXF(ems.myID, 0)
+ems.barrier();
+// nIter = 10000 / process.argv[2];
 
-for(var iter = 0;  iter < nIters;  iter++) {
-    ems.barrier()
-    var idx    = (ems.myID + iter) % ems.nThreads
-    var memVal = sums.read(idx)
-    if(memVal != iter) {
-	ems.diag("myID="+ems.myID+ "  iter=" +iter+ "  memval=" +memVal)
-    }
-    sums.write(idx, memVal + 1)
+for (i = 0; i < nIter; i += 1) {
+    shared.faa(0, 1);
 }
-ems.barrier()
-
-
-
-
-for(var iter = 0;  iter < nIters;  iter++) {
-    ems.barrier()
-    var idx    = (ems.myID + iter) % ems.nThreads
-    var memVal = sums.read(idx)
-    sums.write(idx, memVal + 1)
-}
-ems.barrier()
-
-if(sums.read(ems.myID) != (nIters*2)) {
-    ems.diag("myID="+ems.myID+ "  wrong final  memval=" +sums.read(ems.myID))
-}
-
-ems.barrier()
-
-
-
-
-ems.diag("done");  process.exit(1)
-
-
-
-
-
-var tasks = []
-
-var shared = ems.new(10, 0, "/tmp/EMS_mynewFoo")
-
-shared.write(0, 0)
-ems.barrier()
-tmp = shared.read(0)
-assert(tmp == 0, "Didn't initialize to 0, got "+ tmp)
-ems.barrier()
-shared.faa(0, 1)
-ems.barrier()
-assert(shared.read(0) == ems.nThreads, "Didn't count ("+shared.read(0)+") to nnodes ("+ems.nThreads+")")
-ems.barrier()
-if(ems.myID == 0) { shared.write(0, 0) }
-ems.barrier()
-assert(shared.read(0) == 0, "reinit Didn't initialize to 0, got " + shared.read(0) )
-ems.barrier()
-
-var nIter = 10000
-var m = nIter
-for(var i = 0;  i < nIter;  i++) {
-// for(var i = 0;  i < (nIter / nThreads);  i++) {
-    var nap = getRandomInt(0, 100000)
-    shared.faa(0, 1)
-}
-ems.barrier()
-assert(shared.read(0) == ems.nThreads * nIter, "Random wait FAA failed: count ("+shared.read(0)+") to nnodes ("+nIter+")")
-
-ems.barrier()
-if(ems.myID == 0) { shared.write(0, 0) }
-ems.barrier()
-if(ems.myID != 0) {
-    assert(shared.read(0) == 0, "Didn't pass sync after clearing")
-}
-
-ems.barrier()
-nIter = 1000000
-
-//console.log("ehhh " + nIter + "   " + (nIter / nThreads))
-var m = nIter / nThreads
-for(var i = 0;  i < nIter;  i++) {
-    shared.faa(0, 1)
-}
-ems.barrier()
-var sr = shared.read(0)
-assert(sr == nThreads*nIter, "Fast Looped FAA failed: count ("+sr+") to nnodes ("+nIter+")")
-
-
-
+ems.barrier();
+var sr = shared.read(0);
+ems.barrier();
+assert(sr === ems.nThreads * nIter, "Fast Looped FAA failed: count (" + sr + ") to nnodes (" + nIter + ")");

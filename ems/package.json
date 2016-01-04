@@ -1,0 +1,47 @@
+{
+  "name": "ems",
+  "version": "1.0.0",
+  "author": "Synthetic Semantics <info@synsem.com>",
+  "description": "Shared Memory Parallelism with Transactional Memory and Extended Memory Semantics",
+  "contributors": [
+    {
+      "name": "Jace A Mogill",
+      "email": "mogill@synsem.com"
+    }
+  ],
+  "scripts": {
+    "preinstall": "cd ems; node-gyp configure; node-gyp build; cd ..;"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syntheticsemantics/ems.git"
+  },
+  "private": true,
+  "gypfile": true,
+  "homepage": "https://synsem.com/EMS.js",
+  "keywords": [
+    "multithreading",
+    "multithreaded",
+    "parallel",
+    "parallelism",
+    "concurrency",
+    "shared memory",
+    "multicore",
+    "manycore",
+    "transactional memory",
+    "TM",
+    "Extended Memory Semantics",
+    "EMS"
+  ],
+  "license": "BSD",
+  "engines": {
+    "node": ">=0.10.25"
+  },
+  "dependencies": {
+    "bindings": "^1.2.1",
+    "ffi": "^2.0.0",
+    "nan": "^2.1.0",
+    "node-gyp": "^3.2.1"
+  }
+}

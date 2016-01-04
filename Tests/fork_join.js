@@ -29,50 +29,78 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-
-module.exports = {
+var ems = require('ems')(parseInt(process.argv[2]), true, 'fj');
+ems.parallel(function () {
     //-------------------------------------------------------------------
     //  Timer functions
-    timerStart: function () {
-        return new Date().getTime();
-    },
-    timerStop: function (timer, nOps, label, myID) {
+    function timerStart() { return new Date().getTime(); }
+    function timerStop(timer, nOps, label, myID) {
+        function fmtNumber(n) {
+            var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            if(n < 1) return n;
+            else    { return s.substr(s.length - 15, s.length)  }
+        }
         var now = new Date().getTime();
-        var opsPerSec = (nOps * 1000000) / ((now - timer) * 1000);
-        if (typeof myID === undefined || myID === 0) {
+        var opsPerSec = (nOps*1000000) / ((now - timer) *1000);
+        if(typeof myID === undefined  ||  myID === 0) {
             console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec");
         }
-    },
-
-    //---------------------------------------------------------------------------
-    //  Generate a random integer within a range (inclusive) from 'low' to 'high'
-    randomInRange: function (low, high) {
-        return ( Math.floor((Math.random() * (high - low)) + low) );
     }
-};
 
+    totalTime = timerStart();
+    arrLen = 2000000;
+    a = ems.new(arrLen);
+    b = ems.new(arrLen);
+    c = ems.new(arrLen);
 
-function fmtNumber(n) {
-    var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    if (n < 1) return n;
-    else {
-        return s.substr(s.length - 15, s.length);
-    }
-}
+    var startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.write(idx, idx) } );
+    timerStop(startTime, arrLen, " write   ", ems.myID);
 
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.writeXE(idx, idx) } );
+    timerStop(startTime, arrLen, " writeXE ", ems.myID);
 
-//---------------------------------------------------------------------------
-//  Return an array with only unique elements
-Array.prototype.unique = function () {
-    return this.filter(function (value, index, self) {
-        return self.indexOf(value) === index;
-    });
-};
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.writeXF(idx, idx) } );
+    timerStop(startTime, arrLen, " writeXF ", ems.myID);
 
-//---------------------------------------------------------------------------
-//  Randomize the order of data in an array
-Array.prototype.shuffle = function () {
-    for (var j, x, i = this.length; i; j = Math.floor(Math.random() * i), x = this[--i], this[i] = this[j], this[j] = x);
-    return this;
-};
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.read(idx, idx) } );
+    timerStop(startTime, arrLen, " read    ", ems.myID);
 
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.read(idx, idx) } );
+    timerStop(startTime, arrLen, " reread  ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.readFF(idx, idx) } );
+    timerStop(startTime, arrLen, " readFF  ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.readFE(idx, idx) } );
+    timerStop(startTime, arrLen, " readFE  ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { a.writeEF(idx, idx) } );
+    timerStop(startTime, arrLen, " writeEF ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { b.writeXF(idx, a.readFF(idx)) } );
+    timerStop(startTime, arrLen, " copy    ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { b.writeXF(idx, a.readFF(idx)) } );
+    timerStop(startTime, arrLen, " recopy  ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, a.readFF(idx) * b.readFF(idx)) } );
+    timerStop(startTime, arrLen, " c=a*b   ", ems.myID);
+
+    startTime = timerStart();
+    ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, c.readFF(idx) + (a.readFF(idx) * b.readFF(idx))) } );
+    timerStop(startTime, arrLen, " c+=a*b  ", ems.myID);
+
+} );
+
+process.exit(0);

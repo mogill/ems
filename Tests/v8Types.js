@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,61 +29,65 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), false)
+'use strict';
+var ems = require('ems')(parseInt(process.argv[2]), false);
 var assert = require('assert');
-var arrLen = 10000
-var a = ems.new(arrLen, arrLen * 400)
-var map = ems.new( {
-    dimensions : [ arrLen ],
-    heapSize  : arrLen * 10,
-    useMap: true, 
+var arrLen = 10000;
+var a = ems.new(arrLen, arrLen * 400);
+/*
+var map = ems.new({
+    dimensions: [arrLen],
+    heapSize: arrLen * 10,
+    useMap: true,
     useExisting: false,
-    setFEtags : 'full',
-    dataFill : 0
-} )
+    setFEtags: 'full',
+    dataFill: 0
+})
+*/
 
-var arrayElem = [ 'abcd', 1234.567, {x:'xxx', y:'yyyyy'}, 987, null, [10,11,12,13] ];
-var objElem = { a: 1, b : 321.653, c: 'asdasd' };
+var arrayElem = ['abcd', true, 1234.567, {x: 'xxx', y: 'yyyyy'}, 987, null, [10, 11, 12, 13]];
+var objElem = {a: 1, b: 321.653, c: 'asdasd'};
 
-var objMap = ems.new( {
-    dimensions : [ arrLen ],
-    heapSize  : arrLen * 200,
-    useMap: true, 
+var objMap = ems.new({
+    dimensions: [arrLen],
+    heapSize: arrLen * 200,
+    useMap: true,
     useExisting: false,
-    setFEtags : 'full'
-} )
+    setFEtags: 'full'
+});
 
-var arrObj = ems.new( {
-    dimensions : [ arrLen ],
-    heapSize  : arrLen * 200,
-    useMap: false, 
+
+var arrObj = ems.new({
+    dimensions: [arrLen],
+    heapSize: arrLen * 200,
+    useMap: false,
     useExisting: false,
-    setFEtags : 'full',
-    dataFill : arrayElem,
-    doDataFill : true
-} )
+    setFEtags: 'full',
+    dataFill: arrayElem,
+    doDataFill: true
+});
 
 
-if(ems.myID == 0) {
-    objMap.writeXF('any obj', objElem)
-    assert(objMap.readFF('any obj').a === objElem.a)
-    assert(objMap.readFF('any obj').b === objElem.b)
-    assert(objMap.readFE('any obj').c === objElem.c)
+if (ems.myID == 0) {
+    objMap.writeXF('any obj', objElem);
+    assert(objMap.readFF('any obj').a === objElem.a);
+    assert(objMap.readFF('any obj').b === objElem.b);
+    assert(objMap.readFE('any obj').c === objElem.c);
 
-    arrayElem.forEach( function(elem, idx) {
-	// console.log(arrObj.readFF(123)[idx], elem, typeof elem);
-	if(typeof elem == 'object') {
-	    if( typeof arrObj.readFF(123)[idx] != 'object') {
-		console.log('Object in array is no longer an object?')
-	    }
-	} else {
-	    assert(arrObj.readFF(123)[idx] === elem);
-	}
-    } );
+    arrayElem.forEach(function (elem, idx) {
+        // console.log(arrObj.readFF(123)[idx], elem, typeof elem);
+        if (typeof elem == 'object') {
+            if (typeof arrObj.readFF(123)[idx] != 'object') {
+                console.log('Object in array is no longer an object?');
+            }
+        } else {
+            assert(arrObj.readFF(123)[idx] === elem);
+        }
+    });
     arrObj.readFE(123);
 
 
-    var newObj = { xa: 10000, xb : 32100.653, xc: 'xxxxxxxasdasd' };
+    var newObj = {xa: 10000, xb: 32100.653, xc: 'xxxxxxxasdasd'};
     objMap.writeEF('any obj', newObj);
     assert(objMap.readFF('any obj').xa === newObj.xa);
     assert(objMap.readFF('any obj').xb === newObj.xb);
@@ -90,22 +95,22 @@ if(ems.myID == 0) {
 
     arrObj.writeEF(123, 'overwrite the old array');
     arrObj.writeXF(1, []);
-    var newArr = [9,8,7,6,,,,'abs',{one:1, two:2, three:'threeeeee'}, 1,2,3];
+    var newArr = [9, 8, 7, 6, , , , 'abs', {one: 1, two: 2, three: 'threeeeee'}, 1, 2, 3];
     arrObj.writeXF(2, newArr);
 
     assert(arrObj.readFE(123) === 'overwrite the old array');
-    assert(arrObj.readFE(1).length  === 0);
-    newArr.forEach( function(elem, idx) {
-	if(typeof elem == 'object') {
-	    if( typeof arrObj.readFF(2)[idx] != 'object') {
-		console.log('Object in array is no longer an object?')
-	    }
-	} else {
-	    assert(arrObj.readFF(2)[idx] === elem);
-	}
-    } )
+    assert(arrObj.readFE(1).length === 0);
+    newArr.forEach(function (elem, idx) {
+        if (typeof elem == 'object') {
+            if (typeof arrObj.readFF(2)[idx] != 'object') {
+                console.log('Object in array is no longer an object?');
+            }
+        } else {
+            assert(arrObj.readFF(2)[idx] === elem);
+        }
+    });
 
-    var newerObj = { q:123, r:345, x:[1,2,3,4] };
+    var newerObj = {q: 123, r: 345, x: [1, 2, 3, 4]};
     arrObj.writeEF(123, newerObj);
     assert(arrObj.readFF(123).q === newerObj.q);
     assert(arrObj.readFF(123).r === newerObj.r);
@@ -118,76 +123,78 @@ ems.barrier();
 
 //----------------------------------------
 
+var newIdx, newVal, oldVal, js;
+var data = [false, true, 1234, 987.654321, 'hello', undefined];
 
-var data = [false, true, 1234, 987.654321, 'hello', undefined]
+for (var old = 0; old < data.length; old++) {
+    for (newIdx = 0; newIdx < data.length; newIdx++) {
+        a.writeXF(ems.myID, data[old]);
+        js = data[old];
+        js += data[newIdx];
+        oldVal = a.faa(ems.myID, data[newIdx]);
+        newVal = a.readFF(ems.myID);
 
-for(var old=0;  old < data.length;  old++ ) {
-    for(var newIdx=0;  newIdx < data.length;  newIdx++ ) {
-	a.writeXF(ems.myID, data[old])
-	var js = data[old]
-	js += data[newIdx]
-	var oldVal = a.faa(ems.myID, data[newIdx])
-	var newVal = a.readFF(ems.myID)
-
-	if( !((newVal === js)  ||  (isNaN(oldVal)  &&  isNaN(newVal) )  ||
-	      (isNaN(newVal)  &&   data[newIdx] === undefined) ) )
-	    ems.diag('FAA: old=' + data[old] + '   new=' + data[newIdx] + 
-		     '  oldVal='+oldVal+'/'+typeof oldVal + '   newVal=' + 
-		     newVal + '/'+typeof newVal+ '  js='+js + '/'+typeof js)
+        assert(((newVal === js) || (isNaN(oldVal) && isNaN(newVal) ) ||
+        (isNaN(newVal) && data[newIdx] === undefined) ),
+            'FAA: old=' + data[old] + '   new=' + data[newIdx] +
+            '  oldVal=' + oldVal + '/' + typeof oldVal + '   newVal=' +
+            newVal + '/' + typeof newVal + '  js=' + js + '/' + typeof js);
     }
 }
-ems.barrier()
+
+ems.barrier();
 var id = (ems.myID + 1) % ems.nThreads;
-for(var memIdx=0;  memIdx < data.length;  memIdx++ ) {
-    for(var oldIdx=0;  oldIdx < data.length;  oldIdx++ ) {
-	for(var newIdx=0;  newIdx < data.length;  newIdx++ ) {
-	    a.writeXF(id, data[memIdx])
-	    var oldVal = a.cas(id, data[oldIdx], data[newIdx])
-	    var newVal = a.readFF(id)
+for (var memIdx = 0; memIdx < data.length; memIdx++) {
+    for (var oldIdx = 0; oldIdx < data.length; oldIdx++) {
+        for (newIdx = 0; newIdx < data.length; newIdx++) {
+            a.writeXF(id, data[memIdx]);
+            oldVal = a.cas(id, data[oldIdx], data[newIdx]);
+            newVal = a.readFF(id);
 
-	    var js = data[memIdx]
-	    if(js === data[oldIdx]) { js = data[newIdx] }
+            js = data[memIdx];
+            if (js === data[oldIdx]) {
+                js = data[newIdx];
+            }
 
-	    if(js !== newVal) {
-		ems.diag('CAS: mem=' + newVal + '  dataold='+ data[oldIdx] + '  datanew='+data[newIdx] +'   old=' + oldVal + 
-			 '  readback='+ newVal + '   js='+js)
-	    }
-	}
+            assert(js === newVal,
+                'CAS: newval=' + newVal + '  dataold=' + data[oldIdx] +
+                '  datanew=' + data[newIdx] + '   old=' + oldVal +
+                '  readback=' + newVal + '   js=' + js);
+        }
     }
 }
 
-ems.parForEach(0, arrLen, function(idx) {
-    a.writeXF(idx, undefined)
-    a.faa(idx, undefined) 
-    a.faa(idx, 'bye byte') 
-    a.faa(idx, ems.myID) 
-    a.faa(idx, 0.1) 
-    a.faa(idx, false) 
-    if( a.readFF(idx) != 'nanbye byte' + ems.myID + '0.100000false' ) {
-	ems.diag('Failed match ='+ a.read(idx))
-    }
-} )
+
+ems.parForEach(0, arrLen, function (idx) {
+    a.writeXF(idx, undefined);
+    a.faa(idx, undefined);
+    a.faa(idx, 'bye byte');
+    a.faa(idx, ems.myID);
+    a.faa(idx, 0.1);
+    a.faa(idx, false);
+    assert(a.readFF(idx) == 'nanbye byte' + ems.myID + '0.100000false',
+        'Failed match =' + a.read(idx));
+});
 
 
 //-----------------------------------------------------------
 
-ems.parForEach(0, arrLen, function(idx) {
-    a.writeXF(idx, 0)
-} )
 
-var nTimes = 1500
-ems.parForEach(0, arrLen, function(previdx) {
-    for(var i = 0;  i < nTimes;  i++) {
-	a.faa((previdx + i) % arrLen, 1)
+ems.parForEach(0, arrLen, function (idx) {
+    a.writeXF(idx, 0);
+});
+
+var nTimes = 150;
+ems.parForEach(0, arrLen, function (previdx) {
+    for (var i = 0; i < nTimes; i++) {
+        a.faa((previdx + i) % arrLen, 1)
     }
-} )
+});
 
-ems.parForEach(0, arrLen, function(idx) {
-    a.faa(idx, 0.1)
-    a.faa(idx, 'fun!')
-    a.faa(idx, false) 
-    if( a.readFE(idx) != nTimes + '.100000fun!false' ) {
-	ems.diag('Failed match ='+ a.read(idx) + '   idx='+idx)
-    }
-} )
-
+ems.parForEach(0, arrLen, function (idx) {
+    a.faa(idx, 0.1);
+    a.faa(idx, 'fun!');
+    a.faa(idx, false);
+    assert(a.readFE(idx) == nTimes + '.100000fun!false',
+        'Failed match =' + a.read(idx) + '   idx=' + idx);
+    });

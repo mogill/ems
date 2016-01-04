@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,40 +29,25 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(process.argv[2])
-var singleton = ems.new(1)
-var nTimes = 10000
-var sum = 0
+'use strict';
+var ems = require('ems')(parseInt(process.argv[2]), false);
+var assert = require('assert');
+var arrLen = 10000;
+// var arrayElem = ['abcd', 1234.567, {x: 'xxx', y: 'yyyyy'}, 987, null, [10, 11, 12, 13]];
+var arrayElem = ['abcd', 1234.567, true, 987];
 
-ems.single( function() {
-    singleton.writeXF(0, 0)
-    for(var i = 0;  i < nTimes * ems.myID;  i++) {
-	sum += Math.sin(i)
-    }
-} )
-
-for(var i = 0;  i < nTimes;  i++) { ems.barrier() }
-
-for(var i = 0;  i < nTimes;  i++) {
-    ems.single( function() {
-	singleton.write(0, singleton.read(0) + 1)
-    } )
-}
-
-ems.barrier()
-if(singleton.read(0) != nTimes) {
-    ems.diag("Singleton was " + singleton.read(0) + ' should have been ' + nTimes)
-}
+var objMap = ems.new({
+    dimensions: [arrLen],
+    heapSize: arrLen * 200,
+    useMap: true,
+    useExisting: false,
+    setFEtags: 'full'
+});
 
 
-var arr = ems.new(ems.nThreads)
-for(var i = 0;  i < nTimes;  i++) {
-    arr.write(ems.myID, i)
-    ems.barrier()
-    for(var j = 0;  j < ems.nThreads;  j++) {
-	if(arr.read(j) != i) {
-	    ems.diag("Barrier array is wrong: was " + arr.read(j) + ' should have been ' + i)
-	}
-    }
-    ems.barrier()
-}
+arrayElem.forEach(function (elem, idx) {
+    console.log("Trying to map:", elem, typeof elem);
+    objMap.writeXF(elem, elem + idx);
+    var readback = objMap.readFF(elem);
+    assert(readback === elem + idx, 'Readback of ' + (elem + idx) + 'didnt match:' + readback);
+});

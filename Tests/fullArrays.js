@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,43 +29,38 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), false)
-var arrLen = 10000
+'use strict';
+var ems = require('ems')(parseInt(process.argv[2]), false);
+var assert = require('assert');
+var arrLen = 10000;
 
-var arr = ems.new(arrLen)
-var map = ems.new( {
-    dimensions : [ arrLen ],
-    heapSize  : arrLen * 10,
-    useMap: true, 
+var arr = ems.new(arrLen);
+var map = ems.new({
+    dimensions: [arrLen],
+    heapSize: arrLen * 10,
+    useMap: true,
     useExisting: false,
-    persist: true, 
+    persist: true,
     filename: '/tmp/EMS_idxmap',
-    setFEtags : 'empty'
-} )
+    setFEtags: 'empty'
+});
 
 
-ems.parForEach(0, arrLen, function(idx) {
-    arr.writeXF(idx, 10*idx);
-} )
+ems.parForEach(0, arrLen, function (idx) {
+    arr.writeXF(idx, 10 * idx);
+});
 
 
-ems.parForEach(0, arrLen, function(idx) {
-    if(arr.readFF(idx) != 10*idx) {
-	ems.diag("readback was wrong");
-    }
-} )
+ems.parForEach(0, arrLen, function (idx) {
+    assert(arr.readFF(idx) === 10 * idx, "readback was wrong");
+});
 
 
+ems.parForEach(0, arrLen, function (idx) {
+    map.writeXF(idx, 10 * idx);
+});
 
 
-ems.parForEach(0, arrLen, function(idx) {
-    map.writeXF(idx, 10*idx);
-} )
-
-
-ems.parForEach(0, arrLen, function(idx) {
-    if(map.readFF(idx) != 10*idx) {
-	ems.diag("map readback was wrong");
-    }
-} )
-
+ems.parForEach(0, arrLen, function (idx) {
+    assert(map.readFF(idx) === 10 * idx, "map readback was wrong");
+});

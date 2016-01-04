@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,79 +29,148 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
+'use strict';
 //  Usage:   node wordCount.js <number of threads>
 //    Executes in bulk synchronous parallel mode
-var ems = require('ems')(parseInt(process.argv[2]))
-var fs  = require('fs')
+var ems = require('ems')(parseInt(process.argv[2]));
+var fs = require('fs');
 
-//-------------------------------------------------------------------
-//  Timer functions
-function timerStart(){ return new Date().getTime() }
-function timerStop(timer, nOps, label, myID) {
-    function fmtNumber(n) {
-	var s = '                       ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-	if(n < 1) return n
-	else    { return s.substr(s.length - 15, s.length)  }
-    }
-    var now = new Date().getTime()
-    var opsPerSec = (nOps*1000000) / ((now - timer) *1000)
-    if(typeof myID === undefined  ||  myID === 0) {
-        console.log(fmtNumber(nOps) + label + fmtNumber(Math.floor(opsPerSec).toString()) + " ops/sec")
-    }
-}
 
 //-------------------------------------------------------------------
 //  Allocate the word count dictionary
-var maxNKeys    = 10000000
-var wordCounts   = ems.new( {
-    dimensions : [ maxNKeys ],  // Maximum # of different keys the array can store
-    heapSize   : maxNKeys * 10, // 10 bytes of storage per key, used for key (dictionary word) itself
-    useMap     : true,          // Use a key-index mapping, not integer indexes
-    setFEtags  : 'full',        // Initial full/empty state of array elements
-    doDataFill : true,          // Initialize data values
-    dataFill   : 0              // Initial value of new keys
-} )
+var maxNKeys = 15000000;
+var wordCounts = ems.new({
+    dimensions: [maxNKeys],  // Maximum # of different keys the array can store
+    heapSize: maxNKeys * 10, // 10 bytes of storage per key, used for key (dictionary word) itself
+    useMap: true,            // Use a key-index mapping, not integer indexes
+    setFEtags: 'full',       // Initial full/empty state of array elements
+    doDataFill: true,        // Initialize data values
+    dataFill: 0              // Initial value of new keys
+});
 
 
 //-------------------------------------------------------------------
 //  Use a key-value mapped array to store execution statistics
-var nStats      = 2
-var stats       = ems.new( {
-    dimensions : [ nStats ],    // Maximum number of stats that can be stored
-    heapSize   : nStats*20,     // 20 bytes per entry for key and data values
-    useMap     : true,          // Use a key-index mapping, not integer indexes
-    setFEtags  : 'full',        // Initial full/empty state of array elements
-    doDataFill : true,          // Initialize data values
-    dataFill   : 0              // Initial value of new keys
-} )
+var nStats = 200;
+var stats = ems.new({
+    dimensions: [nStats],  // Maximum number of stats that can be stored
+    heapSize: nStats * 20, // 20 bytes per entry for key and data values
+    useMap: true,          // Use a key-index mapping, not integer indexes
+    setFEtags: 'full',     // Initial full/empty state of array elements
+    doDataFill: true,      // Initialize data values
+    dataFill: 0            // Initial value of new keys
+});
 
 
+// ===============================================================================
+//  Perform Word Count
+//
+//  Use the word as a key to the EMS array, the value is the count of the
+//  number of times the word has been encountered. This is incremented
+//  atomically.
+//
+//  Bookkeeping for statistics is performed by keeping track of the total number
+//  of words and bytes processed in the "stats" EMS array.
+//
+var doc_path = '/Volumes/JohnDay/Users/mogill/Desktop/GUTENBERG/FLAT/';
+var file_list = fs.readdirSync(doc_path);
+var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/);
 
-//-------------------------------------------------------------------
-//  Program main entry point 
-var dir          = fs.readdirSync('/Users/mogill/Src/Data/Gutenberg/all/');
-var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/)
 
-
-//-------------------------------------------------------------------
 //  Loop over the files in parallel, counting words
-var totalTime    = timerStart()
-ems.parForEach(0, dir.length,  function(bufNum) {
-    var fileTimer = timerStart() 
-    var text = fs.readFileSync('/Users/mogill/Src/Data/Gutenberg/all/' + dir[bufNum], 'utf8', "r")
-    var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
-    words.forEach( function(word, wordN) {
-	if(word.length < 15  &&  word != "") {
-	    wordCounts.faa(word, 1)
-	}
-    } )
-    //  Accumulate word and data counters, print progress
-    stats.faa('nWords', words.length)
-    stats.faa('nBytesRead', text.length)
-    //  Note:  This diagnostic only prints on node 0, so not all iterations produce output
-    timerStop(fileTimer, words.length, " words in file " + dir[bufNum] + " processed at ", ems.myID)
-} )
+var startTime = Date.now();
+// ems.parForEach(0, file_list.length, function (fileNum) {
+ems.parForEach(0, 10000, function (fileNum) {
+    try {
+        var text = fs.readFileSync(doc_path + file_list[fileNum], 'utf8', "r");
+        var words = text.replace(/[\n\r]/g, ' ').toLowerCase().split(splitPattern);
+        //  Iterate over all the wods in the document
+        words.forEach(function (word) {
+            //  Ignore words over 15 characters long as non-English
+            if (word.length < 15 && word.length > 0) {
+                //  Atomically increment the count of times this word was seen
+                var count = wordCounts.faa(word, 1);
+            }
+        });
+
+        //  Accumulate some statistics: word and data counters, print progress
+        var nWords_read = stats.faa('nWords', words.length);
+        var nBytes_read = stats.faa('nBytesRead', text.length);
+
+        var now = Date.now();
+        if (ems.myID === 0  &&  fileNum % 10 === 0) {
+            console.log("Average Words/sec=" + Math.floor((1000 * nWords_read) / (now - startTime)) +
+                "   MBytes/sec=" + Math.floor((100000 * nBytes_read) / ((now - startTime) * (1 << 20)))/100);
+        }
+    }
+    catch (Err) {
+        ems.diag("This is not a text file:" + file_list[fileNum]);
+    }
+});
 
 
-timerStop(totalTime, stats.read('nWords'), " Words parsed ", ems.myID)
-timerStop(totalTime, stats.read('nBytesRead'), " bytes read   ", ems.myID)
+
+// ===============================================================================
+//  Output the Most Frequently Occurring Words
+//
+//  First perform an insertion sort of data inspected by this process,
+//  then perform a merge sort of all the processes partial lists.
+//
+//  Start by printing the total amount of data processed during word counting
+ems.master(function() {
+    console.log("Totals: ", stats.read('nWords'), " words parsed,  ",
+        stats.read('nBytesRead'), "bytes read.");
+});
+
+//  Divide the array across all the processes, each process keeps track
+//  of the "local_sort_len" most frequent word it encounters.
+var local_sort_len = 5;   // Must be at least as large as the number of processors
+var biggest_counts = new Array(local_sort_len).fill({"key": 0, "count": 0});
+ems.parForEach(0, maxNKeys, function (keyN) {
+    var key = wordCounts.index2key(keyN);
+    if (key) {
+        //  Perform an insertion sort of the new key into the biggest_counts
+        //  list, deleting the last (smallest) element to preserve length.
+        var keyCount = wordCounts.read(key);
+        var idx = local_sort_len - 1;
+        while (idx >= 0  &&  biggest_counts[idx].count < keyCount) {
+            idx -= 1;
+        }
+        var newBiggest = {"key": key, "count": keyCount};
+        if (idx < 0) {
+            biggest_counts = [newBiggest].concat(biggest_counts.slice(0, biggest_counts.length - 1));
+        } else if (idx >= local_sort_len) {
+            // Not on the list
+        } else {
+            var left = biggest_counts.slice(0, idx + 1);
+            var right = biggest_counts.slice(idx + 1);
+            biggest_counts = left.concat([newBiggest].concat(right)).slice(0, -1);
+        }
+    }
+});
+
+
+//  Concatenate all the partial (one per process) lists into one list
+stats.writeXF('most_frequent', []);
+ems.barrier();
+stats.writeEF('most_frequent', stats.readFE('most_frequent').concat(biggest_counts));
+ems.barrier();
+
+
+//  Sort & print the list of words, only one process is needed
+ems.master(function() {
+    biggest_counts = stats.readFF('most_frequent');
+
+    //  Sort the list by word frequency
+    biggest_counts.sort(function (a, b) {
+        return b.count - a.count;
+    });
+
+    //  Print only the first "local_sort_len" items -- assume the worst case
+    //  of all the largest counts are discovered by a single process, the next
+    //  largest after "local_sort_len" is no longer on any list.
+    console.log("Most frequently appearing terms:");
+    for (var index = 0;  index < local_sort_len;  index += 1) {
+        console.log(index + ': ' + biggest_counts[index].key + "   " + biggest_counts[index].count);
+    }
+});

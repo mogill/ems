@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,26 +29,22 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), false)
-var assert = require('assert')
+var ems = require('ems')(parseInt(process.argv[2]), false);
+var assert = require('assert');
 
-var data = ems.new(100, 10000, '/tmp/EMS_sanity')
+var data = ems.new(100, 10000, '/tmp/EMS_sanity');
 //data.writeXF(ems.myID, "init"+ems.myID)
-data.writeXF(ems.myID, 100+ems.myID)
-var readback = data.readFF(ems.myID)
-var computed = "init"+ems.myID
-assert(data.readFF(ems.myID) == 100+ems.myID, "Readback FF was wrong: "+readback+ " != "+computed)
+data.writeXF(ems.myID, 100 + ems.myID);
+var readback = data.readFF(ems.myID);
+var computed = "init" + ems.myID;
+assert(data.readFF(ems.myID) === 100 + ems.myID, "Readback FF was wrong: " + readback + " != " + computed);
 
-ems.barrier()
-assert(data.readFE(ems.myID)  ==  100+(ems.myID)%ems.nThreads, "Bad wrap one " + data.read(ems.myID)+ " "+
-       (100+((ems.myID)%ems.nThreads)) )
+ems.barrier();
+assert(data.readFE(ems.myID) === 100 + (ems.myID) % ems.nThreads, "Bad wrap one " + data.read(ems.myID) + " " +
+    (100 + ((ems.myID) % ems.nThreads)));
 
-data.writeEF((ems.myID+2)%ems.nThreads, "second"+ems.myID)
+data.writeEF((ems.myID + 2) % ems.nThreads, "second" + ems.myID);
 
-var readback = data.readFF(ems.myID)
-var computed = "second"+(ems.myID-2+ems.nThreads)%ems.nThreads
-assert(readback == computed, "Bad snake shift: "+readback+" != "+computed)
-
-
-
-
+readback = data.readFF(ems.myID);
+computed = "second" + (ems.myID - 2 + ems.nThreads) % ems.nThreads;
+assert(readback === computed, "Bad snake shift: " + readback + " != " + computed);

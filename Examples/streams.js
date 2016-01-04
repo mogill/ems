@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,28 +29,35 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
+//
+//  Based on John D. McCalpin's (Dr. Bandwdith) STREAMS benchmark:
+//         https://www.cs.virginia.edu/stream/
+//
+//  Also see the Bulk Synchronous Parallel implementation in the Tests directory
+//
+// ===============================================================================
 //  Usage:   node wordCount.js <number of threads>
 //    Executes in fork-join mode
-var ems = require('ems')(parseInt(process.argv[2]), true, 'fj')
+'use strict';
+var ems = require('ems')(parseInt(process.argv[2]), true, 'fj');
 
-ems.parallel( function() { 
-    arrLen = 1000000
-    a = ems.new(arrLen)
-    b = ems.new(arrLen)
-    c = ems.new(arrLen)
+ems.parallel( function() {
+    var arrLen = 1000000;
+    var array_a = ems.new(arrLen);
+    var array_b = ems.new(arrLen);
+    var array_c = ems.new(arrLen);
 
-    ems.parForEach(0, arrLen, function(idx) { a.write(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { a.writeXE(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { a.writeXF(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { a.read(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { a.readFF(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { a.readFE(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { a.writeEF(idx, idx) } )
-    ems.parForEach(0, arrLen, function(idx) { b.writeXF(idx, a.readFF(idx)) } )
-    ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, a.readFF(idx) * b.readFF(idx)) } )
-    ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, c.readFF(idx) + (a.readFF(idx) * b.readFF(idx))) } )
-} )
+    ems.parForEach(0, arrLen, function(idx) { array_a.write(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_a.writeXE(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_a.writeXF(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_a.read(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_a.readFF(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_a.readFE(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_a.writeEF(idx, idx)});
+    ems.parForEach(0, arrLen, function(idx) { array_b.writeXF(idx, array_a.readFF(idx))});
+    ems.parForEach(0, arrLen, function(idx) { array_c.writeXF(idx, array_a.readFF(idx) * array_b.readFF(idx))});
+    ems.parForEach(0, arrLen, function(idx) { array_c.writeXF(idx, array_c.readFF(idx) + (array_a.readFF(idx) * array_b.readFF(idx)))});
+} );
 
-
-process.exit(0)
-
+// Fork-Join tasks must exit themselves, otherwise they will wait indefinitely for more work
+process.exit(0);

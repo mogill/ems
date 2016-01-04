@@ -1,8 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+ |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,24 +29,64 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), false)
-var a = ems.new(1, 0, '/tmp/EMS_a')
-var count = ems.new(1)
+var assert = require('assert');
+var ems = require('ems')(parseInt(process.argv[2]), false);
+var a = ems.new(1, 0, '/tmp/EMS_a');
+var arrLen = 10000;
+var nTimes;
+var nLocks;
+var count = ems.new({
+    dimensions: [10],
+    heapSize: arrLen * 200,
+    useMap: true,
+    useExisting: false,
+    setFEtags: 'full'
+});
 
-a.writeXF(0, 123)
-count.writeXF(0, 0)
-ems.barrier()
+a.writeXF(0, 123);
+count.writeXF(0, 0);
+ems.barrier();
 
-for(var nTimes = 0;  nTimes < 100000;  nTimes++) {
-    a.readRW(0)
-    var nLocks = count.faa(0, 1) + 1
-    if(nLocks > 7) { ems.diag("Too many locks: "+nLocks) }
-    nLocks = count.faa(0, -1) - 1
-    if(nLocks < 0) { ems.diag("Too few locks: "+nLocks) }
-    for(var i=0;  i < 100; i++) {nLocks += Math.sin(i)}
-    a.releaseRW(0)
+for (nTimes = 0; nTimes < 100000; nTimes += 1) {
+    a.readRW(0);
+    nLocks = count.faa(0, 1) + 1;
+    assert(nLocks <= 7, "Too many locks: " + nLocks);
+    nLocks = count.faa(0, -1) - 1;
+    assert(nLocks >= 0, "Too few locks: " + nLocks);
+    for (var i = 0; i < 100; i++) {
+        nLocks += Math.sin(i);
+    }
+    a.releaseRW(0);
 }
 
+ems.barrier();
 
+var objMap = ems.new({
+    dimensions: [arrLen],
+    heapSize: arrLen * 200,
+    useMap: true,
+    useExisting: false,
+    setFEtags: 'full'
+});
 
+['abcd', 1234.567, true, 987].forEach( function(elem) {
+    objMap.writeXF(elem, elem);
+    count.writeXF(elem, 0);
+});
+ems.barrier();
 
+['abcd', 1234.567, true, 987].forEach( function(elem) {
+    for (var nTimes = 0; nTimes < 10000; nTimes++) {
+        var readback = objMap.readRW(elem);
+        assert(readback === elem,
+            "Multi Reader read wrong data.  Expected(" + elem + "), got(" + readback + ")");
+        var nLocks = count.faa(elem, 1) + 1;
+        assert(nLocks <= 7, "Too many locks: " + nLocks);
+        nLocks = count.faa(elem, -1) - 1;
+        assert(nLocks >= 0, "Too few locks: " + nLocks);
+        for (var i = 0; i < 100; i++) {
+            nLocks += Math.sin(i);
+        }
+        nReaders = objMap.releaseRW(elem);
+    }
+});

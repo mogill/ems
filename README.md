@@ -1,33 +1,14 @@
 # Extended Memory Semantics (EMS)
 
-EMS makes possible shared memory multithreaded parallelism in Node.js.
+EMS makes possible shared memory multithreaded parallelism in Node.js (and soon Python).
 
 ### <em>EMS is targeted at problems too large for one core, but too small for a scalable cluster.</em>
 
 A modern multicore server has 16-32 cores and over 200GB of memory,
 equivalent to an entire rack of systems from a few years ago.
-As a consequence, jobs requiring a cluster of servers running Map-Reduce 5 years ago 
+As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
-
-## Current Support Status
-
-The V8 bindings used in the native C parts of EMS have fallen out of
-date with the current V8 API and EMS no longer compiles.  However, over
-the next few weeks (planned release date of January 4, 2016), we plan
-to re-implement them with NAN to be forward-compatible with all future
-versions of Node.  Additionally, many bug fixes and ES6 features will
-be implemented.
-
-EMS has waited patiently for the widespread adoption of technologies
-like persistent and Non-Volatile Memory (NVM), these are now on system
-vendor roadmaps and are only a few years away from going mainstream.
-We are dedicated to supporting [pmem.io](http://pmem.io/), but need
-access to development prototype systems.  If you can help us get
-access to systems with advanced memory architectures, we are very
-anxious to work with you!
-
-Please check back January 4, 2016 for the new EMS release!
 
 
 ## Types of Concurrency
@@ -43,7 +24,7 @@ other fine-grained synchronization capabilities.
 EMS supports Fork-Join and Bulk Synchronous Parallel (BSP) execution models.
 Fork-Join execution begins with a single thread that creates and ends
 parallel regions as needed, whereas BSP execution begins with each
-thread entering the program at <code>main()</code> and executing all
+thread entering the program at <code>main</code> and executing all
 the statements.
 <br><br>
 The same underlying EMS primitives (stacks, queues, transactions, 
@@ -216,27 +197,25 @@ For a more complete description of the principles of operation,
 </center>
 
 
-## Download
-### NPM Package
-EMS is available as a NPM Package.  It has no external dependencies,
-but does require compiling native C++ functions using <code>node-gyp</code>,
-which is also available as a NPM.
-<br>
-NPM will not install EMS in the same directory as EMS source code itself,
-so an additonal layer of directories (with the NPM installed version
-above the build version's root) may be used, 
-and EMS can always be installed globally:
+## Installation
 
-```csh
-npm install ems
-npm -g install ems
+### Install via npm
+EMS is available as a NPM Package.  EMS itself has no external dependencies,
+but does require compiling native C++ functions using <code>node-gyp</code>,
+which is also available as a NPM (<code>sudo npm install -g node-gyp</code>).
+
+The native C parts of EMS depend on other NPM packages to compile and load.
+Specifically, the Foreign Function Interface (ffi), C-to-V8 symbol renaming (bindings),
+and the native addon abstraction layer (nan) are also required to compile EMS.
+
+```sh
+npm install ffi bindings nan ems
 ```
 
+### Install via GitHub
+Download the source code.  Be sure to compile the native code with <code>node-gyp</code>.
 
-
-### GitHub
-Download the source code.  Be sure to compile the native code with <code>node-gyp</code>,
-```csh
+```sh
 git clone https://github.com/SyntheticSemantics/ems.git
 cd ems/ems/
 node-gyp configure
@@ -250,16 +229,39 @@ mkdir node_modules
 cd node_modules/
 ln -s ../../ems/ ems
 cd ../
-
-# Run an example on 8 threads
-node concurrent_Q_and_TM.js 8
 ```
 
 
+### Run Some Examples
+Run an example processes 8 processes:
+```sh
+cd Examples
+node concurrent_Q_and_TM.js 8
+'''
+
+Running all the tests with 16 processes:
+```sh
+cd Tests;
+rm EMS
+for test in `ls *js`; do  node $test 16; done
+'''
+
+
 ## Platforms Supported
-Presently Mac/Darwin and Linux are supported.  There is no technical reason it would not 
-also work on Windows with the POSIX functions replaced using the MS equivalent.
-Contributions are welcomed!
+As of 2016-01-03, Mac/Darwin and Linux are supported.  A windows port pull request is welcomed!
+
+
+## Roadmap
+EMS 1.0 uses Nan for long-term Node.js support, and in the near
+future a Python API will also be available.
+
+EMS 2.0 is in the planning phase, the new API will more tightly integrate with the
+language making atomic operations on persistent memory
+more transparent, and simplifying integration with legacy applications.
+The types of persistent and Non-Volatile Memory (NVM) EMS was designed
+for, such as [pmem.io](http://pmem.io/),
+will be introduced into servers in the next few years, we hope to 
+leverage their work and future-proof EMS against architectural shifts.
 
 ## License
 BSD, other commercial and open source licenses are available.
@@ -272,6 +274,7 @@ BSD, other commercial and open source licenses are available.
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
-<img src="http://synsem.com/synsem_logo_black.svg" type="image/svg+xml" height="30px" style="vertical-align:middle;"> [SynSem](http://synsem.com) provides tools and services for shared memory parallelism, 
-GPU/FPGA/DSP/CPU hybrid computing, high performance computing, and hardware/software co-design.
-From embedded devices to supercomputers to JavaScript: Zoom, not Boom!
+Jace A Mogill specializes in FPGA/Software Co-Design, most recently
+designing and implementing hardware accelerators for Python & Javascript.
+He has over 20 years experience optimizing software for distributed, multi-core, and 
+hybrid computer architectures.

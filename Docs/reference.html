@@ -1225,60 +1225,96 @@ emsArray.enqueue() : &lt; Number &gt;</td>
 
 
 
-    <!-- ----------------------------------------------------------------------------- -->
+	<!-- ----------------------------------------------------------------------------- -->
 
-    <h5> Synchronize EMS Memory to Persistent Storage </h5>
-    <table class="apiBlock" >
-      <tr class="apiFunc" style="vertical-align:text-top;">
-	<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
-        <td colspan=3 class="Proto">emsArray.sync( [ index [, nElements] ] )</td>
-      </tr>
+	<h5> Look up a key used to map a value </h5>
+	<table class="apiBlock" >
+		<tr class="apiFunc" style="vertical-align:text-top;">
+			<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+			<td colspan=3 class="Proto">emsArray.index2key( index )</td>
+		</tr>
 
-      <tr class="apiSynopsis"  style="vertical-align:text-top;">
-	<td class="Label"> SYNOPSIS </td>
-	<td class="Desc" colspan=3> 
-	  Synchronize the EMS memory with persistent storage.
-	  <br><br> </td>
-      </tr>
+		<tr class="apiSynopsis"  style="vertical-align:text-top;">
+			<td class="Label"> SYNOPSIS </td>
+			<td class="Desc" colspan=3>
+				Convert an index into an EMS array to the key used to map
+				a value to that hashed index.  This function can be used
+				to iterate over all the elements of a mapped array.
+				<br><br> </td>
+		</tr>
 
-      <tr class="apiArgs"  style="vertical-align:text-top;">
-	<td class="Label"> ARGUMENTS </td>
-	<td class="argName">index</td>
-	<td class="argType"> &lt;String | Number&gt;</td>
-	<td class="argDesc" > 
-	  (Optional, default = entire EMS array)
-	  Index of the element in the EMS array to synchronize to disk </td>
-      </tr>
-      <tr class="apiArgs"  style="vertical-align:text-top;">
-	<td class="Label"></td>
-	<td class="argName">nElements</td>
-	<td class="argType"> &lt;Number&gt;</td>
-	<td class="argDesc" > 
-	  (Optional, only defined if  <code>index</code> is also defined,
-	  default = 1)
-	  Number of sequential indexes, starting with <code>index</code>,
-	  that should be synchronized to disk </td>
-      </tr>
-
-    </table>
-    <br>
-    <table class="apiBlock" >
-      <tr class="apiRetVal" style="vertical-align:text-top;">
-	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
-	<td class="Type">&lt; Boolean &gt;</td>
-	<td class="Desc">True if memory was successfully synchronized to disk,
-	  otherwise false.</td>
-      </tr>
-
-      <tr class="Examples" style="vertical-align:text-top;">
-	<td class="Label"> EXAMPLES </td>
-	<td class="Example">users.sync( userID )</td>
-	<td class="Desc">The user's record is committed to disk before the function returns.</td>
-      </tr>
-    </table>
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName">index</td>
+			<td class="argType"> &lt;Number&gt;</td>
+			<td class="argDesc" >
+				Index of the element in the EMS array to get the key for </td>
+		</tr>
+	</table>
+	<br>
+	<table class="apiBlock" >
+		<tr class="apiRetVal" style="vertical-align:text-top;">
+			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+			<td class="Type">&lt; Any &gt;</td>
+			<td class="Desc">The key used to map the value which hashed to this index.</td>
+		</tr>
+	</table>
 
 
-    <!-- ----------------------------------------------------------------------------- -->
+	<!-- ----------------------------------------------------------------------------- -->
+
+	<h5> Synchronize EMS Memory to Persistent Storage </h5>
+	<table class="apiBlock" >
+		<tr class="apiFunc" style="vertical-align:text-top;">
+			<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+			<td colspan=3 class="Proto">emsArray.sync( [ index [, nElements] ] )</td>
+		</tr>
+
+		<tr class="apiSynopsis"  style="vertical-align:text-top;">
+			<td class="Label"> SYNOPSIS </td>
+			<td class="Desc" colspan=3>
+				Synchronize the EMS memory with persistent storage.
+				<br><br> </td>
+		</tr>
+
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName">index</td>
+			<td class="argType"> &lt;String | Number&gt;</td>
+			<td class="argDesc" >
+				(Optional, default = entire EMS array)
+				Index of the element in the EMS array to synchronize to disk </td>
+		</tr>
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"></td>
+			<td class="argName">nElements</td>
+			<td class="argType"> &lt;Number&gt;</td>
+			<td class="argDesc" >
+				(Optional, only defined if  <code>index</code> is also defined,
+				default = 1)
+				Number of sequential indexes, starting with <code>index</code>,
+				that should be synchronized to disk </td>
+		</tr>
+
+	</table>
+	<br>
+	<table class="apiBlock" >
+		<tr class="apiRetVal" style="vertical-align:text-top;">
+			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+			<td class="Type">&lt; Boolean &gt;</td>
+			<td class="Desc">True if memory was successfully synchronized to disk,
+				otherwise false.</td>
+		</tr>
+
+		<tr class="Examples" style="vertical-align:text-top;">
+			<td class="Label"> EXAMPLES </td>
+			<td class="Example">users.sync( userID )</td>
+			<td class="Desc">The user's record is committed to disk before the function returns.</td>
+		</tr>
+	</table>
+
+
+	<!-- ----------------------------------------------------------------------------- -->
 
 
     <h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO Reduce  </h5>
