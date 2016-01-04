@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.1   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -957,11 +957,11 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     if (persist)
         fd = open(filename, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     else
-        // fd = shm_open(filename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-        fd = open(filename, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+        fd = shm_open(filename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+        // fd = open(filename, O_APPEND | O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd < 0) {
-        perror("What happened?");
+        perror("Error opening shared memory -- Possibly need to be root?");
         Nan::ErrnoException(errno, "EMS", "Unable to open file");
         return;
     }
