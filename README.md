@@ -209,7 +209,7 @@ Specifically, the Foreign Function Interface (ffi), C-to-V8 symbol renaming (bin
 and the native addon abstraction layer (nan) are also required to compile EMS.
 
 ```sh
-npm install ffi bindings nan ems
+npm install ems
 ```
 
 ### Install via GitHub
@@ -218,33 +218,43 @@ Download the source code.  Be sure to compile the native code with <code>node-gy
 ```sh
 git clone https://github.com/SyntheticSemantics/ems.git
 cd ems/ems/
+npm install bindings ffi nan
 node-gyp configure
 node-gyp build
+```
 
-# To make this EMS development build the one used by the examples,
-# set up a local node_modules that is symbolically linked to the current build.
-# Replace "Examples" with "Tests" to execute tests from the development build.
+To make this EMS development build the one used by the examples,
+set up a local node_modules that is symbolically linked to the current build.
+Replace "Examples" with "Tests" to execute tests from the development build.
+```sh
 cd ../Examples/
 mkdir node_modules
 cd node_modules/
-ln -s ../../ems/ ems
+ln -s ../../../ems/ ems
 cd ../
 ```
 
 
 ### Run Some Examples
+On a Mac and some Linux distributions programs will "just work", but
+some Linux distributions restrict access to shared memory.  The
+quick workaround is to run jobs as root, a long-term solution will
+vary with Linux distribution.
+
+<bold>
+
 Run an example processes 8 processes:
 ```sh
 cd Examples
 node concurrent_Q_and_TM.js 8
-'''
+```
 
 Running all the tests with 16 processes:
 ```sh
 cd Tests;
 rm EMS
 for test in `ls *js`; do  node $test 16; done
-'''
+```
 
 
 ## Platforms Supported
