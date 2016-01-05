@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.1   |
+ |  Extended Memory Semantics (EMS)                            Version 1.0.7   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
