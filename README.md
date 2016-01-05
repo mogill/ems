@@ -1,6 +1,6 @@
 # Extended Memory Semantics (EMS)
 
-EMS makes possible shared memory multithreaded parallelism in Node.js (and soon Python).
+EMS makes possible shared memory parallelism in Node.js (and soon Python).
 
 ### <em>EMS is targeted at problems too large for one core, but too small for a scalable cluster.</em>
 
@@ -17,14 +17,13 @@ without using distributed programming.
     <tr>
       <td>
 EMS complements an application's 
-asynchronous and distributed concurrency with
-multithreading, transactional memory, and 
+asynchronous and distributed concurrency transactional memory, and 
 other fine-grained synchronization capabilities.
 <br><br>
 EMS supports Fork-Join and Bulk Synchronous Parallel (BSP) execution models.
-Fork-Join execution begins with a single thread that creates and ends
+Fork-Join execution begins with a single process that creates and ends
 parallel regions as needed, whereas BSP execution begins with each
-thread entering the program at <code>main</code> and executing all
+process entering the program at <code>main</code> and executing all
 the statements.
 <br><br>
 The same underlying EMS primitives (stacks, queues, transactions, 
@@ -50,7 +49,7 @@ iterating over documents in parallel and atomically incrementing the count of ea
 word found.
 
 ```javascript
-var ems  = require('ems')(process.argv[2])  // Command line argument for # of threads to use
+var ems  = require('ems')(process.argv[2])  // Command line argument for # of processes to use
 
 //  Allocate the EMS shared memory holding the word count dictionary
 var maxNKeys    = 10000000
@@ -177,7 +176,7 @@ mapping from any primitive type.  When a map is used, the key and data
 
 ### Less is More
 Because all systems are already multicore, 
-multithreading requires no additional equipment, system permissions,
+parallel programs require no additional equipment, system permissions,
 or application services, making it easy to get started.
 The reduced complexity of
 lightweight threads communicating through shared memory
@@ -217,17 +216,16 @@ Download the source code.  Be sure to compile the native code with <code>node-gy
 
 ```sh
 git clone https://github.com/SyntheticSemantics/ems.git
-cd ems/ems/
+cd ems
 npm install bindings ffi nan
-node-gyp configure
-node-gyp build
+node-gyp rebuild
 ```
 
-To make this EMS development build the one used by the examples,
-set up a local node_modules that is symbolically linked to the current build.
-Replace "Examples" with "Tests" to execute tests from the development build.
+To use this EMS development build to run the examples or tests,
+set up a local node_modules that is symbolically linked to the current build:
+
 ```sh
-cd ../Examples/
+cd Examples/
 mkdir node_modules
 cd node_modules/
 ln -s ../../../ems/ ems
@@ -236,14 +234,13 @@ cd ../
 
 
 ### Run Some Examples
-On a Mac and some Linux distributions programs will "just work", but
+On a Mac and some Linux distributions EMS will "just work", but
 some Linux distributions restrict access to shared memory.  The
 quick workaround is to run jobs as root, a long-term solution will
 vary with Linux distribution.
 
-<bold>
 
-Run an example processes 8 processes:
+Run an example on 8 processes:
 ```sh
 cd Examples
 node concurrent_Q_and_TM.js 8
@@ -251,8 +248,8 @@ node concurrent_Q_and_TM.js 8
 
 Running all the tests with 16 processes:
 ```sh
-cd Tests;
-rm EMS
+cd Tests
+rm -f EMSthreadStub.js   # Do not run the machine generated script used by EMS
 for test in `ls *js`; do  node $test 16; done
 ```
 

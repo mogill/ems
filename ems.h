@@ -35,7 +35,7 @@
 #include <v8.h>
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
-#include "node_modules/nan/nan.h"
+#include "nan.h"
 #include <sys/mman.h>
 #include <math.h>
 #include <stdlib.h>
@@ -44,8 +44,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-//    JS_ARG_TO_OBJ(obj)->Get(Nan::Utf8String::UtfString(isolate, property))
-//    JS_ARG_TO_OBJ(obj)->Get(v8::String::NewFromUtf8(isolate, property))
 
 #if !defined _GNU_SOURCE
 #  define _GNU_SOURCE

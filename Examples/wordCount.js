@@ -30,8 +30,6 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-//  Usage:   node wordCount.js <number of threads>
-//    Executes in bulk synchronous parallel mode
 var ems = require('ems')(parseInt(process.argv[2]));
 var fs = require('fs');
 
@@ -54,7 +52,7 @@ var wordCounts = ems.new({
 var nStats = 200;
 var stats = ems.new({
     dimensions: [nStats],  // Maximum number of stats that can be stored
-    heapSize: nStats * 20, // 20 bytes per entry for key and data values
+    heapSize: nStats * 200,// Space for keys, data values, and sorting
     useMap: true,          // Use a key-index mapping, not integer indexes
     setFEtags: 'full',     // Initial full/empty state of array elements
     doDataFill: true,      // Initialize data values
@@ -72,15 +70,20 @@ var stats = ems.new({
 //  Bookkeeping for statistics is performed by keeping track of the total number
 //  of words and bytes processed in the "stats" EMS array.
 //
-var doc_path = '/Volumes/JohnDay/Users/mogill/Desktop/GUTENBERG/FLAT/';
+var doc_path = '/path/to/your/document/collection/';
+if (!process.argv[3]) {
+    console.log("usage: wordCount <# processes> /path/to/your/document/collection/");
+    return -1;
+} else {
+    doc_path = process.argv[3];
+}
 var file_list = fs.readdirSync(doc_path);
 var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/);
 
 
 //  Loop over the files in parallel, counting words
 var startTime = Date.now();
-// ems.parForEach(0, file_list.length, function (fileNum) {
-ems.parForEach(0, 10000, function (fileNum) {
+ems.parForEach(0, file_list.length, function (fileNum) {
     try {
         var text = fs.readFileSync(doc_path + file_list[fileNum], 'utf8', "r");
         var words = text.replace(/[\n\r]/g, ' ').toLowerCase().split(splitPattern);
@@ -113,8 +116,8 @@ ems.parForEach(0, 10000, function (fileNum) {
 // ===============================================================================
 //  Output the Most Frequently Occurring Words
 //
-//  First perform an insertion sort of data inspected by this process,
-//  then perform a merge sort of all the processes partial lists.
+//  First perform many sequential insertion sorts in parallel,
+//  then serially perform a merge sort of all the partial lists.
 //
 //  Start by printing the total amount of data processed during word counting
 ems.master(function() {
@@ -124,7 +127,7 @@ ems.master(function() {
 
 //  Divide the array across all the processes, each process keeps track
 //  of the "local_sort_len" most frequent word it encounters.
-var local_sort_len = 5;   // Must be at least as large as the number of processors
+var local_sort_len = Math.max(10, process.argv[2]);
 var biggest_counts = new Array(local_sort_len).fill({"key": 0, "count": 0});
 ems.parForEach(0, maxNKeys, function (keyN) {
     var key = wordCounts.index2key(keyN);
@@ -149,7 +152,6 @@ ems.parForEach(0, maxNKeys, function (keyN) {
     }
 });
 
-
 //  Concatenate all the partial (one per process) lists into one list
 stats.writeXF('most_frequent', []);
 ems.barrier();
@@ -160,7 +162,6 @@ ems.barrier();
 //  Sort & print the list of words, only one process is needed
 ems.master(function() {
     biggest_counts = stats.readFF('most_frequent');
-
     //  Sort the list by word frequency
     biggest_counts.sort(function (a, b) {
         return b.count - a.count;

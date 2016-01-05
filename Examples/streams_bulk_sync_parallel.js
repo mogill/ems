@@ -107,11 +107,8 @@ timeStart = new Date().getTime();
 ems.parForEach(0, arrLen, function(idx) { c.writeXF(idx, c.readFF(idx) + (a.readFF(idx) * b.readFF(idx))) } );
 stopTimer(timeStart, arrLen, " c+=a*b  ");
 
-var sum = 0;
 timeStart = new Date().getTime();
-for(idx = 0;  idx < arrLen;  idx++ ) { sum += z[idx] + x[idx] + y[idx] }
 stopTimer(timeStart, arrLen, " checksum ");
-console.log('Sum=', sum);
 
 
 //===========================================================================================
@@ -152,10 +149,7 @@ if(ems.myID == 0) {
     for(idx = 0;  idx < arrLen;  idx++ ) { z[idx] += x[idx] * y[idx] }
     stopTimer(timeStart, arrLen, " c+=a*b  ");
 
-    var sum = 0;
     timeStart = new Date().getTime();
-    for(idx = 0;  idx < arrLen;  idx++ ) { sum += z[idx] + x[idx] + y[idx] }
     stopTimer(timeStart, arrLen, " sum ");
-    console.log('Sum=', sum);
 }
 
