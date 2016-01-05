@@ -254,7 +254,6 @@ npm test
 Or manually via:
 
 ```sh
-npm test
 cd Tests
 rm -f EMSthreadStub.js   # Do not run the machine generated script used by EMS
 for test in `ls *js`; do  node $test 16; done
