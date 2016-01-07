@@ -17,7 +17,7 @@ without using distributed programming.
     <tr>
       <td>
 EMS complements an application's 
-asynchronous and distributed concurrency transactional memory, and 
+asynchronous and distributed concurrency with transactional memory, and
 other fine-grained synchronization capabilities.
 <br><br>
 EMS supports Fork-Join and Bulk Synchronous Parallel (BSP) execution models.

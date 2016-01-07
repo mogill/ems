@@ -37,7 +37,7 @@ var startTime;
 var stats = ems.new(1);
 var sum = 0;
 var start = 0;
-var end = 1000000;
+var end = 20000;
 var nIters = 100000;
 var n = nIters * (end - start);
 
