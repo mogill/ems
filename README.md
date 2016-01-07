@@ -248,10 +248,17 @@ node concurrent_Q_and_TM.js 8
 
 Running all the tests with 16 processes:
 ```sh
+npm test
+```
+
+Or manually via:
+
+```sh
 cd Tests
 rm -f EMSthreadStub.js   # Do not run the machine generated script used by EMS
 for test in `ls *js`; do  node $test 16; done
 ```
+
 
 
 ## Platforms Supported
