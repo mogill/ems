@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "install": "node-gyp configure; node-gyp build; cd node_modules && ln -s ../ ems && cd ..",
-    "test": "cd Tests && rm -f EMSthreadStub.js && for test in `ls *js`; do  node $test 16; done"
+    "test": "cd Tests && rm -f EMSthreadStub.js && for test in `ls *js`; do sudo node $test 16; done"
   },
   "main": "index.js",
   "repository": {
