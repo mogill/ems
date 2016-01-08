@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
+
 # Extended Memory Semantics (EMS)
 
 EMS makes possible shared memory parallelism in Node.js (and soon Python).
