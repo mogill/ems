@@ -10,7 +10,7 @@
     }
   ],
   "scripts": {
-    "install": "node-gyp configure; node-gyp build",
+    "install": "node-gyp configure; node-gyp build; pushd node_modules && ln -s ../ ems && popd",
     "test": "cd Tests && rm -f EMSthreadStub.js && for test in `ls *js`; do  node $test 16; done"
   },
   "main": "index.js",
