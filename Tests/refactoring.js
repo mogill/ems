@@ -32,7 +32,7 @@
 'use strict';
 var util = require('util');
 var assert = require('assert');
-var ems = require('ems')(1, 0, 'bsp', '/tmp/facto.ems');
+var ems = require('ems')(1, 0, 'bsp', '/facto.ems');
 var array_len = 10000;
 var ems_config = {
     dimensions  : [array_len],
