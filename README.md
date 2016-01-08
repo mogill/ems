@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
+Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs: [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 
 # Extended Memory Semantics (EMS)
 
