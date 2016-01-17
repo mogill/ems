@@ -1,4 +1,10 @@
-Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs: [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
+Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs: 
+[![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
+[![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
+<BR>
+[![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
+[![NPM](https://nodei.co/npm-dl/ems.png?months=1&height=3)](https://www.npmjs.com/package/ems)
+
 
 # Extended Memory Semantics (EMS)
 
@@ -19,7 +25,7 @@ without using distributed programming.
     <tr>
       <td>
 EMS complements an application's 
-asynchronous and distributed concurrency with transactional memory, and
+asynchronous and distributed concurrency with transactional memory and
 other fine-grained synchronization capabilities.
 <br><br>
 EMS supports Fork-Join and Bulk Synchronous Parallel (BSP) execution models.
@@ -290,7 +296,9 @@ BSD, other commercial and open source licenses are available.
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
-Jace A Mogill specializes in FPGA/Software Co-Design, most recently
-designing and implementing hardware accelerators for Python & Javascript.
+Jace A Mogill specializes in FPGA/Software Co-Design, recently
+embedding an ASIC emulation into Python and also 
+designing an hardware accelerator for Python, Javascript, and other languages.
 He has over 20 years experience optimizing software for distributed, multi-core, and 
 hybrid computer architectures.
+He regularly responds to mogill@synsem.com.

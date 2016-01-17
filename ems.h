@@ -221,14 +221,12 @@ union EMStag_t {
 //  EMSarray object metadata
 //
 #define THIS_INFO_TO_EMSBUF(info, prop_name)  \
-    /* v8::Isolate* isolate = info.GetIsolate(); */	\
     int mmapID = JS_PROP_TO_VALUE(isolate, info.This(), prop_name)->ToInteger()->Value(); \
     char *emsBuf = emsBufs[mmapID];
 #define JS_ARG_TO_OBJ(arg) v8::Handle<v8::Object>::Cast(arg)
 #define JS_PROP_TO_VALUE(isolate, obj, property) \
     JS_ARG_TO_OBJ(obj)->Get(Nan::New(property).ToLocalChecked())
-
-#define JS_ARG_TO_CSTR(arg) std::string(*Nan::Utf8String(arg)).c_str()
+#define JS_ARG_TO_CSTR(arg) (*Nan::Utf8String(arg))
 
 void EMScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void EMScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info);
@@ -252,7 +250,7 @@ void EMSindex2key(const Nan::FunctionCallbackInfo<v8::Value> &info);
   addr = emsMutexMem_alloc( (struct emsMem *) &bufChar[ bufInt64[EMScbData(EMS_ARR_MALLOCBOT)] ], \
                 len, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] ); \
   if(addr < 0)  { \
-      Nan::ErrnoException(errno, "EMS", errmsg );  \
+      Nan::ThrowError(errmsg);  \
       return retval; \
   }
 

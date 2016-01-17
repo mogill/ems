@@ -435,7 +435,8 @@ void EMSreadUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info, // Index
     EMStag_t newTag, oldTag, memTag;
 
     if (info.Length() < 1 || info.Length() > 2) {
-        return Nan::ThrowError("EMSreadUsingTags: Wrong number of args");
+        Nan::ThrowError("EMSreadUsingTags: Wrong number of args");
+        return;
     }
 
     int64_t idx = EMSreadIndexMap(info);

@@ -293,7 +293,6 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     THIS_INFO_TO_EMSBUF(info, "mmapID");
 
     if (info.Length() >= 3) {
-        // int64_t idx = EMSwriteIndexMap(info);
         int64_t idx = EMSreadIndexMap(info);
         volatile int64_t *bufInt64 = (int64_t *) emsBuf;
         volatile double *bufDouble = (double *) emsBuf;
@@ -304,9 +303,8 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
         int32_t intMemVal = -1;
         double floatMemVal = 0.0;
         int64_t textOffset;
+        const char *stringOldVal;  // TODO: Undo this kludge to work around CLANG bug.  Decl. must appear above GOTO target
         char stringMemVal[MAX_KEY_LEN];
-        const char *stringNewVal;
-        const char *stringOldVal;
         int swapped = false;
 
         if ((!EMSisMapped  &&  idx < 0) || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
@@ -322,8 +320,8 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
             newType = EMSv8toEMStype(info[2], false);
         }
 
-    retry_on_undefined:
         int memType;
+    retry_on_undefined:
         if(EMSisMapped  &&  idx < 0) {
             memType = EMS_TYPE_UNDEFINED;
         } else {
@@ -419,7 +417,7 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
                 case EMS_TYPE_JSON:
                 case EMS_TYPE_STRING: {
                     if (memType == EMS_TYPE_STRING) EMS_FREE(bufInt64[EMSdataData(idx)]);
-                    stringNewVal = JS_ARG_TO_CSTR(info[2]);
+                    const char *stringNewVal = JS_ARG_TO_CSTR(info[2]);
                     int len = strlen(stringNewVal);
                     EMS_ALLOC(textOffset, len + 1, "EMScas(string): out of memory to store string", );
                     strcpy(EMSheapPtr(textOffset), stringNewVal);

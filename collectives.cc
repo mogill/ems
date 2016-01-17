@@ -100,7 +100,7 @@ void EMSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     int barPhase = bufInt32[EMS_CB_BARPHASE];    // Determine current phase of barrier
     int retval = __sync_fetch_and_add(&bufInt32[EMS_CB_NBAR0 + barPhase], -1);
     if (retval < 0) {
-        Nan::ErrnoException(errno, "EMS", "EMSbarrier: Race condition at barrier");
+        Nan::ThrowError("EMSbarrier: Race condition at barrier");
         return;
     }
 
