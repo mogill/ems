@@ -33,6 +33,9 @@
 //  Based on John D. McCalpin's (Dr. Bandwdith) STREAMS benchmark:
 //         https://www.cs.virginia.edu/stream/
 //
+//
+//  Also see the Fork-Join version in the Examples directory
+// ===============================================================================
 var ems = require('ems')(parseInt(process.argv[2]), false);
 var arrLen = 1000000;
 var a = ems.new(arrLen);

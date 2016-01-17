@@ -36,7 +36,7 @@ var fs = require('fs');
 
 //-------------------------------------------------------------------
 //  Allocate the word count dictionary
-var maxNKeys = 15000000;
+var maxNKeys = 100000000;
 var wordCounts = ems.new({
     dimensions: [maxNKeys],  // Maximum # of different keys the array can store
     heapSize: maxNKeys * 10, // 10 bytes of storage per key, used for key (dictionary word) itself

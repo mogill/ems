@@ -33,11 +33,8 @@
 //  Based on John D. McCalpin's (Dr. Bandwdith) STREAMS benchmark:
 //         https://www.cs.virginia.edu/stream/
 //
-//  Also see the Bulk Synchronous Parallel implementation in the Tests directory
-//
+//  Also see the Bulk Synchronous Parallel implementation in the Examples directory
 // ===============================================================================
-//  Usage:   node wordCount.js <number of threads>
-//    Executes in fork-join mode
 'use strict';
 var ems = require('ems')(parseInt(process.argv[2]), true, 'fj');
 
