@@ -4,16 +4,17 @@ os:
   - linux
   - osx
 
-node_js:
-  - "4.1"
-  - "4.0"
-  - "0.12"
-  - "0.11"
-  - "0.10"
-  - "iojs"
 
 
 matrix:
+  node_js:
+    - "4.1"
+    - "4.0"
+    - "0.12"
+    - "0.11"
+    - "0.10"
+    - "iojs"
+
   include:
     - os: linux
       env: CXX=g++-4.8
