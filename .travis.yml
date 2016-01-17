@@ -2,6 +2,7 @@ language: node_js
 
 os:
   - linux
+  - osx
 
 dist: trusty
 
@@ -14,8 +15,12 @@ node_js:
   - "iojs"
 
 
-env:
-  - CXX=g++-4.8
+matrix:
+  include:
+    - os: linux
+      env: CXX=g++-4.8
+    - os: osx
+      env:
 
 sudo: true
 

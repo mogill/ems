@@ -46,7 +46,7 @@ var objMap = ems.new({
 
 
 arrayElem.forEach(function (elem, idx) {
-    console.log("Trying to map:", elem, typeof elem);
+    if (ems.myID === 0) { console.log("Trying to map:", elem, typeof elem); }
     objMap.writeXF(elem, elem + idx);
     var readback = objMap.readFF(elem);
     assert(readback === elem + idx, 'Readback of ' + (elem + idx) + 'didnt match:' + readback);
