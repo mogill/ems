@@ -14,7 +14,7 @@ node_js:
   - "iojs"
 
 before_script:
-  - sudo npm link ../ems
+  - npm link ../ems
 
 env:
   - CXX=g++-4.8
