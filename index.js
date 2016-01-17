@@ -415,7 +415,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     var emsDescriptor = {    //  Internal EMS descriptor
         nElements: 1,     // Required: Maximum number of elements in array
         heapSize: 0,     // Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
-        mlock: 100,   // Optional, 0-100% of EMS memory into RAM
+        mlock: 0,   // Optional, 0-100% of EMS memory into RAM
         useMap: false, // Optional, default=false: Use a map from keys to indexes
         useExisting: false, // Optional, default=false: Preserve data if a file already exists
         persist: true,  // Optional, default=true: Preserve the file after threads exit

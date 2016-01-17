@@ -175,7 +175,8 @@ int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     int nTries = 0;
     int matched = false;
     int notPresent = false;
-    const char *argString = NULL;  // Assignment needed to quiet GCC uninitalized warning
+    const char *arg_c_str = NULL;  // Assignment needed to quiet GCC uninitalized warning
+    std::string argString;
 
     if (info.Length() == 0) {
         Nan::ThrowTypeError("EMS ERROR: EMSreadIndexMap has no arguments?");
@@ -192,12 +193,14 @@ int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
             idx = intArgVal;
             break;
         case EMS_TYPE_FLOAT:
-            floatArgVal = info[0]->ToNumber()->Value();
-            idx = *((uint64_t *) &floatArgVal);
+            ulong_double alias;
+            alias.d = info[0]->ToNumber()->Value();
+            idx = alias.u;
             break;
         case EMS_TYPE_STRING:
-            argString = JS_ARG_TO_CSTR(info[0]);
-            idx = EMShashString(argString);
+            argString = std::string(*Nan::Utf8String(info[0]));
+            arg_c_str = argString.c_str();
+            idx = EMShashString(arg_c_str);
             break;
         default:
             Nan::ThrowTypeError("EMS ERROR: EMSreadIndexMap Unknown arg type");
@@ -231,7 +234,7 @@ int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         break;
                     case EMS_TYPE_STRING: {
                         int64_t keyStrOffset = bufInt64[EMSmapData(idx)];
-                        if (strcmp(argString, EMSheapPtr(keyStrOffset)) == 0) {
+                        if (strcmp(arg_c_str, EMSheapPtr(keyStrOffset)) == 0) {
                             matched = true;
                             bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         }
@@ -291,8 +294,8 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     int64_t boolArgVal = false;
     int64_t intArgVal = -1;
     double floatArgVal = 0.0;
-    char argString[MAX_KEY_LEN + 1];
-    strncpy(argString, JS_ARG_TO_CSTR(info[0]), MAX_KEY_LEN);
+    std::string argString(*Nan::Utf8String(info[0]));
+    const char *arg_c_str = argString.c_str();
 
     if (info.Length() == 0) {
         fprintf(stderr, "EMS ERROR: EMSwriteIndexMap has no arguments?\n");
@@ -309,11 +312,12 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
             idx = intArgVal;
             break;
         case EMS_TYPE_FLOAT:
-            floatArgVal = info[0]->ToNumber()->Value();
-            idx = *((int64_t *) &floatArgVal);
+            ulong_double alias;
+            alias.d = info[0]->ToNumber()->Value();
+            idx = alias.u;
             break;
         case EMS_TYPE_STRING:
-            idx = EMShashString(argString);
+            idx = EMShashString(arg_c_str);
             break;
         case EMS_TYPE_UNDEFINED:
             Nan::ThrowTypeError("EMSwriteIndexMap: Undefined is not a valid index");
@@ -353,7 +357,7 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         break;
                     case EMS_TYPE_STRING: {
                         int64_t keyStrOffset = bufInt64[EMSmapData(idx)];
-                        if (strcmp(argString, EMSheapPtr(keyStrOffset)) == 0) {
+                        if (strcmp(arg_c_str, EMSheapPtr(keyStrOffset)) == 0) {
                             matched = true;
                             bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         }
@@ -374,11 +378,10 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                                 bufDouble[EMSmapData(idx)] = floatArgVal;
                                 break;
                             case EMS_TYPE_STRING: {
-                                size_t len = strlen(argString);
                                 int64_t textOffset;
-                                EMS_ALLOC(textOffset, len + 1, "EMSwriteIndexMap(string): out of memory to store string", -1);
+                                EMS_ALLOC(textOffset, argString.length() + 1, "EMSwriteIndexMap(string): out of memory to store string", -1);
                                 bufInt64[EMSmapData(idx)] = textOffset;
-                                strcpy(EMSheapPtr(textOffset), argString);
+                                strcpy(EMSheapPtr(textOffset), arg_c_str);
                             }
                                 break;
                             case EMS_TYPE_UNDEFINED:
@@ -696,12 +699,11 @@ void EMSwriteUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info,  // Ind
                         break;
                     case EMS_TYPE_JSON:
                     case EMS_TYPE_STRING: {
-                        const char *json = JS_ARG_TO_CSTR(info[1]);
-                        size_t len = strlen(json);
+                        std::string json(*Nan::Utf8String(info[1]));
                         int64_t textOffset;
-                        EMS_ALLOC(textOffset, len + 1, "EMSwriteUsingTags: out of memory to store string", );
+                        EMS_ALLOC(textOffset, json.length() + 1, "EMSwriteUsingTags: out of memory to store string", );
                         bufInt64[EMSdataData(idx)] = textOffset;
-                        strcpy(EMSheapPtr(textOffset), json);
+                        strcpy(EMSheapPtr(textOffset), json.c_str());
                     }
                         break;
                     case EMS_TYPE_UNDEFINED:
@@ -922,8 +924,8 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     int64_t nElements  = info[0]->ToInteger()->Value();
     int64_t heapSize   = info[1]->ToInteger()->Value();
     int64_t useMap         = info[2]->ToBoolean()->Value();
-    char filename[MAX_FNAME_LEN + 1];
-    strncpy(filename, JS_ARG_TO_CSTR(info[3]), MAX_FNAME_LEN);
+    std::string filestring(*Nan::Utf8String(info[3]));
+    const char *filename = filestring.c_str();
 
     int64_t persist        = info[4]->ToBoolean()->Value();
     int64_t useExisting    = info[5]->ToBoolean()->Value();
@@ -1083,12 +1085,11 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                     break;
                 case EMS_TYPE_JSON:
                 case EMS_TYPE_STRING: {
-                    const char *fill_str = JS_ARG_TO_CSTR(info[7]);
-                    int len = strlen(fill_str);
+                    std::string fill_str(*Nan::Utf8String(info[7]));
                     int64_t textOffset;
-                    EMS_ALLOC(textOffset, len + 1, "EMSinit: out of memory to store string", );
+                    EMS_ALLOC(textOffset, fill_str.length() + 1, "EMSinit: out of memory to store string", );
                     bufInt64[EMSdataData(idx)] = textOffset;
-                    strcpy(EMSheapPtr(textOffset), fill_str);
+                    strcpy(EMSheapPtr(textOffset), fill_str.c_str());
                 }
                     break;
                 default:

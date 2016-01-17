@@ -99,7 +99,7 @@ ems.parForEach(0, nTransactions, function (transN) {
     // De-duplicate operations in a transaction which would deadlock
     var indicies = [];
     var uids = [];
-    for (var i = 0; i < ops.length; ++i) {
+    for (var i = 0; i < ops.length; i++) {
         indicies[i] = i;
         uids[i] = (ops[i][0] * 1000000000000) + ops[i][1];
     }
@@ -153,6 +153,8 @@ while (true) {
             });
             ems.tmEnd(transaction, true);
         }
+    } else {
+        ems.diag("Should not find nothing in queue");
     }
 }
 totalNops.faa(0, rwNops);

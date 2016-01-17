@@ -29,11 +29,13 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
+'use strict';
 var ems = require('ems')(parseInt(process.argv[2]));
+var assert = require('assert');
 var arrLen = 1000000;
 var a = ems.new({
     dimensions: [arrLen],
-    heapSize: 10000,
+    heapSize: arrLen * 100,
     useExisting: false,
     filename: '/tmp/EMS_stack',
     setFEtags: 'empty',
@@ -42,7 +44,7 @@ var a = ems.new({
 
 var b = ems.new({
     dimensions: [arrLen],
-    heapSize: 200000000,
+    heapSize: arrLen * 100,
     setFEtags: 'empty',
     dataFill: undefined
 });
@@ -69,44 +71,38 @@ function stopTimer(timer, nOps, label) {
 }
 
 var x = a.pop();
-if (x !== undefined) {
-    ems.diag("Initial: should have been empty: " + x);
-}
+assert(x === undefined, "Initial: should have been empty: " + x);
 ems.barrier();
 
 a.push(1000 + ems.myID);
 ems.barrier();
 x = a.pop();
-if (x === undefined) {
-    ems.diag("Expected something on the stack");
-}
+assert(x >= 1000, "Expected something >= 1000 on the stack, found " + x);
 ems.barrier();
 x = a.pop();
-if (x !== undefined) {
-    ems.diag("Expected nothing on the stack, found: " + x);
-}
+assert(x === undefined, "Expected nothing on the stack, found: " + x);
 
 ems.barrier();
 a.push(2000.12345 + ems.myID);
 a.push('text ' + ems.myID + 'yeah...');
 ems.barrier();
-a.pop();
-a.pop();
+assert(a.pop() !== undefined, "Expected text or ### on the stack, was undefined.")
+assert(a.pop() !== undefined, "Expected second text or ### on the stack, was undefined.")
 ems.barrier();
-if (a.pop() !== undefined) {
-    ems.diag("should have been empty");
-}
+assert(a.pop() === undefined, "after two pops stack should have been empty");
 ems.barrier();
 a.push(3330.12345 + ems.myID);
 a.push('more text ' + ems.myID + 'yeah...');
-a.pop();
-a.pop();
+assert(a.pop() !== undefined, "Expected more text or more ### on the stack, was undefined.")
+assert(a.pop() !== undefined, "Expected second more text or more ### on the stack, was undefined.")
 ems.barrier();
-if (a.pop() !== undefined) {
-    ems.diag("no barrier version should have been empty");
-}
+assert(a.pop() === undefined, "repeated two pops should have been empty");
 
-b.enqueue(4000 + ems.myID);
+var value = b.dequeue();
+ems.barrier();
+assert(value === undefined, "Intitial b dequeue should have beeen undefined, was " + value);
+ems.barrier();
+idx = b.enqueue(4000 + ems.myID);
 
 ems.barrier();
 ems.master(function () {
@@ -116,33 +112,23 @@ ems.master(function () {
         tmp = b.dequeue();
         count++;
     }
-    if (count != ems.nThreads) {
-        ems.diag("Didn't find enough queued items");
-    }
-    if (a.pop() !== undefined) {
-        ems.diag("dq1: should have been empty");
-    }
+    assert(count === ems.nThreads, "Didn't find enough queued items");
+    assert(a.pop() === undefined, "dq1: should still have been empty");
 });
 ems.barrier();
 tmp = b.dequeue();
-if (tmp !== undefined) {
-    ems.diag("DQ should be mt: " + tmp);
-}
+assert(tmp === undefined, "DQ should be mt: " + tmp);
 ems.barrier();
 ems.master(function () {
     for (i = 0; i < arrLen; i++) {
-        b.enqueue("sequential" + (i * 100));
+        var str = "sequential" + (i * 100);
+        b.enqueue(str);
     }
     for (i = 0; i < arrLen; i++) {
         tmp = b.dequeue();
-        if (tmp === undefined) {
-            ems.diag("Should have found a value");
-        }
+        assert(tmp === "sequential" + (i * 100), "Iter " + i + " Should have found ... got " + tmp);
     }
-    if (a.pop() !== undefined) {
-        ems.diag("dq1 seq: should have been empty");
-    }
-
+    assert(a.pop() === undefined, "a pop again should have been empty");
 });
 ems.barrier();
 
@@ -160,14 +146,11 @@ stopTimer(timeStart, arrLen, " dequeued ");
 
 
 tmp = b.dequeue();
-if (tmp !== undefined) {
-    ems.diag("DQend should be mt: " + tmp);
-}
-
+assert(tmp === undefined, "DQ at end should be mt: " + tmp);
 
 var p = ems.new({
     dimensions: [arrLen + 1],
-    heapSize: 200000000,
+    heapSize: arrLen * 50,
     setFEtags: 'empty',
     dataFill: undefined
 });
@@ -184,7 +167,7 @@ ems.parForEach(0, arrLen, function () {
 stopTimer(timeStart, arrLen, " popped ");
 
 ems.barrier();
-c = [];
+var c = [];
 timeStart = new Date().getTime();
 ems.master(function () {
     for (idx = 0; idx < arrLen; idx++) {
@@ -195,18 +178,14 @@ stopTimer(timeStart, arrLen, " native enqueued ");
 
 timeStart = new Date().getTime();
 ems.master(function () {
-    var sum = 0;
     for (idx = 0; idx < arrLen; idx++) {
-        sum += c.pop();
+        c.pop();
     }
-    if (sum == -1) console.log('dummy');
 });
 stopTimer(timeStart, arrLen, " native dequeued ");
 
 tmp = b.dequeue();
-if (tmp !== undefined) {
-    ems.diag("DQend should be mt: " + tmp);
-}
+assert(tmp === undefined, "DQ of B after native end should be mt: " + tmp);
 
 /////////////////////////////////////////
 
@@ -224,14 +203,12 @@ stopTimer(timeStart, arrLen, " int dequeued ");
 
 
 tmp = b.dequeue();
-if (tmp !== undefined) {
-    ems.diag("DQend should be mt: " + tmp);
-}
+assert(tmp === undefined, "DQend second time should be mt: " + tmp);
 
 
 p = ems.new({
     dimensions: [arrLen + 1],
-    heapSize: 200000000,
+    heapSize: arrLen * 50,
     setFEtags: 'empty',
     dataFill: undefined
 });
@@ -259,15 +236,12 @@ stopTimer(timeStart, arrLen, " int native enqueued ");
 
 timeStart = new Date().getTime();
 ems.master(function () {
-    var sum = 0;
     for (idx = 0; idx < arrLen; idx++) {
         c.pop();
     }
-    if (sum == -1) console.log('dummy');
 });
 stopTimer(timeStart, arrLen, " int native dequeued ");
 
 tmp = b.dequeue();
-if (tmp !== undefined) {
-    ems.diag("DQend should be mt: " + tmp);
-}
+assert(tmp === undefined, "Final deque should be mt: " + tmp);
+

@@ -216,6 +216,12 @@ union EMStag_t {
  }
 
 
+// Type-punning is now a warning in GCC, but this syntax is still okay
+union ulong_double {
+    double d;
+    unsigned long u;
+};
+
 //==================================================================
 //  Macro to declare and unwrap the EMS buffer, used to access the
 //  EMSarray object metadata
@@ -224,9 +230,7 @@ union EMStag_t {
     int mmapID = JS_PROP_TO_VALUE(isolate, info.This(), prop_name)->ToInteger()->Value(); \
     char *emsBuf = emsBufs[mmapID];
 #define JS_ARG_TO_OBJ(arg) v8::Handle<v8::Object>::Cast(arg)
-#define JS_PROP_TO_VALUE(isolate, obj, property) \
-    JS_ARG_TO_OBJ(obj)->Get(Nan::New(property).ToLocalChecked())
-#define JS_ARG_TO_CSTR(arg) (*Nan::Utf8String(arg))
+#define JS_PROP_TO_VALUE(isolate, obj, property) JS_ARG_TO_OBJ(obj)->Get(Nan::New(property).ToLocalChecked())
 
 void EMScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void EMScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info);

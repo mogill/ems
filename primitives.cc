@@ -75,12 +75,12 @@ void EMSpush(const Nan::FunctionCallbackInfo<v8::Value> &info) {
             break;
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
-            const char *argString = JS_ARG_TO_CSTR(info[0]);
-            size_t len = strlen(argString);
+            std::string argString(*Nan::Utf8String(info[0]));
+            const char *arg_c_str = argString.c_str();
             int64_t textOffset;
-            EMS_ALLOC(textOffset, len + 1, "EMSpush: out of memory to store string", );
+            EMS_ALLOC(textOffset, argString.length() + 1, "EMSpush: out of memory to store string", );
             bufInt64[EMSdataData(idx)] = textOffset;
-            strcpy(EMSheapPtr(textOffset), argString);
+            strcpy(EMSheapPtr(textOffset), arg_c_str);
         }
             break;
         case EMS_TYPE_UNDEFINED:
@@ -223,12 +223,12 @@ void EMSenqueue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
             break;
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
-            const char *argString = JS_ARG_TO_CSTR(info[0]);
-            size_t len = strlen(argString);
+            std::string argString(*Nan::Utf8String(info[0]));
+            const char *arg_c_str = argString.c_str();
             int64_t textOffset;
-            EMS_ALLOC(textOffset, len + 1, "EMSenqueue: out of memory to store string", );
+            EMS_ALLOC(textOffset, argString.length() + 1, "EMSenqueue: out of memory to store string", );
             bufInt64[EMSdataData(idx)] = textOffset;
-            strcpy(EMSheapPtr(textOffset), argString);
+            strcpy(EMSheapPtr(textOffset), arg_c_str);
         }
             break;
         case EMS_TYPE_UNDEFINED:

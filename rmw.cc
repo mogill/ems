@@ -77,12 +77,13 @@ void EMSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         oldTag.tags.type = EMS_TYPE_INTEGER;
                         break;
                     case EMS_TYPE_STRING: {   //  Bool + string
-                        const char *argString = JS_ARG_TO_CSTR(info[1]);
-                        int64_t len = strlen(argString) + 1 + 5;  //  String length + Terminating null + 'false'
+                        std::string argString(*Nan::Utf8String(info[1]));
+                        const char *arg_c_str = argString.c_str();
                         int64_t textOffset;
-                        EMS_ALLOC(textOffset, len, "EMSfaa(bool+string): out of memory to store string", );
+                        EMS_ALLOC(textOffset, argString.length() + 1 + 5, //  String length + Terminating null + 'false'
+                                  "EMSfaa(bool+string): out of memory to store string", );
                         sprintf(EMSheapPtr(textOffset), "%s%s",
-                                bufInt64[EMSdataData(idx)] ? "true" : "false", argString);
+                                bufInt64[EMSdataData(idx)] ? "true" : "false", arg_c_str);
                         bufInt64[EMSdataData(idx)] = textOffset;
                         oldTag.tags.type = EMS_TYPE_STRING;
                     }
@@ -127,12 +128,13 @@ void EMSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         bufInt64[EMSdataData(idx)] += info[1]->ToBoolean()->Value();
                         break;
                     case EMS_TYPE_STRING: {   // int + string
-                        const char *argString = JS_ARG_TO_CSTR(info[1]);
-                        int64_t len = strlen(argString) + 1 + MAX_NUMBER2STR_LEN;
+                        std::string argString(*Nan::Utf8String(info[1]));
+                        const char *arg_c_str = argString.c_str();
                         int64_t textOffset;
-                        EMS_ALLOC(textOffset, len, "EMSfaa(int+string): out of memory to store string", );
-                        sprintf(EMSheapPtr(textOffset), "%lld%s", (long long int) bufInt64[EMSdataData(idx)],
-                                argString);
+                        EMS_ALLOC(textOffset, argString.length() + 1 + MAX_NUMBER2STR_LEN,
+                                  "EMSfaa(int+string): out of memory to store string", );
+                        sprintf(EMSheapPtr(textOffset), "%lld%s",
+                                (long long int) bufInt64[EMSdataData(idx)], arg_c_str);
                         bufInt64[EMSdataData(idx)] = textOffset;
                         oldTag.tags.type = EMS_TYPE_STRING;
                     }
@@ -161,11 +163,12 @@ void EMSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         bufDouble[EMSdataData(idx)] += (double) info[1]->ToInteger()->Value();
                         break;
                     case EMS_TYPE_STRING: {   // Float + string
-                        const char *argString = JS_ARG_TO_CSTR(info[1]);
-                        int64_t len = strlen(argString) + 1 + MAX_NUMBER2STR_LEN;
+                        std::string argString(*Nan::Utf8String(info[1]));
+                        const char *arg_c_str = argString.c_str();
                         int64_t textOffset;
-                        EMS_ALLOC(textOffset, len, "EMSfaa(float+string): out of memory to store string", );
-                        sprintf(EMSheapPtr(textOffset), "%lf%s", bufDouble[EMSdataData(idx)], argString);
+                        EMS_ALLOC(textOffset, argString.length() + 1 + MAX_NUMBER2STR_LEN,
+                                  "EMSfaa(float+string): out of memory to store string", );
+                        sprintf(EMSheapPtr(textOffset), "%lf%s", bufDouble[EMSdataData(idx)], arg_c_str);
                         bufInt64[EMSdataData(idx)] = textOffset;
                         oldTag.tags.type = EMS_TYPE_STRING;
                     }
@@ -204,13 +207,13 @@ void EMSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                                 info[1]->ToNumber()->Value());
                         break;
                     case EMS_TYPE_STRING: { // string + string
-                        const char *argString = JS_ARG_TO_CSTR(info[1]);
-                        // v8::String::Utf8Value argString(args[1]);
-                        len = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)])) + 1 + strlen(argString);
+                        std::string argString(*Nan::Utf8String(info[1]));
+                        const char *arg_c_str = argString.c_str();
+                        len = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)])) + 1 + argString.length();
                         EMS_ALLOC(textOffset, len, "EMSfaa(string+string): out of memory to store string", );
                         sprintf(EMSheapPtr(textOffset), "%s%s",
                                 EMSheapPtr(bufInt64[EMSdataData(idx)]),
-                                argString);
+                                arg_c_str);
                     }
                         break;
                     case EMS_TYPE_BOOLEAN:   // string + bool
@@ -256,12 +259,12 @@ void EMSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         oldTag.tags.type = EMS_TYPE_FLOAT;
                         break;
                     case EMS_TYPE_STRING: { // Undefined + string
-                        const char *argString = JS_ARG_TO_CSTR(info[1]);
-                        int64_t len = strlen(argString) + 1 + strlen("NaN");
+                        std::string argString(*Nan::Utf8String(info[1]));
+                        const char *arg_c_str = argString.c_str();
                         int64_t textOffset;
-                        // TODO: BUG Looks like another memory leak
-                        EMS_ALLOC(textOffset, len, "EMSfaa(undef+String): out of memory to store string", );
-                        sprintf(EMSheapPtr(textOffset), "NaN%s", argString);
+                        EMS_ALLOC(textOffset, argString.length() + 1 + 3, //  3 = strlen("NaN");
+                                  "EMSfaa(undef+String): out of memory to store string", );
+                        sprintf(EMSheapPtr(textOffset), "NaN%s", arg_c_str);
                         bufInt64[EMSdataData(idx)] = textOffset;
                         oldTag.tags.type = EMS_TYPE_UNDEFINED;
                     }
@@ -303,7 +306,7 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
         int32_t intMemVal = -1;
         double floatMemVal = 0.0;
         int64_t textOffset;
-        const char *stringOldVal;  // TODO: Undo this kludge to work around CLANG bug.  Decl. must appear above GOTO target
+        std::string oldString;
         char stringMemVal[MAX_KEY_LEN];
         int swapped = false;
 
@@ -384,8 +387,8 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
                     break;
                 case EMS_TYPE_JSON:
                 case EMS_TYPE_STRING:
-                    stringOldVal = JS_ARG_TO_CSTR(info[1]);
-                    if (strncmp(stringMemVal, stringOldVal, MAX_KEY_LEN) == 0) {
+                    oldString = std::string(*Nan::Utf8String(info[1]));
+                    if (strncmp(stringMemVal, oldString.c_str(), MAX_KEY_LEN) == 0) {
                         swapped = true;
                     }
                     break;
@@ -403,7 +406,7 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
             newTag.tags.type = newType;
             switch (newType) {
                 case EMS_TYPE_UNDEFINED:
-                    bufInt64[EMSdataData(idx)] = 0xdeadbeef;  // info[2]->ToBoolean()->Value();
+                    bufInt64[EMSdataData(idx)] = 0xdeadbeef;
                     break;
                 case EMS_TYPE_BOOLEAN:
                     bufInt64[EMSdataData(idx)] = (int64_t) info[2]->ToBoolean()->Value();
@@ -417,9 +420,9 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
                 case EMS_TYPE_JSON:
                 case EMS_TYPE_STRING: {
                     if (memType == EMS_TYPE_STRING) EMS_FREE(bufInt64[EMSdataData(idx)]);
-                    const char *stringNewVal = JS_ARG_TO_CSTR(info[2]);
-                    int len = strlen(stringNewVal);
-                    EMS_ALLOC(textOffset, len + 1, "EMScas(string): out of memory to store string", );
+                    std::string newString(*Nan::Utf8String(info[2]));
+                    const char *stringNewVal = newString.c_str();
+                    EMS_ALLOC(textOffset, newString.length() + 1, "EMScas(string): out of memory to store string", );
                     strcpy(EMSheapPtr(textOffset), stringNewVal);
                     bufInt64[EMSdataData(idx)] = textOffset;
                 }

@@ -50,7 +50,8 @@ void EMSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     start = info[0]->ToInteger()->Value();
     end = info[1]->ToInteger()->Value();
-    const char *schedule = JS_ARG_TO_CSTR(info[2]);
+    std::string sched_string(*Nan::Utf8String(info[2]));
+    const char *schedule = sched_string.c_str();
     minChunk = info[3]->ToInteger()->Value();
 
     bufInt32[EMS_LOOP_IDX] = start;
