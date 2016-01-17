@@ -4,8 +4,6 @@ os:
   - linux
   - osx
 
-dist: trusty
-
 node_js:
   - "4.1"
   - "4.0"
@@ -19,15 +17,15 @@ matrix:
   include:
     - os: linux
       env: CXX=g++-4.8
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.8
     - os: osx
-      env:
+      env: XYZ=foo
 
 sudo: true
-
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-4.8
 
