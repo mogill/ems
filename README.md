@@ -225,19 +225,14 @@ Download the source code.  Be sure to compile the native code with <code>node-gy
 ```sh
 git clone https://github.com/SyntheticSemantics/ems.git
 cd ems
-npm install bindings ffi nan
-node-gyp rebuild
+npm install
 ```
 
 To use this EMS development build to run the examples or tests,
-set up a local node_modules that is symbolically linked to the current build:
+set up a npm link to the current build:
 
 ```sh
-cd Examples/
-mkdir node_modules
-cd node_modules/
-ln -s ../../../ems/ ems
-cd ../
+sudo npm link ../ems
 ```
 
 
@@ -250,21 +245,24 @@ vary with Linux distribution.
 
 Run an example on 8 processes:
 ```sh
-cd Examples
-node concurrent_Q_and_TM.js 8
+npm run example
 ```
 
 Running all the tests with 16 processes:
 ```sh
-npm test
+npm run test
 ```
 
 Or manually via:
+```sh
+cd Examples
+sudo node concurrent_Q_and_TM.js 8
+```
 
 ```sh
 cd Tests
 rm -f EMSthreadStub.js   # Do not run the machine generated script used by EMS
-for test in `ls *js`; do  node $test 16; done
+for test in `ls *js`; do sudo node $test 16; done
 ```
 
 

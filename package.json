@@ -10,8 +10,8 @@
     }
   ],
   "scripts": {
-    "install": "node-gyp configure; node-gyp build; cd node_modules && ln -s ../ ems && cd ..",
-    "test": "cd Tests && rm -f EMSthreadStub.js && node_exe=`which node` && for test in `ls *js`; do sudo $node_exe $test 8; done"
+    "test": "cd Tests && rm -f EMSthreadStub.js && node_exe=`which node` && for test in `ls *js`; do sudo $node_exe $test 8; done",
+    "example": "sudo node ./Examples/concurrent_Q_and_TM.js 8"
   },
   "main": "index.js",
   "repository": {
