@@ -241,7 +241,7 @@ or install it only in a specific directory:
 cd Examples/
 mkdir -p node_modules
 cd node_modules/
-ln -s ../../../ems/ ems
+ln -s ../.. ems
 cd ../
 ```
 
