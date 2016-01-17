@@ -2,41 +2,26 @@ language: node_js
 
 os:
   - linux
-  - osx
+
+dist: trusty
+
+node_js:
+  - "4.1"
+  - "4.0"
+  - "0.12"
+  - "0.11"
+  - "0.10"
+  - "iojs"
 
 
-
-matrix:
-  node_js:
-    - "4.1"
-    - "4.0"
-    - "0.12"
-    - "0.11"
-    - "0.10"
-    - "iojs"
-
-  include:
-    - os: linux
-      env: CXX=g++-4.8
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.8
-    - os: osx
-      compiler: clang-3.6
-      env:
-        - CXX=clang-3.6
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-precise-3.6
-            - ubuntu-toolchain-r-test
-          packages:
-            - clang-3.6
-            - g++-4.8
+env:
+  - CXX=g++-4.8
 
 sudo: true
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
