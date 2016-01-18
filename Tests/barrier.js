@@ -62,10 +62,6 @@ assert(sums.read(ems.myID) === (nIters * 2),
 
 ems.barrier();
 
-
-ems.diag("done");
-process.exit(1);
-
 var shared = ems.new(process.argv[2]*2, 0, "/tmp/EMS_mynewFoo");
 
 shared.write(0, 0);
