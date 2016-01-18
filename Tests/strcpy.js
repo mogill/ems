@@ -18,7 +18,8 @@ ems.barrier();
 
 for (var len=2;  len < maxlen;  len = Math.floor(len * 1.5) ) {
     if (ems.myID === 0) { console.log("Len = " + len); }
-    var str = "x".repeat(len);
+    var str = "";
+    for (var idx = 0;  idx < len;  idx += 1) { str += "x"; }
     stats.writeEF('test_str', str);
     var readback = stats.readFE('test_str');
     assert(readback === str, 'Mismatched string.  Expected len ' + str.length + ' got ' + readback.length);
