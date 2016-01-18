@@ -123,6 +123,7 @@ ems.parForEach(0, file_list.length, function (fileNum) {
 ems.master(function() {
     console.log("Totals: ", stats.read('nWords'), " words parsed,  ",
         stats.read('nBytesRead'), "bytes read.");
+    console.log("Starting sort....");
 });
 
 //  Divide the array across all the processes, each process keeps track
@@ -130,6 +131,7 @@ ems.master(function() {
 var local_sort_len = Math.max(10, process.argv[2]);
 var biggest_counts = new Array(local_sort_len).fill({"key": 0, "count": 0});
 ems.parForEach(0, maxNKeys, function (keyN) {
+    if (keyN % (maxNKeys / 10) === 0) { ems.diag("Sorting key ID " + keyN); }
     var key = wordCounts.index2key(keyN);
     if (key) {
         //  Perform an insertion sort of the new key into the biggest_counts
