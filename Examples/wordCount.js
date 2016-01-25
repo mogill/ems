@@ -144,9 +144,7 @@ ems.parForEach(0, maxNKeys, function (keyN) {
         var newBiggest = {"key": key, "count": keyCount};
         if (idx < 0) {
             biggest_counts = [newBiggest].concat(biggest_counts.slice(0, biggest_counts.length - 1));
-        } else if (idx >= local_sort_len) {
-            // Not on the list
-        } else {
+        } else if (idx < local_sort_len) {
             var left = biggest_counts.slice(0, idx + 1);
             var right = biggest_counts.slice(idx + 1);
             biggest_counts = left.concat([newBiggest].concat(right)).slice(0, -1);

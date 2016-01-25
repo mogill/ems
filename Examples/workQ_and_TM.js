@@ -171,7 +171,7 @@ function generateTransactions() {
                 uniq.push(ops[opN]);
             }
         }
-        workQ.enqueue(JSON.stringify(uniq));
+        workQ.enqueue(uniq);
     });
 
     //  After all the work has been enqueued, add DONE semaphores to the
@@ -191,12 +191,11 @@ function performTransactions() {
     var readNops = 0;
 
     while (true) {
-        var str = workQ.dequeue();
-        if (str !== undefined) {
-            if (str === "DONE") {
+        var ops = workQ.dequeue();
+        if (ops !== undefined) {
+            if (ops === "DONE") {
                 break;
             } else {
-                var ops = JSON.parse(str);
                 for (var opN = 0; opN < ops.length; opN++) {
                     ops[opN][0] = tables[ops[opN][0]];
                 }

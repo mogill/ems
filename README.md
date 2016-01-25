@@ -1,16 +1,22 @@
-Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs: 
+OSX | Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs: 
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
-<BR>
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
 [![NPM](https://nodei.co/npm-dl/ems.png?months=1&height=3)](https://www.npmjs.com/package/ems)
 
-
 # Extended Memory Semantics (EMS)
+___EMS makes possible shared memory parallelism in Node.js (and soon Python)___.
 
-EMS makes possible shared memory parallelism in Node.js (and soon Python).
+Extended Memory Semantics (EMS) is a unified programming and execution model
+that addresses several challenges of parallel programming:
++ Allows any number or kind of processes to share objects
++ Manages synchronization and object coherency
++ Implements persistence to NVM and secondary storage
++ Provides dynamic load-balancing between processes
++ May substitute or complement other forms of parallelism
 
-### <em>EMS is targeted at problems too large for one core, but too small for a scalable cluster.</em>
+
+#### EMS is targeted at tasks too large for one core, but too small for a scalable cluster.
 
 A modern multicore server has 16-32 cores and over 200GB of memory,
 equivalent to an entire rack of systems from a few years ago.
@@ -18,83 +24,146 @@ As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
-
 ## Types of Concurrency
-<center>
-  <table >
+<table>
     <tr>
       <td>
-EMS complements an application's 
-asynchronous and distributed concurrency with transactional memory and
+EMS extends application capabilities to include transactional memory and
 other fine-grained synchronization capabilities.
 <br><br>
-EMS supports Fork-Join and Bulk Synchronous Parallel (BSP) execution models.
-Fork-Join execution begins with a single process that creates and ends
-parallel regions as needed, whereas BSP execution begins with each
-process entering the program at <code>main</code> and executing all
-the statements.
-<br><br>
-The same underlying EMS primitives (stacks, queues, transactions, 
-atomic read-modify-write operations, etc.)
-are used in both execution modes.
-            </td>
-            <td width="50%">
-              <center>
-  <center>
-  <img height="350px" style="margin-left: 80px;" src="http://synsem.com/EMS.js/typesOfParallelism.svg" type="image/svg+xml"  />
-  </center>
-              </center>
-            </td>
+EMS implements several different parallel execution models:
+
++ __Fork-Join Multiprocess__ execution begins with a single process that creates new processes
+  when needed, those processes then wait for each other to complete.
++ __Bulk Synchronous Parallel__ execution begins with each process starting the program at the
+  <code>main</code> entry point and executing all the statements
++ __User Defined__ parallelism may include ad-hoc processes and mixed-language applications
+		</td>
+        <td width="50%">
+        <center>
+		  <img height="350px" style="margin: 10px;" src="http://synsem.com/images/ems/typesOfParallelism.svg" type="image/svg+xml"  />
+        </center>
+        </td>
     </tr>
-  </table>
-</center>
+</table>
 
 
-## Examples
-### Word Counting Using Atomic Operations
-The typical Map-Reduce example of word counting, 
-iterating over documents in parallel and atomically incrementing the count of each
-word found.
+## Built-in Atomic Operations
+EMS operations may performed using any JSON data type, read-modify-write operations
+may use any combination of JSON data types, producing identical results to
+like operations on ordinary data.
 
+All basic and atomic read-modify-write operations are available
+in all concurrency modes, however collectives are not 
+currently available in user defined modes.
+
++ __Basic Operations__: 
+	Read, write, readers-writer lock, read full/empty, write empty/full
++ __Primitives__:
+	Stacks, queues, transactions
++ __Atomic Read-Modify-Write__:
+	Fetch-and-Add, Compare and Swap
++ __Collective Operations__:
+	All basic [OpenMP](https://en.wikipedia.org/wiki/OpenMP)
+    collective operations are implemented in EMS:
+    dynamic, block, guided, and static loop scheduling, 
+    barriers, master and single execution regions
+
+
+## Word Counting Using Atomic Operations
+Map-Reduce is often demonstrated using word counting because each document can
+be processed in parallel, and the results of each document's dictionary reduced
+into a single dictionary.  This EMS implementation also
+iterates over documents in parallel, but it maintains a single shared dictionary
+across processes, atomically incrementing the count of each word found.
+The final word counts are sorted and the most frequently appearing words
+are printed with their counts.
+
+### Forming the "Bag of Words" with Word Counts
 ```javascript
-var ems  = require('ems')(process.argv[2])  // Command line argument for # of processes to use
-
-//  Allocate the EMS shared memory holding the word count dictionary
-var maxNKeys    = 10000000
-var wordCounts   = ems.new( {
-    dimensions : [ maxNKeys ],  // Maximum # of different keys the array can store
-    heapSize   : maxNKeys * 10, // 10 bytes of storage per key, used to store dictionary word itself
-    useMap     : true,          // Use a key-index mapping, not integer indexes
-    setFEtags  : 'full',        // Initial full/empty state of array elements
-    dataFill   : 0              // Initial value of new keys
-} )
-
-//  Get the list of files to process
-var dir          = fs.readdirSync('/Data/Gutenberg/all/');
-var splitPattern = new RegExp(/[ \n,\.\\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\{\}\?\—]/)
-
-//  Parallel loop over documents
-ems.parForEach(0, dir.length,  function(docNum) {
-    var text = fs.readFileSync('/Data/Gutenberg/all/' + dir[docNum], 'utf8', "r")    
-    var words = text.replace(/[\n\r]/g,' ').toLowerCase().split(splitPattern)
-    words.forEach( function(word) {
-        wordCounts.faa(word, 1)  // Atomic Fetch-and-Add updates word count
-    } )
-} )
+var file_list = fs.readdirSync(doc_path);
+var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/);
+// Iterate over all the files in parallel
+ems.parForEach(0, file_list.length, function (fileNum) {
+    var text = fs.readFileSync(doc_path + file_list[fileNum], 'utf8', "r");
+    var words = text.replace(/[\n\r]/g, ' ').toLowerCase().split(splitPattern);
+    //  Sequentially iterate over all the words in one document
+    words.forEach(function (word) {
+        wordCounts.faa(word, 1); //  Atomically increment the count of times this word was seen
+    });
+});
 ```
 
-<P>
-  <img style="vertical-align:text-top;" height="250px" src="http://synsem.com/EMS.js/wordCount.png" />
-  Word Count of documents from Project Gutenberg in a variety of languages.  Average document was
-  about 250kb in length.
-  The performance of this program using an Amazon EC2 instance:<br>
-  <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 
-240 GB of local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
-  <br>
-</P>
+### Sorting the Word Count list by Frequency
+Parallel sorting of the word count is implemented as a multi-step process:
+
+1. The bag of words is processed by all the processess, each process
+   building an ordered list of the most common words it encounters
+2. The partial lists from all the processes are concatenated into a single list
+3. The list of the most common words seen is sorted and truncated
+
+```javascript
+var biggest_counts = new Array(local_sort_len).fill({"key": 0, "count": 0});
+ems.parForEach(0, maxNKeys, function (keyN) {
+    var key = wordCounts.index2key(keyN);
+    if (key) {
+        //  Perform an insertion sort of the new key into the biggest_counts
+        //  list, deleting the last (smallest) element to preserve length.
+        var keyCount = wordCounts.read(key);
+        var idx = local_sort_len - 1;
+        while (idx >= 0  &&  biggest_counts[idx].count < keyCount) { idx -= 1; }
+        var newBiggest = {"key": key, "count": keyCount};
+        if (idx < 0) {
+            biggest_counts = [newBiggest].concat(biggest_counts.slice(0, biggest_counts.length - 1));
+        } else if (idx < local_sort_len) {
+            var left = biggest_counts.slice(0, idx + 1);
+            var right = biggest_counts.slice(idx + 1);
+            biggest_counts = left.concat([newBiggest].concat(right)).slice(0, -1);
+        }
+    }
+});
+//  Concatenate all the partial (one per process) lists into one list
+stats.writeXF('most_frequent', []);  // Initialize the list
+ems.barrier();  // Wait for all procs to have finished initialization
+stats.writeEF('most_frequent', stats.readFE('most_frequent').concat(biggest_counts));
+ems.barrier();  // Wait for all procs to have finished merge
+ems.master(function() { //  Sort & print the list of words, only one process is needed
+    biggest_counts = stats.readFF('most_frequent');
+    biggest_counts.sort(function (a, b) { return b.count - a.count; });
+    //  Print only the first "local_sort_len" items -- assume the worst case
+    //  of all the largest counts are discovered by a single process
+    console.log("Most frequently appearing terms:");
+    for (var index = 0;  index < local_sort_len;  index += 1) {
+        console.log(index + ': ' + biggest_counts[index].key + "   " + biggest_counts[index].count);
+    }
+});
+```
+
+### Word Count Performance
+This section reports the results of running the Word Count example on
+documents from Project Gutenberg.
+2,981,712,952 words in several languages were parsed, totaling 12,664,852,220 bytes of text.
+
+<img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
+
+The performance of this program was measured using an Amazon EC2 instance:<br>
+`c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`
+The leveling of scaling aroung 16 cores despite the presence of ample work
+may be related to the use of non-dedicated hardware:
+Half of the 36 vCPUs are presumably HyperThreads or otherwise shared resoruce.
+AWS instances are also bandwidth limited to EBS storage, where our Gutenberg
+corpus is stored.
+
+### Bandwidth Benchmarking
+A benchmark similar to [STREAMS](https://www.cs.virginia.edu/stream/)
+gives us the maximum speed EMS double precision
+floating point operations can be performed on a
+`c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
+
+<img src="http://synsem.com/images/ems/streams.svg" type="image/svg+xml" height="300px">
 
 
-### Transactional Memory
+## Transactional Memory
 Using EMS Transactional Memory to atomically update
 two account balances while simultaneously preventing updates to the user's 
 customer records.
@@ -108,33 +177,86 @@ var accounts  = ems.new(...)                     // Allocate accounts
 var transaction= ems.tmStart( [ [customers, 'Bob Smith', true],  // Read-only:  Bob's customer record
                                 [customers, 'Sue Jones', true],  // Read-only:  Sue's customer record
                                 [accounts, 'Bob Smith'],         // Read-Write: Bob's account balance
-                                [accounts, 'Sue Jones'] ] )      // Read-Write: Sue's account balance
-                                
+                                [accounts, 'Sue Jones'] ] );     // Read-Write: Sue's account balance
 // Transfer the payment and update the balances
-var bobsBalance = accounts.read('Bob Smith')                // Read the balance of Bob's account
-accounts.write('Bob Smith', bobsBalance - paymentAmount)    // Deduct the payment and write the new balance back
-var suesBalance = accounts.read('Sue Jones')                // Read the balance of Sue's account
-accounts.write('Sue Jones', suesBalance + paymentAmount)    // Add the payment to Sue's account
-
+var bobsBalance = accounts.read('Bob Smith');               // Read the balance of Bob's account
+accounts.write('Bob Smith', bobsBalance - paymentAmount);   // Deduct the payment and write the new balance back
+var suesBalance = accounts.read('Sue Jones');               // Read the balance of Sue's account
+accounts.write('Sue Jones', suesBalance + paymentAmount);   // Add the payment to Sue's account
 // Commit the transaction or abort it if NSF
 if(balance > paymentAmount) {                               // Test for overdraft
-    ems.tmEnd(transaction, true)                            // Sufficient funds, commit transaction
+    ems.tmEnd(transaction, true);                           // Sufficient funds, commit transaction
 } else {
-    ems.tmEnd(transaction, false)                           // Not Sufficient Funds, roll back transaction
+    ems.tmEnd(transaction, false);                          // Not Sufficient Funds, roll back transaction
 }
 ```
 
-<P>
-  <img style="vertical-align:text-top;" height="250px" src="http://synsem.com/EMS.js/TMfromLoop.png" />
-  <img style="vertical-align:text-top;" height="250px" src="http://synsem.com/EMS.js/TMfromQ.png" />
-  <br>
-  The performance of this program using an Amazon EC2 instance:<br>
-  <code>cr1.8xlarge: 244 GiB memory, 88 EC2 Compute Units, 
-240 GB of local instance storage, 64-bit platform, 10 Gigabit Ethernet</code>
-  <br>
-</P>
+### Benchmarking of Transactions and Work Queues
+The micro-benchmarked raw transactional performance and 
+performance in the context of a workload are measured separately.
+The experiments were run using an Amazon EC2 instance:<br>
+<code>c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory</code>
+
+#### Experiment Design
+Six EMS arrays are created, each holding 1,000,000 numbers.  During the
+benchmark, 1,000,000 transactions are performed, each transaction involves 1-5
+randomly selected elements of randomly selected EMS arrays.
+The transaction reads all the elements and
+performs a read-modify-write operation involving at least 80% of the elements.
+After all the transactions are complete, the array elements are checked
+to confirm all the operations have occurred.
+
+The parallel process scheduling model used is *block dynamic* (the default),
+where each process is responsible for successively smaller blocks
+of iterations.  The execution model is *bulk synchronous parallel*, each
+processes enters the program at the same main entry point
+and executes all the statements in the program.
+`forEach` loops have their normal semantics of performing all iterations,
+`parForEach` loops are distributed across threads, each process executing
+only a portion of the total iteration space.
 
 
+<table width=100%>
+	<tr>
+    	<td>
+	    <center>
+			<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_no_q.svg" />
+            <br><b>Immediate Transactions:</b> Each process generates a transaction on integer data then immediately performs it.
+    	</center>
+	    </td>
+    	<td width="50%">
+	    <center>
+			<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_from_q.svg" />
+            <br><b>Transactions from a Queue:</b> One of the processes generates the individual transactions and appends
+				them to a work queue the other threads get work from.  
+                <B>Note:</b> As the number of processes increases, the process generating the transactions
+		    	and appending them to the work queue is starved out by processes performing transactions,
+                naturally maximizing the data access rate.
+	    </center>
+	    </td>
+    </tr>
+	<tr>
+    	<td>
+	    <center>
+			<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_no_q_str.svg"/>
+            <br><b>Immediate Transactions on Strings:</b> Each process generates a transaction appending to
+			a string, and then immediately performs the transaction.
+    	</center>
+	    </td>
+    	<td width="50%">
+        <center>
+        <b>Measurements</b>
+        </center><br>
+        <b>Elem. Ref'd:</b> Total number of elements read and/or written
+		<br>
+        <b>Table Updates:</b> Number of different EMS arrays (tables) written to
+		<br>
+        <b>Trans. Performed:</b> Number of transactions performed across all EMS arrays (tables)
+		<br>
+        <b>Trans. Enqueued:</b> Rate transactions are added to the work queue (only 1 generator thread in these experiments)
+	    </td>
+    </tr>
+</table>
 
 
 
@@ -143,17 +265,15 @@ if(balance > paymentAmount) {                               // Test for overdraf
 EMS internally stores tags that are used for synchronization of
 user data, allowing synchronization to happen independently of
 the number or kind of processes accessing the data.  The tags
-can be thought of as being in one of three states, <em>Empty,
-Full,</em> or <em>Read-Only</em>, and the EMS intrinsic functions
+can be thought of as being in one of three states, _Empty,
+Full,_ or _Read-Only_, and the EMS intrinsic functions
 enforce atomic access through automatic state transitions.
 
 The EMS array may be indexed directly using an integer, or using a key-index
 mapping from any primitive type.  When a map is used, the key and data
-  itself are updated atomically.
-  
+itself are updated atomically.
 
-  <center>
-  <table >
+<table >
     <tr>
       <td>
     <center>
@@ -179,16 +299,7 @@ mapping from any primitive type.  When a map is used, the key and data
       </center>
     </td>
     </tr>
-  </table>
-  </center>  
-
-### Less is More
-Because all systems are already multicore, 
-parallel programs require no additional equipment, system permissions,
-or application services, making it easy to get started.
-The reduced complexity of
-lightweight threads communicating through shared memory
-is reflected in a rapid code-debug cycle for ad-hoc application development.
+</table>
 
 
 ## More Technical Information
@@ -206,6 +317,13 @@ For a more complete description of the principles of operation,
 
 ## Installation
 
+Because all systems are already multicore, 
+parallel programs require no additional equipment, system permissions,
+or application services, making it easy to get started.
+The reduced complexity of
+lightweight threads communicating through shared memory
+is reflected in a rapid code-debug cycle for ad-hoc application development.
+
 ### Install via npm
 EMS is available as a NPM Package.  EMS itself has no external dependencies,
 but does require compiling native C++ functions using <code>node-gyp</code>,
@@ -220,7 +338,7 @@ npm install ems
 ```
 
 ### Install via GitHub
-Download the source code.  Be sure to compile the native code with <code>node-gyp</code>.
+Download the source code, then compile the native code:
 
 ```sh
 git clone https://github.com/SyntheticSemantics/ems.git
@@ -235,32 +353,17 @@ set up a global npm link to the current build:
 sudo npm link ../ems
 ```
 
-or install it only in a specific directory:
-
-```sh
-cd Examples/
-mkdir -p node_modules
-cd node_modules/
-ln -s ../.. ems
-cd ../
-```
-
 
 ### Run Some Examples
-On a Mac and some Linux distributions EMS will "just work", but
+On a Mac and most Linux distributions EMS will "just work", but
 some Linux distributions restrict access to shared memory.  The
 quick workaround is to run jobs as root, a long-term solution will
 vary with Linux distribution.
 
 
-Run an example on 8 processes:
+Run the work queue driven transaction processing example on 8 processes:
 ```sh
 npm run example
-```
-
-Running all the tests with 8 processes:
-```sh
-npm run test      # Alternatively: npm test
 ```
 
 Or manually via:
@@ -269,25 +372,30 @@ cd Examples
 node concurrent_Q_and_TM.js 8
 ```
 
+Running all the tests with 8 processes:
+```sh
+npm run test      # Alternatively: npm test
+```
+
 ```sh
 cd Tests
 rm -f EMSthreadStub.js   # Do not run the machine generated script used by EMS
 for test in `ls *js`; do node $test 8; done
 ```
 
-
-
 ## Platforms Supported
-As of 2016-01-03, Mac/Darwin and Linux are supported.  A windows port pull request is welcomed!
+As of 2016-01-24, Mac/Darwin and Linux are supported.  A windows port pull request is welcomed!
 
 
 ## Roadmap
-EMS 1.0 uses Nan for long-term Node.js support, and in the near
-future a Python API will also be available.
+EMS 1.0 uses Nan for long-term Node.js support, we continue to
+develop on OSX and Linux via Vagrant.  Version 1.x is feature-frozen,
+but support continues as we back-patch fixes and featues on our way to version 2.0.
 
-EMS 2.0 is in the planning phase, the new API will more tightly integrate with the
-language making atomic operations on persistent memory
-more transparent, and simplifying integration with legacy applications.
+EMS 2.0 is in the planning phase, the new API will more tightly integrate with 
+ES6, Python, and other dynamically typed languages languages,
+making atomic operations on persistent memory more transparent.
+These new language features also simplify integration with legacy applications.
 The types of persistent and Non-Volatile Memory (NVM) EMS was designed
 for, such as [pmem.io](http://pmem.io/),
 will be introduced into servers in the next few years, we hope to 
@@ -305,7 +413,7 @@ BSD, other commercial and open source licenses are available.
 
 ## About
 Jace A Mogill specializes in FPGA/Software Co-Design, recently
-embedding an ASIC emulation into Python and also 
+embedding a FPGA emulation of an ASIC into Python and also 
 designing an hardware accelerator for Python, Javascript, and other languages.
 He has over 20 years experience optimizing software for distributed, multi-core, and 
 hybrid computer architectures.
