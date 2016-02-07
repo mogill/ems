@@ -358,35 +358,51 @@ emsArrayDescriptor = {
     <table class="apiBlock" >
       <tr class="apiFunc" style="vertical-align:text-top;">
 	<td class="Label" style="padding-bottom: 20px; vertical-align:text-top;"> CLASS METHOD </td>
-	<td colspan=3 class="Proto"> ems.parallel( func ) </td>
+	<td colspan=3 class="Proto"> ems.parallel( [args, ...] func ) </td>
       </tr>
 
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3> When using fork-join execution, the master
-	  thread creates a parallel region by executing <code>func</code> 
-	  once by each thread.  A join is performed when all the functions have
-	  returned.  No results are returned, any side effects are stored
-	  in shared EMS memory.  Global Node.js thread state persists from
-	  region to region.
+		thread enters a parallel region by executing <code>func</code>
+		once from each process.  The master process first starts all the
+		other processes running the function asynchronously, then runs the function
+		itself synchronously.  No join or implied synchronization between processes is performed,
+		callers must perform a <code>barrier</code> to ensure all processes
+		have completed their work.
+		The results of the function are discarded.  Global variables on each node
+		are persistent between regions.
 	</td>
       </tr>
-      <tr class="apiArgs">
-	<td class="Label"> ARGUMENTS </td>
-	<td class="argName"> func </td>
-	<td class="argType"> &lt;Function&gt;</td>
-	<td class="argDesc" > Function execute on every thread.  Takes no arguments and returns no
-	  value because all communication occurs via shared EMS memory.
-	</td>
-      </tr>
-    </table>  
+		<tr class="apiArgs">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName"> args </td>
+			<td class="argType"> &lt;Any&gt;</td>
+			<td class="argDesc"> Zero or more arguments to be passed to the function.
+			</td>
+		</tr>
+		<tr class="apiArgs">
+			<td class="Label"> </td>
+			<td class="argName"> func </td>
+			<td class="argType"> &lt;Function&gt;</td>
+			<td class="argDesc" > Function to be executed once on every thread.  The
+				optional arguments are used when calling the function.  Return value is ignored.
+			</td>
+		</tr>
+    </table>
     <br>
     <table class="apiBlock" >
-      <tr class="Examples" style="vertical-align:text-top;">
-	<td class="Label"> EXAMPLES </td>
-	<td class="Example">ems.parallel( doWork )</td>
-	<td class="Desc"> The function <code>doWork</code> is executed by every thread.  </td>
-      </tr>
+		<tr class="Examples" style="vertical-align:text-top;">
+			<td class="Label"> EXAMPLES </td>
+			<td class="Example">ems.parallel( doWork )</td>
+			<td class="Desc"> The function <code>doWork</code> is executed by every thread.  </td>
+		</tr>
+		<tr class="Examples" style="vertical-align:text-top;">
+			<td class="Label"> </td>
+			<td class="Example">ems.parallel( foo, "Smith", 123, doWork )</td>
+			<td class="Desc"> The function call <code>doWork(foo, "Smith", 123)</code>
+				is performed once by each process.</td>
+		</tr>
     </table>
 
 

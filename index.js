@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.1.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -71,11 +71,14 @@ function EMSdiag(text) {
 //==================================================================
 //  Co-Begin a parallel region, executing the function 'func'
 //
-function EMSparallel(func) {
+function EMSparallel() {
+    var user_args = (arguments.length === 1?[arguments[0]]:Array.apply(null, arguments));
+    var func = user_args.pop();  // Remove the function
+    // Loop over remote processes, starting each of them
     this.tasks.forEach(function (task, taskN) {
-        task.send({'args': taskN + 1, 'func': func.toString()});
+        task.send({'taskN': taskN + 1, 'args': user_args, 'func': func.toString()});
     });
-    func(0);
+    func.apply(null, user_args);  // Invoke on master process
 }
 
 
@@ -594,7 +597,14 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     //  The master thread has completed initialization, other threads may now
     //  safely execute.
     if (targetScript !== undefined && retObj.myID == 0) {
-        var emsThreadStub = '// Automatically Generated EMS Slave Thread Script\n// Edit index.js: emsThreadStub\n ems = require(\'ems\')(parseInt(process.argv[2]));   process.on(\'message\', function(msg) { eval(\'msg.func = \' + msg.func); msg.func(msg.args); } );';
+        var emsThreadStub =
+            '// Automatically Generated EMS Slave Thread Script\n' +
+            '// To edit this file, see index.js:emsThreadStub()\n' +
+            'var ems = require("ems")(parseInt(process.argv[2]));\n' +
+            'process.on("message", function(msg) {\n' +
+            '    eval("func = " + msg.func);\n' +
+            '    func.apply(null, msg.args);\n' +
+            '} );\n';
         fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag: 'w+'});
         for (var taskN = 1; taskN < nThreads; taskN++) {
             retObj.tasks.push(
