@@ -55,7 +55,7 @@ ems.parallel(global_str, 'two', 'three',
     function (a, b, c, taskN) {
         assert(typeof taskN === "undefined", "Mysterious fourth argument:" + taskN);
         assert(typeof local_str === "undefined", "The local string did not stay local");
-        ems.diag("START   global_str=" + global_str + " a =" + a + "  b=" + b + "  c=" + c);
+        ems.diag("global_str=" + global_str + " a =" + a + "  b=" + b + "  c=" + c);
         assert(a === global_str, "A argument not in closure?  (" + JSON.stringify(a) + ")  global_str=" + global_str);
         global_str += "Updated by process " + ems.myID;
     }
@@ -76,7 +76,6 @@ ems.parallel('xxx', 'yyy', 'zzz', -321,
 
 ems.diag("==============================================This message happens once: This is the barrier");
 ems.parallel(function () {
-    ems.diag("Barrier time!");
     check_glob_str();
     ems.barrier();
 });

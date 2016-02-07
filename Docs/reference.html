@@ -366,12 +366,11 @@ emsArrayDescriptor = {
 	<td class="Desc" colspan=3> When using fork-join execution, the master
 		thread enters a parallel region by executing <code>func</code>
 		once from each process.  The master process first starts all the
-		other processes running the function asynchronously, then runs the function
-		itself synchronously.  No join or implied synchronization between processes is performed,
-		callers must perform a <code>barrier</code> to ensure all processes
-		have completed their work.
+		other processes running the function asynchronously, then executes the function
+		itself synchronously.  All processes join (perform a <code>barrier</code>)
+		after completion of the work function.
 		The results of the function are discarded.  Global variables on each node
-		are persistent between regions.
+		are persistent between parallel regions.
 	</td>
       </tr>
 		<tr class="apiArgs">

@@ -77,8 +77,10 @@ function EMSparallel() {
     // Loop over remote processes, starting each of them
     this.tasks.forEach(function (task, taskN) {
         task.send({'taskN': taskN + 1, 'args': user_args, 'func': func.toString()});
+        task.send({'taskN': taskN + 1, 'args': [], 'func': "function() { ems.barrier(); }"});
     });
     func.apply(null, user_args);  // Invoke on master process
+    EMSglobal.barrier();  // Wait for all processes to finish
 }
 
 

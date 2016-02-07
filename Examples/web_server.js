@@ -54,7 +54,7 @@ ems.parallel(function () {
 // to shared memory
 function handleRequest(request, response) {
     // If this URL has not yet been requested, the data is undefined
-    // and must be initialized to
+    // and must be initialized.
     // Alternatively, may be initialized not here but at ems.new()
     shared_data.cas(request.url, undefined, "Response preamble.");
 
@@ -63,12 +63,12 @@ function handleRequest(request, response) {
     ems.parallel(request.url, function (url) {
         // Do some work
         shared_data.faa(url, "  Work from process " + ems.myID + ".");
-        ems.barrier();  // Wait for all processes to finish region before any may exit
     });
 
     // Return the results, leaving them in shared memory for later updates
     response.end('Shared results from(' + request.url + "):" + shared_data.readFF(request.url));
 }
+
 
 // Create the Web server
 http.createServer(handleRequest).listen(port, function () {
