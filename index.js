@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -72,6 +72,7 @@ function EMSdiag(text) {
 //  Co-Begin a parallel region, executing the function 'func'
 //
 function EMSparallel() {
+    EMSglobal.inParallelContext = true;
     var user_args = (arguments.length === 1?[arguments[0]]:Array.apply(null, arguments));
     var func = user_args.pop();  // Remove the function
     // Loop over remote processes, starting each of them
@@ -80,7 +81,8 @@ function EMSparallel() {
         task.send({'taskN': taskN + 1, 'args': [], 'func': "function() { ems.barrier(); }"});
     });
     func.apply(null, user_args);  // Invoke on master process
-    EMSglobal.barrier();  // Wait for all processes to finish
+    EMSbarrier();  // Wait for all processes to finish
+    EMSglobal.inParallelContext = false;
 }
 
 
@@ -124,7 +126,7 @@ function EMSparForEach(start,         // First iteration's index
             //  If the barrier is present at the loop end, this may replaced
             //  with first-thread initialization.
             var extents;
-            EMSglobal.barrier();
+            EMSbarrier();
             do {
                 extents = EMSglobal.loopChunk();
                 for (idx = extents.start; idx < extents.end; idx++) {
@@ -135,7 +137,7 @@ function EMSparForEach(start,         // First iteration's index
 
     // Do not proceed until all iterations have completed
     // TODO: OpenMP offers NOWAIT to skip this barrier
-    EMSglobal.barrier();
+    EMSbarrier();
 }
 
 
@@ -381,7 +383,7 @@ function EMSsingle(func) {
     if (this.singleTask()) {
         retObj = func();
     }
-    EMSglobal.barrier();
+    EMSbarrier();
     return retObj
 }
 
@@ -389,7 +391,9 @@ function EMSsingle(func) {
 //==================================================================
 //  Wrapper around the EMS global barrier
 function EMSbarrier() {
-    EMSglobal.barrier();
+    if (EMSglobal.inParallelContext) {
+        EMS.barrier();
+    }
 }
 
 
@@ -408,6 +412,17 @@ function EMSisDefined(x) {
     return ( (typeof x !== 'undefined') )
 }
 
+
+//==================================================================
+//  Release all resources associated with an EMS memory region
+//
+function EMSdestroy(unlink_file) {
+    EMSbarrier();
+    if (EMSglobal.myID == 0) {
+        this.data.destroy(unlink_file);
+    }
+    EMSbarrier();
+}
 
 //==================================================================
 //  Creating a new EMS memory region
@@ -499,7 +514,6 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     }
     if (typeof emsDescriptor.dimensions === 'undefined') {
         emsDescriptor.dimensions = [emsDescriptor.nElements];
-        console.log('dimensions', emsDescriptor.dimensions);
     }
 
     // Name the region if a name wasn't given
@@ -507,11 +521,19 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.filename = '/EMS_region_' + this.newRegionN;
         emsDescriptor.persist = false;
     }
+
+    if (emsDescriptor.useExisting) {
+        try { fs.openSync(emsDescriptor.filename, 'r'); }
+        catch (err) {
+            console.log("ERROR: EMS file " + emsDescriptor.filename + " should already exist, but does not.");
+            return;
+        }
+    }
     //  init() is first called from thread 0 to perform one-thread
     //  only operations (ie: unlinking an old file, opening a new
     //  file).  After thread 0 has completed initialization, other
     //  threads can safely share the EMS array.
-    if (!emsDescriptor.useExisting && this.myID != 0)    EMSglobal.barrier();
+    if (!emsDescriptor.useExisting && this.myID != 0)    EMSbarrier();
     emsDescriptor.data = this.init(emsDescriptor.nElements, emsDescriptor.heapSize,
         emsDescriptor.useMap, emsDescriptor.filename,
         emsDescriptor.persist, emsDescriptor.useExisting,
@@ -520,7 +542,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         (emsDescriptor.setFEtags == 'full'),
         this.myID, this.pinThreads, this.nThreads,
         emsDescriptor.mlock);
-    if (!emsDescriptor.useExisting && this.myID == 0)  EMSglobal.barrier();
+    if (!emsDescriptor.useExisting && this.myID == 0)  EMSbarrier();
 
     emsDescriptor.regionN = this.newRegionN;
     emsDescriptor.push = EMSpush;
@@ -541,8 +563,9 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     emsDescriptor.cas = EMScas;
     emsDescriptor.sync = EMSsync;
     emsDescriptor.index2key = EMSindex2key;
+    emsDescriptor.destroy = EMSdestroy;
     this.newRegionN++;
-    EMSglobal.barrier();
+    EMSbarrier();
     return emsDescriptor;
 }
 
@@ -584,15 +607,19 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
         case 'bsp':
             targetScript = process.argv[1];
             threadingType = 'bsp';
+            retObj.inParallelContext = true;
             break;
         case 'fj':
             targetScript = './EMSthreadStub';
+            retObj.inParallelContext = false;
             break;
         case 'user':
             targetScript = undefined;
+            retObj.inParallelContext = false;
             break;
         default:
             console.log("EMS: Unknown threading model type:", threadingType);
+            retObj.inParallelContext = false;
             break;
     }
 
@@ -629,7 +656,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     retObj.single = EMSsingle;
     retObj.diag = EMSdiag;
     retObj.parallel = EMSparallel;
-    retObj.barrier = EMS.barrier;
+    retObj.barrier = EMSbarrier;
     retObj.parForEach = EMSparForEach;
     retObj.tmStart = EMStmStart;
     retObj.tmEnd = EMStmEnd;

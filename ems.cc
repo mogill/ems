@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.7   |
+ |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -35,7 +35,9 @@
 //  Resolve External Declarations
 //
 int EMSmyID;   // EMS Thread ID
-char *emsBufs[EMS_MAX_N_BUFS] = { NULL };
+char   *emsBufs[EMS_MAX_N_BUFS] = { NULL };
+size_t  emsBufLengths[EMS_MAX_N_BUFS] = { 0 };
+char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN] = { { 0 } };
 
 //==================================================================
 //  Wrappers around memory allocator to ensure mutual exclusion
@@ -792,6 +794,29 @@ void EMSsetTag(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 //==================================================================
+//  Release all the resources associated with an EMS array
+void EMSdestroy(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+    THIS_INFO_TO_EMSBUF(info, "mmapID");
+    if(munmap(emsBuf, emsBufLengths[mmapID]) != 0) {
+        Nan::ThrowError("EMSdestroy: Unable to unmap memory");
+        return;
+    }
+
+    if (info[0]->ToBoolean()->Value()) {
+        if (unlink(emsBufFilenames[mmapID]) != 0) {
+            Nan::ThrowError("EMSdestroy: Unable to unlink file");
+            return;
+        }
+    }
+
+    emsBufFilenames[mmapID][0] = 0;
+    emsBufLengths[mmapID] = 0;
+    emsBufs[mmapID] = NULL;
+}
+
+
+
+//==================================================================
 //  Return the key of a mapped object given the EMS index
 void EMSindex2key(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     THIS_INFO_TO_EMSBUF(info, "mmapID");
@@ -974,7 +999,7 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     size_t bottomOfMap = -1;
     size_t bottomOfMalloc = -1;
     size_t bottomOfHeap = -1;
-    int64_t filesize;
+    size_t filesize;
 
     bottomOfMap = EMSdataTagWord(nElements) + EMSwordSize;  // Map begins 1 word AFTER the last tag word of data
     if (useMap) {
@@ -993,7 +1018,7 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     if (ftruncate(fd, filesize) != 0) {
         if (errno != EINVAL) {
             fprintf(stderr, "EMS: Error during initialization, unable to set memory size to %" PRIu64 " bytes\n",
-                    filesize);
+                    (uint64_t) filesize);
             Nan::ThrowError("Unable to resize domain memory");
             return;
         }
@@ -1121,6 +1146,8 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     while(emsBufN < EMS_MAX_N_BUFS  &&  emsBufs[emsBufN] != NULL)  emsBufN++;
     if(emsBufN < EMS_MAX_N_BUFS) {
         emsBufs[emsBufN] = emsBuf;
+        emsBufLengths[emsBufN] = filesize;
+        strncpy(emsBufFilenames[emsBufN], filename, MAX_FNAME_LEN);
     } else {
         fprintf(stderr, "ERROR: Unable to allocate a buffer ID/index\n");
     }
@@ -1153,6 +1180,7 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     ADD_FUNC_TO_V8_OBJ(obj, "dequeue", EMSdequeue);
     ADD_FUNC_TO_V8_OBJ(obj, "sync", EMSsync);
     ADD_FUNC_TO_V8_OBJ(obj, "index2key", EMSindex2key);
+    ADD_FUNC_TO_V8_OBJ(obj, "destroy", EMSdestroy);
     info.GetReturnValue().Set(obj);
 
     return;

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.1.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -30,8 +30,8 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-var ems = require('ems')(parseInt(process.argv[2]), true, 'fj');
-
+var nProcs = parseInt(process.argv[2]);
+var ems = require('ems')(parseInt(nProcs), true, 'fj');
 var assert;
 var global_str;
 var check_glob_str;
@@ -81,5 +81,82 @@ ems.parallel(function () {
 });
 
 ems.diag("==============================================This message happens once: This is the end.");
+
+ems.barrier();  // Barrier outside of parallel region is a No-Op
+ems.diag("Barrier outside of parallel region is working.");
+
+var ephem_filename;
+
+function attach(useExisting) {
+    ephem_filename = '/tmp/EMS_shared_web_data.ems';
+    var options = {
+        dimensions: [1000],
+        heapSize: [100000],
+        useMap: true,
+        filename: ephem_filename
+    };
+    if (useExisting) {
+        options.useExisting = true;
+    } else {
+        options.useExisting = false;
+        options.doDataFill = true;
+        options.dataFill = undefined;
+        options.setFEtags = 'full';
+    }
+    ephemeral_data = ems.new(options);
+}
+
+
+function check_for_file(fname) {
+    ems.diag("Checking fname=" + fname);
+    var fs = require('fs');
+    try { fs.openSync(fname, 'r'); }
+    catch (err) { return false; }
+    return true;
+}
+
+
+var ephemeral_data;
+ems.parallel(false, attach);
+ems.diag("Did parallel attach");
+var readval = ephemeral_data.readFE('foo');
+assert(readval === undefined, "readval=" + readval);
+ephemeral_data.writeEF('foo', 0);
+assert(ephemeral_data.readFF('foo') === 0);
+ems.parallel(function() {
+    ephemeral_data.faa('foo', 1);
+});
+assert(ephemeral_data.readFF('foo') === nProcs, "Did not sum?   foo=" + typeof ephemeral_data.readFF('foo'));
+
+ems.parallel(nProcs, function(nProcs) {
+    assert(ephemeral_data.readFF('foo') === nProcs);
+});
+
+ephemeral_data.destroy(false);
+assert(check_for_file(ephem_filename) === true);
+
+ems.parallel(true, attach);
+ems.diag("Did second parallel attach");
+var readval = ephemeral_data.readFE('foo');
+assert(readval === nProcs, "readval=" + readval);
+ephemeral_data.writeEF('foo', 'some data');
+ems.parallel(function() {
+    ephemeral_data.destroy(false);
+});
+assert(check_for_file(ephem_filename) === true);
+ems.diag("Completed second attach, preserved data");
+
+ems.parallel(false, attach);
+ems.diag("Did third parallel attach");
+var readval = ephemeral_data.readFE('foo');
+assert(readval === undefined, "readval=" + readval);
+ephemeral_data.writeEF('foo', 'some data');
+ems.parallel(function() {
+    ephemeral_data.destroy(true);
+});
+
+assert(check_for_file(ephem_filename) === false);
+
+
 
 process.exit(0);

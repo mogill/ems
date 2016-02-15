@@ -508,9 +508,9 @@ emsArrayDescriptor = {
       <tr class="apiSynopsis"  style="vertical-align:text-top;">
 	<td class="Label"> SYNOPSIS </td>
 	<td class="Desc" colspan=3> All the threads must reach the same
-	  barrier before proceeding.  Placing a barrier inside a conditional
-	  statement that does not execute the same case on every thread may
-	  deadlock execution.
+		barrier before proceeding.  Failure to call a barrier from every
+		process will result in deadlock.
+		If called outside a parallel region, a barrier has no effect.
 	</td>
       </tr>
     </table>  
@@ -1272,6 +1272,42 @@ emsArray.enqueue() : &lt; Number &gt;</td>
 			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
 			<td class="Type">&lt; Any &gt;</td>
 			<td class="Desc">The key used to map the value which hashed to this index.</td>
+		</tr>
+	</table>
+
+
+	<!-- ----------------------------------------------------------------------------- -->
+
+	<h5> Freeing EMS Arrays </h5>
+	<table class="apiBlock" >
+		<tr class="apiFunc" style="vertical-align:text-top;">
+			<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+			<td colspan=3 class="Proto">emsArray.destroy( remove_file )</td>
+		</tr>
+
+		<tr class="apiSynopsis"  style="vertical-align:text-top;">
+			<td class="Label"> SYNOPSIS </td>
+			<td class="Desc" colspan=3>
+				Release the persistent and non-persistent resources associated with an EMS array,
+				alternatively persisting the data if <code>remove_file</code> is <code>false</code>.
+				Implies a barrier.
+				<br><br> </td>
+		</tr>
+
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName">remove_file</td>
+			<td class="argType"> &lt;Boolean&gt;</td>
+			<td class="argDesc" >
+				If true, remove the file, else allow the EMS file to persist.</td>
+		</tr>
+	</table>
+	<br>
+	<table class="apiBlock" >
+		<tr class="apiRetVal" style="vertical-align:text-top;">
+			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+			<td class="Type"></td>
+			<td class="Desc">None.</td>
 		</tr>
 	</table>
 

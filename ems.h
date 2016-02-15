@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.7   |
+ |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -123,11 +123,12 @@
 //  Pointers to mmapped EMS buffers
 //
 #define EMS_MAX_N_BUFS 4096
-extern char *emsBufs[EMS_MAX_N_BUFS];
-
 #define MAX_NUMBER2STR_LEN 40   // Maximum number of characters in a %d or %f format
 #define MAX_FNAME_LEN 256
 #define MAX_KEY_LEN 256
+extern char   *emsBufs[EMS_MAX_N_BUFS];
+extern size_t  emsBufLengths[EMS_MAX_N_BUFS];
+extern char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN];
 
 //  Maximum number of slots to check due to conflicts
 #define  MAX_OPEN_HASH_STEPS 200
