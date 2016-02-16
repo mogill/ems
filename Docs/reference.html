@@ -1,6 +1,6 @@
 <html>
     <!-----------------------------------------------------------------------------+
-     |  Extended Memory Semantics (EMS)                            Version 0.1.8   |
+     |  Extended Memory Semantics (EMS)                            Version 0.2.0   |
      |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
      +-----------------------------------------------------------------------------+
      |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -734,8 +734,11 @@ emsArrayDescriptor = {
 	  <dl>
 	    <dt> <code>read</code> </dt>
 	    <dd> Immediately and unconditionally returns the
-	      stored value.  This form of read is not safe on mutable data
-	      outside  of a transaction.
+			stored value, ignoring the tag state.
+			<TODO> Reading uninitialized mapped indexes
+				will return <code>undefined</code> regardless of the default value
+				that would be returned with <code>read__, cas, faa</code>.
+			</TODO>
 	    </dd>
 	    <dt> <code>readFE</code> </dt>
 	    <dd> Blocks until the data element is full, then
