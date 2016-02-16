@@ -65,8 +65,8 @@ function handleRequest(request, response) {
     var key = Object.keys(parsed_request.query)[0];
     var value = parsed_request.query[key];
     if (value === '') { value = undefined; }
-
-    console.log("Request #" + requestN + ", slave process " + myID + ": key(" + key + ")  val(" + value + ")");
+    var data;
+    var opname;
 
     if (!key) {
         response.end("ERROR: No key specified in request");
@@ -74,47 +74,43 @@ function handleRequest(request, response) {
     }
 
     if (parsed_request.pathname.indexOf("/readFE") >= 0) {
-        var data = persistent_data.readFE(key);
-        console.log("do_readFE(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.readFE(key);
+        opname = 'readFE';
     } else if (parsed_request.pathname.indexOf("/readFF") >= 0) {
-        var data = persistent_data.readFF(key);
-        console.log("do_readFF(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.readFF(key);
+        opname = 'readFF';
     } else if (parsed_request.pathname.indexOf("/read") >= 0) {
-        var data = persistent_data.read(key);
-        console.log("do_read(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.read(key);
+        opname = 'read';
     } else if (parsed_request.pathname.indexOf("/writeXE") >= 0) {
-        var data = persistent_data.writeXE(key, value);
-        console.log("do_writeXE(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.writeXE(key, value);
+        opname = 'writeXE';
     } else if (parsed_request.pathname.indexOf("/writeXF") >= 0) {
-        var data = persistent_data.writeXF(key, value);
-        console.log("do_writeXF(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.writeXF(key, value);
+        opname = 'writeXF';
     } else if (parsed_request.pathname.indexOf("/writeEF") >= 0) {
-        var data = persistent_data.writeEF(key, value);
-        console.log("do_writeEF(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.writeEF(key, value);
+        opname = 'writeEF';
+    } else if (parsed_request.pathname.indexOf("/write") >= 0) {
+        data = persistent_data.write(key, value);
+        opname = 'write';
     } else if (parsed_request.pathname.indexOf("/faa") >= 0) {
-        var data = persistent_data.faa(key, value);
-        console.log("do_faa(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.faa(key, value);
+        opname = 'faa';
     } else if (parsed_request.pathname.indexOf("/cas") >= 0) {
+        opname = 'cas';
         var old_new_vals = value.split(',');
         if (old_new_vals[0] === '') { old_new_vals[0] = undefined; }
         if (old_new_vals[1] === '') { old_new_vals[1] = undefined; }
-        var data = persistent_data.cas(key, old_new_vals[0], old_new_vals[1]);
-        console.log("do_cas(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
-    } else if (parsed_request.pathname.indexOf("/write") >= 0) {
-        var data = persistent_data.write(key, value);
-        console.log("do_write(" + key + ")=|" + data + "|");
-        response.end(JSON.stringify(data));
+        data = persistent_data.cas(key, old_new_vals[0], old_new_vals[1]);
     } else {
-        response.end("ERROR: No EMS command specified.");
+        data = "ERROR: No EMS command specified.";
     }
+
+    var datastr = JSON.stringify(data);
+    console.log("Request #" + requestN + ", slave process " + myID + ":   Op(" +
+        opname + ")  key(" + key + ")  val(" + value + ")   data=" + datastr);
+    response.end(datastr);
 }
 
 
@@ -129,8 +125,10 @@ if (cluster.isMaster) {
     // Seed the GUID generator with a unique starting value
     shared_counters.writeXF('GUID', Math.floor(Math.random() * 10000000));
 
-    // All the one-time initialization is complete, now start slave processes
-    for (var i = 0; i < 8; i++) {
+    // All the one-time initialization is complete, now start slave processes.
+    // The number of processes is the limit of the number of pending requests
+    // before deadlock occurs.
+    for (var procnum = 0; procnum < 8; procnum++) {
         cluster.fork();
     }
 

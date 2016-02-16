@@ -48,7 +48,7 @@ void EMSpush(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     }
 
     // Wait until the stack top is full, then mark it busy while updating the stack
-    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     int32_t idx = bufInt64[EMScbData(EMS_ARR_STACKTOP)];  // TODO BUG: Truncating the full 64b range
     bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
     if (idx == bufInt64[EMScbData(EMS_ARR_NELEM)] - 1) {
@@ -57,7 +57,7 @@ void EMSpush(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     }
 
     //  Wait until the target memory at the top of the stack is empty
-    newTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_TAG_EMPTY, EMS_TAG_BUSY, EMS_TAG_ANY);
+    newTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], NULL, EMS_TAG_EMPTY, EMS_TAG_BUSY, EMS_TAG_ANY);
     newTag.tags.rw = 0;
     newTag.tags.type = EMSv8toEMStype(info[0], stringIsJSON);
     newTag.tags.fe = EMS_TAG_FULL;
@@ -114,7 +114,7 @@ void EMSpop(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     EMStag_t dataTag;
 
     //  Wait until the stack pointer is full and mark it empty while pop is performed
-    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     bufInt64[EMScbData(EMS_ARR_STACKTOP)]--;
     int64_t idx = bufInt64[EMScbData(EMS_ARR_STACKTOP)];
     if (idx < 0) {
@@ -127,7 +127,7 @@ void EMSpop(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
     //  Wait until the data pointed to by the stack pointer is full, then mark it
     //  busy while it is copied, and set it to EMPTY when finished
-    dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     switch (dataTag.tags.type) {
         case EMS_TYPE_BOOLEAN: {
             bool retBool = bufInt64[EMSdataData(idx)];
@@ -199,7 +199,7 @@ void EMSenqueue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     }
 
     //  Wait until the heap top is full, and mark it busy while data is enqueued
-    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     int32_t idx = bufInt64[EMScbData(EMS_ARR_STACKTOP)] % bufInt64[EMScbData(EMS_ARR_NELEM)];  // TODO: BUG  This could be trucated
     bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
     if (bufInt64[EMScbData(EMS_ARR_STACKTOP)] - bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] >
@@ -260,7 +260,7 @@ void EMSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     EMStag_t dataTag;
 
     //  Wait for bottom of heap pointer to be full, and mark it busy while data is dequeued
-    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     int64_t idx = bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] % bufInt64[EMScbData(EMS_ARR_NELEM)];
     //  If Queue is empty, return undefined
     if (bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] >= bufInt64[EMScbData(EMS_ARR_STACKTOP)]) {
@@ -273,7 +273,7 @@ void EMSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]++;
     //  Wait for the data pointed to by the bottom of the heap to be full,
     //  then mark busy while copying it, and finally set it to empty when done
-    dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     dataTag.tags.fe = EMS_TAG_EMPTY;
     switch (dataTag.tags.type) {
         case EMS_TYPE_BOOLEAN: {

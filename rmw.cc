@@ -51,8 +51,14 @@ void EMSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
             return;
         }
 
-        // Wait until the data is FULL, mark it busy while FAA is performed
-        oldTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+        {
+            volatile EMStag_t *maptag;
+            if (EMSisMapped) { maptag = &bufTags[EMSmapTag(idx)]; }
+            else             { maptag = NULL; }
+            // Wait until the data is FULL, mark it busy while FAA is performed
+            oldTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], maptag,
+                                             EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+        }
         oldTag.tags.fe = EMS_TAG_FULL;  // When written back, mark FULL
         int argType = EMSv8toEMStype(info[1], false);  // Never add to an object, treat as string
         switch (oldTag.tags.type) {
@@ -329,7 +335,12 @@ void EMScas(const Nan::FunctionCallbackInfo<v8::Value> &info) {
             memType = EMS_TYPE_UNDEFINED;
         } else {
             //  Wait for the memory to be Full, then mark it Busy while CAS works
-            EMStransitionFEtag(&bufTags[EMSdataTag(idx)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+            volatile EMStag_t *maptag;
+            if (EMSisMapped) { maptag = &bufTags[EMSmapTag(idx)]; }
+            else             { maptag = NULL; }
+            // Wait until the data is FULL, mark it busy while FAA is performed
+            EMStransitionFEtag(&bufTags[EMSdataTag(idx)], maptag,
+                               EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
             memType = bufTags[EMSdataTag(idx)].tags.type;
         }
 

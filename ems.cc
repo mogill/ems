@@ -113,7 +113,8 @@ static void EMSarrFinalize(char *data, void *hint) {
 //  Wait until the FE tag is a particular state, then transition it to the new state
 //  Return new tag state
 //
-unsigned char EMStransitionFEtag(EMStag_t volatile *tag, unsigned char oldFE, unsigned char newFE, unsigned char oldType) {
+unsigned char EMStransitionFEtag(EMStag_t volatile *tag, EMStag_t volatile *mapTag,
+                                 unsigned char oldFE, unsigned char newFE, unsigned char oldType) {
     RESET_NAP_TIME;
     EMStag_t oldTag;           //  Desired tag value to start of the transition
     EMStag_t newTag;           //  Tag value at the end of the transition
@@ -130,7 +131,10 @@ unsigned char EMStransitionFEtag(EMStag_t volatile *tag, unsigned char oldFE, un
         if (memTag.byte == oldTag.byte) {
             return (newTag.byte);
         } else {
+            // Allow preemptive map acquisition while waiting for data
+            if (mapTag) { mapTag->tags.fe = EMS_TAG_FULL; }
             NANOSLEEP;
+            if (mapTag) { EMStransitionFEtag(mapTag, NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY); }
             memTag.byte = tag->byte;  // Re-load tag in case was transitioned by another thread
         }
     }
@@ -213,7 +217,7 @@ int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         while (nTries < MAX_OPEN_HASH_STEPS && !matched && !notPresent) {
             idx = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
             // Wait until the map key is FULL, mark it busy while map lookup is performed
-            mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+            mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
             if (mapTags.tags.type == idxType) {
                 switch (idxType) {
                     case EMS_TYPE_BOOLEAN:
@@ -335,7 +339,7 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         while (nTries < MAX_OPEN_HASH_STEPS && !matched) {
             idx = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
             // Wait until the map key is FULL, mark it busy while map lookup is performed
-            mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+            mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
             mapTags.tags.fe = EMS_TAG_FULL;  // When written back, mark FULL
             if (mapTags.tags.type == idxType || mapTags.tags.type == EMS_TYPE_UNDEFINED) {
                 switch (mapTags.tags.type) {
@@ -545,8 +549,13 @@ void EMSreadUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info, // Index
         } else {
             // Tag was already marked BUSY, must retry
         }
-        // CAS failed or memory wasn't in initial state, wait and retry
+        // CAS failed or memory wasn't in initial state, wait and retry.
+        // Permit preemptive map acquisition while waiting for data.
+        if (EMSisMapped) { bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL; }
         NANOSLEEP;
+        if (EMSisMapped) {
+            EMStransitionFEtag(&bufTags[EMSmapTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+        }
     }
 }
 
@@ -669,7 +678,11 @@ void EMSwriteUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info,  // Ind
 
     // Wait for the memory to be in the initial F/E state and transition to Busy
     if (initialFE != EMS_TAG_ANY) {
-        EMStransitionFEtag(&bufTags[EMSdataTag(idx)], initialFE, EMS_TAG_BUSY, EMS_TAG_ANY);
+        volatile EMStag_t *maptag;
+        if (EMSisMapped) { maptag = &bufTags[EMSmapTag(idx)]; }
+        else             { maptag = NULL; }
+        EMStransitionFEtag(&bufTags[EMSdataTag(idx)], maptag,
+                           initialFE, EMS_TAG_BUSY, EMS_TAG_ANY);
     }
 
     while (true) {

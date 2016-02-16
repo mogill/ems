@@ -245,7 +245,7 @@ void EMSenqueue(const Nan::FunctionCallbackInfo<v8::Value> &info);
 void EMSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info);
 void EMSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void EMSloopChunk(const Nan::FunctionCallbackInfo<v8::Value>& info);
-unsigned char EMStransitionFEtag(EMStag_t volatile *tag, unsigned char oldFE, unsigned char newFE, unsigned char oldType);
+unsigned char EMStransitionFEtag(EMStag_t volatile *tag, EMStag_t volatile *mapTag, unsigned char oldFE, unsigned char newFE, unsigned char oldType);
 int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
 int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void EMSindex2key(const Nan::FunctionCallbackInfo<v8::Value> &info);
