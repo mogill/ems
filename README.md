@@ -4,6 +4,8 @@ OSX | Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs:
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
 [![NPM](https://nodei.co/npm-dl/ems.png?months=1&height=3)](https://www.npmjs.com/package/ems)
 
+### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) [EMS Website](http://syntheticsemantics.com/EMS.js)
+
 # Extended Memory Semantics (EMS)
 ___EMS makes possible shared memory parallelism in Node.js (and soon Python)___.
 
@@ -59,10 +61,13 @@ currently available in user defined modes.
 
 + __Basic Operations__: 
 	Read, write, readers-writer lock, read full/empty, write empty/full
+
 + __Primitives__:
 	Stacks, queues, transactions
+
 + __Atomic Read-Modify-Write__:
 	Fetch-and-Add, Compare and Swap
+
 + __Collective Operations__:
 	All basic [OpenMP](https://en.wikipedia.org/wiki/OpenMP)
     collective operations are implemented in EMS:
