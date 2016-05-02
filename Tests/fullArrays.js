@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -64,3 +64,10 @@ ems.parForEach(0, arrLen, function (idx) {
 ems.parForEach(0, arrLen, function (idx) {
     assert(map.readFF(idx) === 10 * idx, "map readback was wrong");
 });
+
+try {
+    map.writeEF('fizz', -9);
+    assert(false, "Writing one more element should have failed");
+} catch (asd) {
+    console.log("Correctly detected overflow of mapped EMS array");
+}

@@ -81,11 +81,11 @@ function timerStop(timer, nOps, label, myID) {
 //  tables to perform transactions on.
 //
 function initializeSharedData() {
-    arrLen = 1000000;
-    heapSize = 100000;
-    nTransactions = 1000000;
-    nTables = 6;
-    maxNops = 5;
+    arrLen = 1000000;         // Maximum number of elements the EMS array can contain
+    heapSize = 100000;        // Amount of persistent memory to reserve for transactions
+    nTransactions = 1000000;  // Number of transactions to perform in the experiment
+    nTables = 6;              // Number of EMS arrays to perform transactions across
+    maxNops = 5;              // Maximum number of EMS arrays to update during a transaction
     tables = [];
     totalNops = ems.new(2);
     checkNops = ems.new(1);
@@ -123,10 +123,9 @@ function initializeSharedData() {
 //  Create 'nTransactions' many transactions, each having a random number (up
 //  to maxNops) randomly chosen values, some of which are read-only.
 //  Because tables and elements are chosen at random, it is necessary to
-//  remove duplicate elements in a single transaction,
+//  remove duplicate elements in a single transaction, to prevent deadlocks.
 //
-//   Transactions are pushed onto a shared queue
-//
+//  Transactions are pushed onto a shared queue
 function generateTransactions() {
     //---------------------------------------------------------------------------
     //  Generate a random integer within a range (inclusive) from 'low' to 'high'

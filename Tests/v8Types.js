@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -34,18 +34,8 @@ var ems = require('ems')(parseInt(process.argv[2]), false);
 var assert = require('assert');
 var arrLen = 10000;
 var a = ems.new(arrLen, arrLen * 400);
-/*
-var map = ems.new({
-    dimensions: [arrLen],
-    heapSize: arrLen * 10,
-    useMap: true,
-    useExisting: false,
-    setFEtags: 'full',
-    dataFill: 0
-})
-*/
 
-var arrayElem = ['abcd', true, 1234.567, {x: 'xxx', y: 'yyyyy'}, 987, null, [10, 11, 12, 13]];
+var arrayElem = ['abcd', true, 1234.567, false, {x: 'xxx', y: 'yyyyy'}, 987, null, [10, 11, 12, 13]];
 var objElem = {a: 1, b: 321.653, c: 'asdasd'};
 
 var objMap = ems.new({
@@ -75,13 +65,11 @@ if (ems.myID == 0) {
     assert(objMap.readFE('any obj').c === objElem.c);
 
     arrayElem.forEach(function (elem, idx) {
-        // console.log(arrObj.readFF(123)[idx], elem, typeof elem);
-        if (typeof elem == 'object') {
-            if (typeof arrObj.readFF(123)[idx] != 'object') {
-                console.log('Object in array is no longer an object?');
-            }
+        if (typeof elem === 'object') {
+            assert(typeof arrObj.readFF(123)[idx] === 'object');
         } else {
-            assert(arrObj.readFF(123)[idx] === elem);
+            var readback = arrObj.readFF(123);
+            assert(readback[idx] === elem);
         }
     });
     arrObj.readFE(123);
@@ -120,7 +108,6 @@ if (ems.myID == 0) {
 
 ems.barrier();
 
-
 //----------------------------------------
 
 var newIdx, newVal, oldVal, js;
@@ -142,24 +129,24 @@ for (var old = 0; old < data.length; old++) {
     }
 }
 
+
 ems.barrier();
 var id = (ems.myID + 1) % ems.nThreads;
 for (var memIdx = 0; memIdx < data.length; memIdx++) {
     for (var oldIdx = 0; oldIdx < data.length; oldIdx++) {
         for (newIdx = 0; newIdx < data.length; newIdx++) {
             a.writeXF(id, data[memIdx]);
-            oldVal = a.cas(id, data[oldIdx], data[newIdx]);
+            var memVal = a.cas(id, data[oldIdx], data[newIdx]);
             newVal = a.readFF(id);
-
             js = data[memIdx];
             if (js === data[oldIdx]) {
                 js = data[newIdx];
             }
 
             assert(js === newVal,
-                'CAS: newval=' + newVal + '  dataold=' + data[oldIdx] +
-                '  datanew=' + data[newIdx] + '   old=' + oldVal +
-                '  readback=' + newVal + '   js=' + js);
+                'CAS: intial=' + data[memIdx] + "    memval=" + memVal +
+                "   readback=" + newVal + "  oldVal=" + data[oldIdx] +
+                '   expected=' + data[newIdx] + '    JS:' + js);
         }
     }
 }

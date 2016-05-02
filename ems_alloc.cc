@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -31,8 +31,6 @@
  +-----------------------------------------------------------------------------*/
 #include "ems_alloc.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include <assert.h>
 #include <string.h>
 
@@ -63,7 +61,7 @@ void emsMem_delete(struct emsMem *self) {
 
 //-----------------------------------------------------------------------------+
 //  Pow-2 utility functions for 64 bit
-uint64_t emsNextPow2(uint64_t x) {
+size_t emsNextPow2(uint64_t x) {
     if (__builtin_popcountl(x) == 1) return x;
     // Yes, that will overflow on 63 bit numbers.  Hopefully someone will rewrite this by then.
     //  fprintf(stderr, ">>>lz=%d   shift=%d\n", __builtin_clzl(x), (64 - __builtin_clzl(x)));
@@ -72,7 +70,7 @@ uint64_t emsNextPow2(uint64_t x) {
 
 
 static inline int64_t EMS_index_offset(int64_t index, int32_t level, int64_t max_level) {
-    return ((index + 1) - (1UL << level)) << (max_level - level);
+    return ((index + 1) - (1L << level)) << (max_level - level);
 }
 
 
@@ -93,11 +91,11 @@ static void EMS_mark_parent(struct emsMem *self, int64_t index) {
 
 //-----------------------------------------------------------------------------+
 //  Allocate new memory from the EMS heap
-int64_t emsMem_alloc(struct emsMem *self, int64_t s) {
-    int64_t size;
-    size = emsNextPow2(((s + (EMS_MEM_BLOCKSZ - 1)) / EMS_MEM_BLOCKSZ));
+int64_t emsMem_alloc(struct emsMem *self, int64_t bytesRequested) {
+    size_t size;
+    size = emsNextPow2((bytesRequested + (EMS_MEM_BLOCKSZ - 1)) / EMS_MEM_BLOCKSZ);
     if (size == 0) size++;
-    int64_t length = 1UL << self->level;
+    size_t length = 1L << self->level;
 
     //  fprintf(stderr, "emsMem_alloc: self=%x   size=%ld   s=%ld    len=%ld\n", self, size, s, length);
     if (size > length) return -1;
@@ -212,10 +210,10 @@ int64_t emsMem_size(struct emsMem *self, int64_t offset) {
         switch (self->tree[index]) {
             case BUDDY_USED:
                 assert(offset == left);
-                return length;
+                return length * EMS_MEM_BLOCKSZ;
             case BUDDY_UNUSED:
                 assert(0);
-                return length;
+                return length * EMS_MEM_BLOCKSZ;
             default:
                 length /= 2;
                 if (offset < left + length) {

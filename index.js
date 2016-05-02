@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -37,10 +37,8 @@ var EMSglobal;
 
 //==================================================================
 //  Convert the different possible index types into a linear EMS index
-//
 function EMSidx(indexes,    // Index given by application
-                EMSarray    // EMS array being indexed
-) {
+                EMSarray) { // EMS array being indexed
     var idx = 0;
     if (indexes instanceof Array) {       //  Is a Multidimension array: [x,y,z]
         indexes.forEach(function (x, i) {
@@ -62,7 +60,6 @@ function EMSidx(indexes,    // Index given by application
 //==================================================================
 //  Print a message to the console with a prefix indicating which
 //  thread is printing
-//
 function EMSdiag(text) {
     console.log("EMStask " + this.myID + ": " + text);
 }
@@ -70,7 +67,6 @@ function EMSdiag(text) {
 
 //==================================================================
 //  Co-Begin a parallel region, executing the function 'func'
-//
 function EMSparallel() {
     EMSglobal.inParallelContext = true;
     var user_args = (arguments.length === 1?[arguments[0]]:Array.apply(null, arguments));
@@ -89,13 +85,11 @@ function EMSparallel() {
 //==================================================================
 //  Execute the local iterations of a decomposed loop with
 //  the specified scheduling.
-//
 function EMSparForEach(start,         // First iteration's index
                        end,           // Final iteration's index
                        loopBody,      // Function to execute each iteration
                        scheduleType,  // Load balancing technique
-                       minChunk      // Smallest block of iterations
-) {
+                       minChunk) {    // Smallest block of iterations
     var sched = scheduleType;
     var idx;
     if (typeof sched === 'undefined') {
@@ -113,7 +107,7 @@ function EMSparForEach(start,         // First iteration's index
             if (e > end) {
                 e = end;
             }
-            for (idx = s; idx < e; idx++) {
+            for (idx = s; idx < e; idx += 1) {
                 loopBody(idx);
             }
             break;
@@ -146,7 +140,6 @@ function EMSparForEach(start,         // First iteration's index
 //  Input is an array containing EMS elements to transition from
 //  Full to Empty:
 //     arr = [ [ emsArr0, idx0 ], [ emsArr1, idx1, true ], [ emsArr2, idx2 ] ]
-//
 function EMStmStart(emsElems) {
     var MAX_ELEM_PER_REGION = 10000000000000;
 
@@ -182,24 +175,16 @@ function EMStmStart(emsElems) {
 //  Commit or abort a transaction
 //  The tmHandle contains the result from tmStart:
 //    [ [ EMSarray, index, isReadOnly, origValue ], ... ]
-//
-function EMStmEnd(tmHandle,  //  The returned value from tmStart
-                  doCommit   //  Commit or Abort the transaction
-) {
+function EMStmEnd(tmHandle,   //  The returned value from tmStart
+                  doCommit) { //  Commit or Abort the transaction
     tmHandle.forEach(function (emsElem) {
-        if (doCommit) {
-            if (emsElem[2] === true) {
-                // Is a read-only element
-                emsElem[0].releaseRW(emsElem[1]);
-            } else {
-                // Is read-write, keep current value and mark Full
-                emsElem[0].setTag(emsElem[1], 'full');
-            }
+        if (emsElem[2] === true) {
+            // Is a read-only element
+            emsElem[0].releaseRW(emsElem[1]);
         } else {
-            // Abort the transaction
-            if (emsElem[2] === true) {
-                // Is read-only element
-                emsElem[0].releaseRW(emsElem[1]);
+            if (doCommit) {
+                // Is read-write, keep current value and mark Full
+                emsElem[0].setTag(emsElem[1], true);
             } else {
                 // Write back the original value and mark full
                 emsElem[0].writeEF(emsElem[1], emsElem[3]);
@@ -229,8 +214,12 @@ function EMSsync(emsArr) {
 
 //==================================================================
 //  Synchronize memory with storage
-//
 function EMSindex2key(index) {
+    if(typeof(index) != 'number') {
+        console.log('EMSindex2key: Index (' + index + ') is not an integer');
+        return undefined;
+    }
+
     return this.data.index2key(index);
 }
 
@@ -268,29 +257,29 @@ function EMSenqueue(value) {
 //  into EMS linear addresses 
 //  Apparently it is illegal to pass a native function as an argument
 function EMSwrite(indexes, value) {
-    var nativeIndex = EMSidx(indexes, this);
+    var linearIndex = EMSidx(indexes, this);
     if (typeof value == 'object') {
-        this.data.write(nativeIndex, JSON.stringify(value), true);
+        this.data.write(linearIndex, JSON.stringify(value), true);  
     } else {
-        this.data.write(nativeIndex, value);
+        this.data.write(linearIndex, value);
     }
 }
 
 function EMSwriteEF(indexes, value) {
-    var nativeIndex = EMSidx(indexes, this);
+    var linearIndex = EMSidx(indexes, this);
     if (typeof value == 'object') {
-        this.data.writeEF(nativeIndex, JSON.stringify(value), true);
+        this.data.writeEF(linearIndex, JSON.stringify(value), true);
     } else {
-        this.data.writeEF(nativeIndex, value);
+        this.data.writeEF(linearIndex, value);
     }
 }
 
 function EMSwriteXF(indexes, value) {
-    var nativeIndex = EMSidx(indexes, this);
+    var linearIndex = EMSidx(indexes, this);
     if (typeof value == 'object') {
-        this.data.writeXF(nativeIndex, JSON.stringify(value), true);
+        this.data.writeXF(linearIndex, JSON.stringify(value), true);
     } else {
-        this.data.writeXF(nativeIndex, value);
+        this.data.writeXF(linearIndex, value);
     }
 }
 
@@ -320,32 +309,28 @@ function EMSreadRW(indexes) {
 }
 
 function EMSreleaseRW(indexes) {
-    return EMSreturnData(this.data.releaseRW(EMSidx(indexes, this)))
+    return this.data.releaseRW(EMSidx(indexes, this))
 }
 
 function EMSsetTag(indexes, fe) {
-    return this.data.setTag(EMSidx(indexes, this), (fe == 'full'))
+    return this.data.setTag(EMSidx(indexes, this), fe)
 }
 
 function EMSfaa(indexes, val) {
     if (typeof val == 'object') {
         console.log("EMSfaa: Cannot add an object to something");
-        return (val);
+        return undefined;
     } else {
-        return this.data.faa(EMSidx(indexes, this), val);  // Can only return JSON primitives
+        return this.data.faa(EMSidx(indexes, this), val);  // No returnData(), FAA can only return JSON primitives
     }
 }
 
 function EMScas(indexes, oldVal, newVal) {
-    if (typeof oldVal == 'object') {
-        console.log("EMScas: Cannot compare objects, only JSON primitives");
-        return (undefined);
+    if (typeof newVal == 'object') {
+        console.log("EMScas: ERROR -- objects are not a valid new type");
+        return undefined;
     } else {
-        if (typeof newVal == 'object') {
-            return this.data.cas(EMSidx(indexes, this), oldVal, JSON.stringify(newVal), true);
-        } else {
-            return this.data.cas(EMSidx(indexes, this), oldVal, newVal);
-        }
+        return this.data.cas(EMSidx(indexes, this), oldVal, newVal);
     }
 }
 
@@ -377,7 +362,6 @@ function EMSmaster(func) {
 //  runtime cannot tell apart.  Barriers are phased, so a barrier
 //  is used to prevent any thread from entering the next single-
 //  execution region before this one is complete
-//
 function EMSsingle(func) {
     var retObj;
     if (this.singleTask()) {
@@ -399,7 +383,6 @@ function EMSbarrier() {
 
 //==================================================================
 //  Utility functions for determining types
-//
 function EMSisArray(a) {
     return ( (typeof a.pop !== 'undefined') )
 }
@@ -415,7 +398,6 @@ function EMSisDefined(x) {
 
 //==================================================================
 //  Release all resources associated with an EMS memory region
-//
 function EMSdestroy(unlink_file) {
     EMSbarrier();
     if (EMSglobal.myID == 0) {
@@ -426,7 +408,6 @@ function EMSdestroy(unlink_file) {
 
 //==================================================================
 //  Creating a new EMS memory region
-//
 function EMSnew(arg0,        //  Maximum number of elements the EMS region can hold
                 heapSize,    //  #bytes of memory reserved for strings/arrays/objs/maps/etc
                 filename     //  Optional filename for persistent EMS memory
@@ -529,19 +510,21 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
             return;
         }
     }
+
     //  init() is first called from thread 0 to perform one-thread
     //  only operations (ie: unlinking an old file, opening a new
     //  file).  After thread 0 has completed initialization, other
     //  threads can safely share the EMS array.
     if (!emsDescriptor.useExisting && this.myID != 0)    EMSbarrier();
-    emsDescriptor.data = this.init(emsDescriptor.nElements, emsDescriptor.heapSize,
-        emsDescriptor.useMap, emsDescriptor.filename,
-        emsDescriptor.persist, emsDescriptor.useExisting,
-        emsDescriptor.doDataFill, emsDescriptor.dataFill, fillIsJSON,
-        (typeof emsDescriptor.setFEtags !== 'undefined'),
-        (emsDescriptor.setFEtags == 'full'),
-        this.myID, this.pinThreads, this.nThreads,
-        emsDescriptor.mlock);
+    emsDescriptor.data = this.init(emsDescriptor.nElements, emsDescriptor.heapSize,  // 0, 1
+        emsDescriptor.useMap, emsDescriptor.filename,  // 2, 3
+        emsDescriptor.persist, emsDescriptor.useExisting,  // 4, 5
+        emsDescriptor.doDataFill, fillIsJSON, // 6, 7
+        emsDescriptor.dataFill,  // 8
+        (typeof emsDescriptor.setFEtags !== 'undefined'),  // 9
+        (emsDescriptor.setFEtags == 'full'),  // 10
+        this.myID, this.pinThreads, this.nThreads,  // 11, 12, 13
+        emsDescriptor.mlock);  // 14
     if (!emsDescriptor.useExisting && this.myID == 0)  EMSbarrier();
 
     emsDescriptor.regionN = this.newRegionN;
@@ -598,8 +581,12 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var domainName = '/EMS_MainDomain';
     if (filename) domainName = filename;
     //  All arguments are defined -- now do the EMS initialization
-    retObj.data = EMS.initialize(0, 0, false, domainName, false, false,
-        false, 0, false, false, 0, retObj.myID, pinThreads, nThreads);
+    retObj.data = EMS.initialize(0, 0, // 0= # elements, 1=Heap Size
+        false, // 2 = useMap 
+        domainName, false, false,  // 3=name, 4=persist, 5=useExisting
+        false, false, undefined,  //  6=doDataFill, 7=fillIsJSON, 8=fillValue
+        false, false,  retObj.myID, //  9=doSetFEtags, 10=setFEtags, 11=EMS myID
+        pinThreads, nThreads, 99);  // 12=pinThread,  13=nThreads, 14=pctMlock
 
     var targetScript;
     switch (threadingType) {

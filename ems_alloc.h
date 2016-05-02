@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -48,10 +48,10 @@ struct emsMem {
 
 struct emsMem *emsMem_new(int level);
 void           emsMem_delete(struct emsMem *);
-int64_t        emsMem_alloc(struct emsMem *, int64_t size);
+int64_t        emsMem_alloc(struct emsMem *, int64_t bytesRequested);
 void           emsMem_free(struct emsMem *, int64_t offset);
 int64_t        emsMem_size(struct emsMem *, int64_t offset);
 void           emsMem_dump(struct emsMem *);
-uint64_t       emsNextPow2( uint64_t x );
+size_t         emsNextPow2(uint64_t x);
 
 #endif

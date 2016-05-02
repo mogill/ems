@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -37,14 +37,6 @@ var nTransactions = 400000;
 var nTables = 6;
 var maxNops = 5;
 var tables = [];
-/*
-var workQ = ems.new({
-    dimensions: [nTransactions + ems.nThreads],
-    heapSize: nTransactions * 20,
-    useExisting: false,
-    setFEtags: 'empty'
-});
-*/
 var totalNops = ems.new(2);
 var checkNops = ems.new(1);
 
@@ -54,9 +46,7 @@ for (var tableN = 0; tableN < nTables; tableN++) {
     tables[tableN] = ems.new({
         dimensions: [arrLen],
         heapSize: 0,
-        // useMap: true,
         useExisting: false,
-        // persist: true,
         filename: '/tmp/EMS_tm' + tableN,
         dataFill: 0,
         doDataFill: true,
@@ -76,15 +66,12 @@ ems.barrier();
 function makeWork() {
     var ops = [];
     var nOps = util.randomInRange(1, maxNops);
-    // var indexes = []
     for (var opN = 0; opN < nOps; opN++) {
         var tableN = util.randomInRange(0, nTables);
         var idx = util.randomInRange(0, arrLen);
         if (idx % 10 < 5 || opN % 3 > 0) {
             ops.push([tableN, idx, true]);
-        }
-//	if(opN % 3 > 0)  { ops.push([tableN, idx, true]) }
-        else {
+        } else {
             ops.push([tableN, idx]);
         }
     }
@@ -139,7 +126,6 @@ ems.parForEach(0, nTransactions, function (iter) {
 });
 totalNops.faa(0, rwNops);
 totalNops.faa(1, readNops);
-
 ems.barrier();
 util.timerStop(startTime, nTransactions, " transactions performed  ", ems.myID);
 util.timerStop(startTime, totalNops.readFF(0), " table updates           ", ems.myID);

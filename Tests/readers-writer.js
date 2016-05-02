@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -84,9 +84,9 @@ ems.barrier();
         assert(nLocks <= 7, "Too many locks: " + nLocks);
         nLocks = count.faa(elem, -1) - 1;
         assert(nLocks >= 0, "Too few locks: " + nLocks);
-        for (var i = 0; i < 100; i++) {
+        for (var i = 0; i < nLocks * 100; i += 1) {
             nLocks += Math.sin(i);
         }
-        nReaders = objMap.releaseRW(elem);
+        objMap.releaseRW(elem);
     }
 });

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -32,7 +32,7 @@
 'use strict';
 var nProcs = parseInt(process.argv[2]);
 var ems = require('ems')(parseInt(nProcs), true, 'fj');
-var assert;
+var assert = require('assert');
 var global_str;
 var check_glob_str;
 

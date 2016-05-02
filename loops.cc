@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -35,44 +35,31 @@
 //==================================================================
 //  Parallel Loop -- context initialization
 //
-void EMSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSloopInit(int mmapID, int32_t start, int32_t end, int32_t minChunk, int schedule_mode) {
+    void *emsBuf = emsBufs[mmapID];
     int32_t *bufInt32 = (int32_t *) emsBuf;
-
-    int start = 0;
-    int end = 0;
-    int minChunk = 0;
-
-    if (info.Length() != 4) {
-        Nan::ThrowError("EMSloopInit: Wrong number of args");
-        return;
-    }
-
-    start = info[0]->ToInteger()->Value();
-    end = info[1]->ToInteger()->Value();
-    std::string sched_string(*Nan::Utf8String(info[2]));
-    const char *schedule = sched_string.c_str();
-    minChunk = info[3]->ToInteger()->Value();
+    bool success = true;
 
     bufInt32[EMS_LOOP_IDX] = start;
     bufInt32[EMS_LOOP_START] = start;
     bufInt32[EMS_LOOP_END] = end;
-    if (strcmp(schedule, "guided") == 0) {
-        bufInt32[EMS_LOOP_CHUNKSZ] = ((end - start) / 2) / bufInt32[EMS_CB_NTHREADS];
-        if (bufInt32[EMS_LOOP_CHUNKSZ] < minChunk) bufInt32[EMS_LOOP_CHUNKSZ] = minChunk;
-        bufInt32[EMS_LOOP_MINCHUNK] = minChunk;
-        bufInt32[EMS_LOOP_SCHED] = EMS_SCHED_GUIDED;
-    } else {
-        if (strcmp(schedule, "dynamic") == 0) {
+    switch (schedule_mode) {
+        case EMS_SCHED_GUIDED:
+            bufInt32[EMS_LOOP_CHUNKSZ] = ((end - start) / 2) / bufInt32[EMS_CB_NTHREADS];
+            if (bufInt32[EMS_LOOP_CHUNKSZ] < minChunk) bufInt32[EMS_LOOP_CHUNKSZ] = minChunk;
+            bufInt32[EMS_LOOP_MINCHUNK] = minChunk;
+            bufInt32[EMS_LOOP_SCHED] = EMS_SCHED_GUIDED;
+            break;
+        case EMS_SCHED_DYNAMIC:
             bufInt32[EMS_LOOP_CHUNKSZ] = 1;
             bufInt32[EMS_LOOP_MINCHUNK] = 1;
             bufInt32[EMS_LOOP_SCHED] = EMS_SCHED_DYNAMIC;
-        } else {
-            Nan::ThrowError("EMSloopInit: Unknown schedule type");
-            return;
-        }
+            break;
+        default:
+            fprintf(stderr, "NodeJSloopInit: Unknown schedule modes\n");
+            success = false;
     }
-    info.GetReturnValue().Set(Nan::New(EMS_LOOP_IDX));
+    return success;
 }
 
 
@@ -81,27 +68,23 @@ void EMSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 //  an idle thread
 //  JQM TODO BUG  -- convert to 64 bit using  fe tags
 //
-void EMSloopChunk(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSloopChunk(int mmapID, int32_t *start, int32_t *end) {
+    void *emsBuf = emsBufs[mmapID];
     int32_t *bufInt32 = (int32_t *) emsBuf;
 
     int chunkSize = bufInt32[EMS_LOOP_CHUNKSZ];
-    int start = __sync_fetch_and_add(&(bufInt32[EMS_LOOP_IDX]), chunkSize);
-    int end = start + chunkSize;
+    *start = __sync_fetch_and_add(&(bufInt32[EMS_LOOP_IDX]), chunkSize);
+    *end = *start + chunkSize;
 
-    if (start > bufInt32[EMS_LOOP_END]) end = 0;
-    if (end > bufInt32[EMS_LOOP_END]) end = bufInt32[EMS_LOOP_END];
-
-    v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-    retObj->Set(Nan::New("start").ToLocalChecked(), Nan::New(start));
-    retObj->Set(Nan::New("end").ToLocalChecked(), Nan::New(end));
-
+    if (*start > bufInt32[EMS_LOOP_END]) *end = 0;
+    if (*end > bufInt32[EMS_LOOP_END]) *end = bufInt32[EMS_LOOP_END];
     if (bufInt32[EMS_LOOP_SCHED] == EMS_SCHED_GUIDED) {
         //  Compute the size of the chunk the next thread should use
-        int newSz = ((bufInt32[EMS_LOOP_END] - start) / 2) / bufInt32[EMS_CB_NTHREADS];
+        int newSz = (int) ((bufInt32[EMS_LOOP_END] - *start) / 2) / bufInt32[EMS_CB_NTHREADS];
         if (newSz < bufInt32[EMS_LOOP_MINCHUNK]) newSz = bufInt32[EMS_LOOP_MINCHUNK];
         bufInt32[EMS_LOOP_CHUNKSZ] = newSz;
     }
-    info.GetReturnValue().Set(retObj);
+
+    return true;
 }
 

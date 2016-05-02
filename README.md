@@ -77,8 +77,10 @@ currently available in user defined modes.
     dynamic, block, guided, and static loop scheduling, 
     barriers, master and single execution regions
 
+## Examples and Benchmarks
 
-## Word Counting Using Atomic Operations
+
+### Word Counting Using Atomic Operations
 Map-Reduce is often demonstrated using word counting because each document can
 be processed in parallel, and the results of each document's dictionary reduced
 into a single dictionary.  This EMS implementation also
@@ -87,70 +89,6 @@ across processes, atomically incrementing the count of each word found.
 The final word counts are sorted and the most frequently appearing words
 are printed with their counts.
 
-### Forming the "Bag of Words" with Word Counts
-```javascript
-var file_list = fs.readdirSync(doc_path);
-var splitPattern = new RegExp(/[ \n,\.\\/_\-\<\>:\;\!\@\#\$\%\&\*\(\)=\[\]|\"\'\{\}\?\—]/);
-// Iterate over all the files in parallel
-ems.parForEach(0, file_list.length, function (fileNum) {
-    var text = fs.readFileSync(doc_path + file_list[fileNum], 'utf8', "r");
-    var words = text.replace(/[\n\r]/g, ' ').toLowerCase().split(splitPattern);
-    //  Sequentially iterate over all the words in one document
-    words.forEach(function (word) {
-        wordCounts.faa(word, 1); //  Atomically increment the count of times this word was seen
-    });
-});
-```
-
-### Sorting the Word Count list by Frequency
-Parallel sorting of the word count is implemented as a multi-step process:
-
-1. The bag of words is processed by all the processess, each process
-   building an ordered list of the most common words it encounters
-2. The partial lists from all the processes are concatenated into a single list
-3. The list of the most common words seen is sorted and truncated
-
-```javascript
-var biggest_counts = new Array(local_sort_len).fill({"key": 0, "count": 0});
-ems.parForEach(0, maxNKeys, function (keyN) {
-    var key = wordCounts.index2key(keyN);
-    if (key) {
-        //  Perform an insertion sort of the new key into the biggest_counts
-        //  list, deleting the last (smallest) element to preserve length.
-        var keyCount = wordCounts.read(key);
-        var idx = local_sort_len - 1;
-        while (idx >= 0  &&  biggest_counts[idx].count < keyCount) { idx -= 1; }
-        var newBiggest = {"key": key, "count": keyCount};
-        if (idx < 0) {
-            biggest_counts = [newBiggest].concat(biggest_counts.slice(0, biggest_counts.length - 1));
-        } else if (idx < local_sort_len) {
-            var left = biggest_counts.slice(0, idx + 1);
-            var right = biggest_counts.slice(idx + 1);
-            biggest_counts = left.concat([newBiggest].concat(right)).slice(0, -1);
-        }
-    }
-});
-//  Concatenate all the partial (one per process) lists into one list
-stats.writeXF('most_frequent', []);  // Initialize the list
-ems.barrier();  // Wait for all procs to have finished initialization
-stats.writeEF('most_frequent', stats.readFE('most_frequent').concat(biggest_counts));
-ems.barrier();  // Wait for all procs to have finished merge
-ems.master(function() { //  Sort & print the list of words, only one process is needed
-    biggest_counts = stats.readFF('most_frequent');
-    biggest_counts.sort(function (a, b) { return b.count - a.count; });
-    //  Print only the first "local_sort_len" items -- assume the worst case
-    //  of all the largest counts are discovered by a single process
-    console.log("Most frequently appearing terms:");
-    for (var index = 0;  index < local_sort_len;  index += 1) {
-        console.log(index + ': ' + biggest_counts[index].key + "   " + biggest_counts[index].count);
-    }
-});
-```
-
-### Word Count Performance
-This section reports the results of running the Word Count example on
-documents from Project Gutenberg.
-2,981,712,952 words in several languages were parsed, totaling 12,664,852,220 bytes of text.
 
 <img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
 
@@ -170,34 +108,6 @@ floating point operations can be performed on a
 
 <img src="http://synsem.com/images/ems/streams.svg" type="image/svg+xml" height="300px">
 
-
-## Transactional Memory
-Using EMS Transactional Memory to atomically update
-two account balances while simultaneously preventing updates to the user's 
-customer records.
-
-```javascript
-var ems = require('ems')(process.argv[2])        // Initialize EMS
-var customers = ems.new(...)                     // Allocate EMS memory for customer records
-var accounts  = ems.new(...)                     // Allocate accounts
-...
-// Start a transaction involving Bob and Sue
-var transaction= ems.tmStart( [ [customers, 'Bob Smith', true],  // Read-only:  Bob's customer record
-                                [customers, 'Sue Jones', true],  // Read-only:  Sue's customer record
-                                [accounts, 'Bob Smith'],         // Read-Write: Bob's account balance
-                                [accounts, 'Sue Jones'] ] );     // Read-Write: Sue's account balance
-// Transfer the payment and update the balances
-var bobsBalance = accounts.read('Bob Smith');               // Read the balance of Bob's account
-accounts.write('Bob Smith', bobsBalance - paymentAmount);   // Deduct the payment and write the new balance back
-var suesBalance = accounts.read('Sue Jones');               // Read the balance of Sue's account
-accounts.write('Sue Jones', suesBalance + paymentAmount);   // Add the payment to Sue's account
-// Commit the transaction or abort it if NSF
-if(balance > paymentAmount) {                               // Test for overdraft
-    ems.tmEnd(transaction, true);                           // Sufficient funds, commit transaction
-} else {
-    ems.tmEnd(transaction, false);                          // Not Sufficient Funds, roll back transaction
-}
-```
 
 ### Benchmarking of Transactions and Work Queues
 The micro-benchmarked raw transactional performance and 
@@ -371,7 +281,7 @@ vary with Linux distribution.
 
 Run the work queue driven transaction processing example on 8 processes:
 ```sh
-npm run example
+npm run <example>
 ```
 
 Or manually via:
@@ -397,17 +307,17 @@ As of 2016-01-24, Mac/Darwin and Linux are supported.  A windows port pull reque
 
 ## Roadmap
 EMS 1.0 uses Nan for long-term Node.js support, we continue to
-develop on OSX and Linux via Vagrant.  Version 1.x is feature-frozen,
-but support continues as we back-patch fixes and featues on our way to version 2.0.
+develop on OSX and Linux via Vagrant.
 
-EMS 2.0 is in the planning phase, the new API will more tightly integrate with 
+EMS 1.3 introduces a C API.
+
+EMS 1.4 **[Planned]** Python API
+
+EMS 1.5 **[Planned]** Support for [persistent memory](http://pmem.io/).
+
+EMS 2.0 **[Planned]** New API with more tightly integrate with 
 ES6, Python, and other dynamically typed languages languages,
 making atomic operations on persistent memory more transparent.
-These new language features also simplify integration with legacy applications.
-The types of persistent and Non-Volatile Memory (NVM) EMS was designed
-for, such as [pmem.io](http://pmem.io/),
-will be introduced into servers in the next few years, we hope to 
-leverage their work and future-proof EMS against architectural shifts.
 
 ## License
 BSD, other commercial and open source licenses are available.

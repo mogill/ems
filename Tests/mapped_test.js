@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -32,9 +32,8 @@
 'use strict';
 var ems = require('ems')(parseInt(process.argv[2]), false);
 var assert = require('assert');
-var arrLen = 10000;
-// var arrayElem = ['abcd', 1234.567, {x: 'xxx', y: 'yyyyy'}, 987, null, [10, 11, 12, 13]];
 var arrayElem = ['abcd', 1234.567, true, 987];
+var arrLen = arrayElem.length;
 
 var objMap = ems.new({
     dimensions: [arrLen],

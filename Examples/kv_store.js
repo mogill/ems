@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-var ems = require('ems')(parseInt(process.argv[2]), true, 'user');
+var ems = require('ems')(1, true, 'user');
 var http = require('http');
 var url_module = require("url");
 var cluster = require('cluster');
@@ -147,8 +147,6 @@ if (cluster.isMaster) {
     /* Each Slave Cluster processes must connect to the EMS array created
      * by the master process.
      */
-    delete persistent_data_options.doDataFill;
-    delete persistent_data_options.dataFill;
     delete persistent_data_options.setFEtags;
     persistent_data_options.useExisting = true;
     persistent_data = ems.new(persistent_data_options);

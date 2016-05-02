@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.2.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -75,6 +75,96 @@ void emsMutexMem_free(struct emsMem *heap,  // Base of EMS malloc structs
     *mutex = EMS_TAG_EMPTY;   // Unlock the allocator's mutex
 }
 
+
+
+
+
+//==================================================================
+//  Convert any type of key to an index
+//
+int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped) {
+    volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
+    volatile int64_t *bufInt64 = (int64_t *) emsBuf;
+    volatile double *bufDouble = (double *) emsBuf;
+    const char *bufChar = (char *) emsBuf;
+
+    int64_t idx = 0;
+    switch (key->type) {
+        case EMS_TYPE_BOOLEAN:
+            if ((bool) key->value)  idx = 1;
+            else                    idx = 0;
+            break;
+        case EMS_TYPE_INTEGER:
+            idx = (int64_t) key->value;
+            break;
+        case EMS_TYPE_FLOAT:
+            idx = (int64_t) key->value;
+            break;
+        case EMS_TYPE_STRING:
+            idx = EMShashString((char *) key->value);
+            break;
+        case EMS_TYPE_UNDEFINED:
+            fprintf(stderr, "EMS ERROR: EMSkey2index keyType is defined as Undefined\n");
+            return -1;
+        default:
+            fprintf(stderr, "EMS ERROR: EMSkey2index keyType(%d) is unknown\n", key->type);
+            return -1;
+    }
+
+    int nTries = 0;
+    bool matched = false;
+    bool notPresent = false;
+    EMStag_t mapTags;
+    if (is_mapped) {
+        while (nTries < MAX_OPEN_HASH_STEPS && !matched && !notPresent) {
+            idx = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
+            // Wait until the map key is FULL, mark it busy while map lookup is performed
+            mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+            if (mapTags.tags.type == key->type) {
+                switch (key->type) {
+                    case EMS_TYPE_BOOLEAN:
+                    case EMS_TYPE_INTEGER:
+                        if ((int64_t) key->value == bufInt64[EMSmapData(idx)]) {
+                            matched = true;
+                        }
+                        break;
+                    case EMS_TYPE_FLOAT: {
+                        ulong_double alias;
+                        alias.u64 = (uint64_t) key->value;
+                        if (alias.d == bufDouble[EMSmapData(idx)]) {
+                            matched = true;
+                        }
+                    }
+                        break;
+                    case EMS_TYPE_STRING: {
+                        int64_t keyStrOffset = bufInt64[EMSmapData(idx)];
+                        if (strcmp((const char *) key->value, EMSheapPtr(keyStrOffset)) == 0) {
+                            matched = true;
+                        }
+                    }
+                        break;
+                    case EMS_TYPE_UNDEFINED:
+                        // Nothing hashed to this map index yet, so the key does not exist
+                        notPresent = true;
+                        break;
+                    default:
+                        fprintf(stderr, "EMS ERROR: EMSreadIndexMap: Unknown mem type\n");
+                        matched = true;
+                }
+            }
+            if (mapTags.tags.type == EMS_TYPE_UNDEFINED) notPresent = true;
+            bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
+            if (!matched) {
+                //  No match, set this Map entry back to full and try again
+                nTries++;
+                idx++;
+            }
+        }
+        if (!matched) { idx = -1; }
+    }
+
+    return idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
+}
 
 
 
@@ -159,127 +249,6 @@ int64_t EMShashString(const char *key) {
 
 
 //==================================================================
-//  Find the matching map key for this argument.
-//  Returns the index of the element, or -1 for no match.
-//  The stored Map key value is read when full and marked busy.
-//  If the data does not match, it is marked full again, but if
-//  there is a match the map key is kept busy until the operation
-//  on the data is complete.
-//
-int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
-    int64_t idx = 0;
-    volatile int64_t *bufInt64 = (int64_t *) emsBuf;
-    char *bufChar = emsBuf;
-    volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
-    EMStag_t mapTags;
-    volatile double *bufDouble = (double *) emsBuf;
-    int idxType = EMSv8toEMStype(info[0], false);
-    int64_t boolArgVal = false;
-    int64_t intArgVal = -1;
-    double floatArgVal = 0.0;
-    int nTries = 0;
-    int matched = false;
-    int notPresent = false;
-    const char *arg_c_str = NULL;  // Assignment needed to quiet GCC uninitalized warning
-    std::string argString;
-
-    if (info.Length() == 0) {
-        Nan::ThrowTypeError("EMS ERROR: EMSreadIndexMap has no arguments?");
-        return -1;
-    }
-
-    switch (idxType) {
-        case EMS_TYPE_BOOLEAN:
-            boolArgVal = (info[0]->ToBoolean()->Value() != 0);
-            idx = boolArgVal;
-            break;
-        case EMS_TYPE_INTEGER:
-            intArgVal = info[0]->ToInteger()->Value();
-            idx = intArgVal;
-            break;
-        case EMS_TYPE_FLOAT:
-            ulong_double alias;
-            alias.d = info[0]->ToNumber()->Value();
-            idx = alias.u;
-            break;
-        case EMS_TYPE_STRING:
-            argString = std::string(*Nan::Utf8String(info[0]));
-            arg_c_str = argString.c_str();
-            idx = EMShashString(arg_c_str);
-            break;
-        default:
-            Nan::ThrowTypeError("EMS ERROR: EMSreadIndexMap Unknown arg type");
-            return -1;
-    }
-
-    if (EMSisMapped) {
-        while (nTries < MAX_OPEN_HASH_STEPS && !matched && !notPresent) {
-            idx = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
-            // Wait until the map key is FULL, mark it busy while map lookup is performed
-            mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
-            if (mapTags.tags.type == idxType) {
-                switch (idxType) {
-                    case EMS_TYPE_BOOLEAN:
-                        if (boolArgVal == (bufInt64[EMSmapData(idx)] != 0)) {
-                            matched = true;
-                            bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        }
-                        break;
-                    case EMS_TYPE_INTEGER:
-                        if (intArgVal == bufInt64[EMSmapData(idx)]) {
-                            matched = true;
-                            bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        }
-                        break;
-                    case EMS_TYPE_FLOAT:
-                        if (floatArgVal == bufDouble[EMSmapData(idx)]) {
-                            matched = true;
-                            bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        }
-                        break;
-                    case EMS_TYPE_STRING: {
-                        int64_t keyStrOffset = bufInt64[EMSmapData(idx)];
-                        if (strcmp(arg_c_str, EMSheapPtr(keyStrOffset)) == 0) {
-                            matched = true;
-                            bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        }
-                    }
-                        break;
-                    case EMS_TYPE_UNDEFINED:
-                        // Nothing hashed to this map index yet, so the key does not exist
-                        notPresent = true;
-                        bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        break;
-                    default:
-                        fprintf(stderr, "EMS ERROR: EMSreadIndexMap: Unknown mem type\n");
-                        matched = true;
-                }
-            }
-            if (mapTags.tags.type == EMS_TYPE_UNDEFINED) notPresent = true;
-            if (!matched) {
-                //  No match, set this Map entry back to full and try again
-                bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                nTries++;
-                idx++;
-            }
-        }
-        if (!matched) { idx = -1; }
-    } else {  // Wasn't mapped, do bounds check
-        if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-            idx = -1;
-        }
-    }
-
-    if (nTries >= MAX_OPEN_HASH_STEPS) {
-        fprintf(stderr, "EMSreadIndexMap ran out of key mappings\n");
-    }
-    if (notPresent) idx = -1;
-    return idx;
-}
-
-
-//==================================================================
 //  Find the matching map key, if not present, find the
 //  next available open address.
 //  Reads map key when full and marks Busy to perform comparisons,
@@ -287,51 +256,21 @@ int64_t EMSreadIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 //  match, the map key is left empty and this function
 //  returns the index of an existing or available array element.
 //
-int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
-
-    int64_t idx = 0;
-    volatile int64_t *bufInt64 = (int64_t *) emsBuf;
-    char *bufChar = (char *) emsBuf;
-    volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
+int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key) {
+    char *emsBuf = emsBufs[mmapID];
+    volatile int64_t  *bufInt64  = (int64_t *) emsBuf;
+    volatile char     *bufChar   = (char *) emsBuf;
+    volatile EMStag_t *bufTags   = (EMStag_t *) emsBuf;
+    volatile double   *bufDouble = (double *) emsBuf;
     EMStag_t mapTags;
-    volatile double *bufDouble = (double *) emsBuf;
-    unsigned char idxType = EMSv8toEMStype(info[0], false);
-    int64_t boolArgVal = false;
-    int64_t intArgVal = -1;
-    double floatArgVal = 0.0;
-    std::string argString(*Nan::Utf8String(info[0]));
-    const char *arg_c_str = argString.c_str();
 
-    if (info.Length() == 0) {
-        fprintf(stderr, "EMS ERROR: EMSwriteIndexMap has no arguments?\n");
-        return (-1);
+    //  If the key already exists, use it
+    int64_t idx = EMSkey2index(emsBuf, key, EMSisMapped);
+    if(idx > 0) {
+        // fprintf(stderr, "write index map -- key already existed\n");
+        return idx;
     }
-
-    switch (idxType) {
-        case EMS_TYPE_BOOLEAN:
-            boolArgVal = (info[0]->ToBoolean()->Value() != 0);
-            idx = boolArgVal;
-            break;
-        case EMS_TYPE_INTEGER:
-            intArgVal = info[0]->ToInteger()->Value();
-            idx = intArgVal;
-            break;
-        case EMS_TYPE_FLOAT:
-            ulong_double alias;
-            alias.d = info[0]->ToNumber()->Value();
-            idx = alias.u;
-            break;
-        case EMS_TYPE_STRING:
-            idx = EMShashString(arg_c_str);
-            break;
-        case EMS_TYPE_UNDEFINED:
-            Nan::ThrowTypeError("EMSwriteIndexMap: Undefined is not a valid index");
-            return (-1);
-        default:
-            fprintf(stderr, "EMS ERROR: EMSwriteIndexMap: Unknown mem type\n");
-            return (-1);
-    }
+    idx = EMSkey2index(emsBuf, key, false);
 
     int nTries = 0;
     if (EMSisMapped) {
@@ -341,53 +280,60 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
             // Wait until the map key is FULL, mark it busy while map lookup is performed
             mapTags.byte = EMStransitionFEtag(&bufTags[EMSmapTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
             mapTags.tags.fe = EMS_TAG_FULL;  // When written back, mark FULL
-            if (mapTags.tags.type == idxType || mapTags.tags.type == EMS_TYPE_UNDEFINED) {
+            if (mapTags.tags.type == key->type || mapTags.tags.type == EMS_TYPE_UNDEFINED) {
                 switch (mapTags.tags.type) {
                     case EMS_TYPE_BOOLEAN:
-                        if (boolArgVal == (bufInt64[EMSmapData(idx)] != 0)) {
+                        if ((int64_t) key->value == (bufInt64[EMSmapData(idx)] != 0)) {
                             matched = true;
                             bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         }
                         break;
                     case EMS_TYPE_INTEGER:
-                        if (intArgVal == bufInt64[EMSmapData(idx)]) {
+                        if ((int64_t) key->value == bufInt64[EMSmapData(idx)]) {
                             matched = true;
                             bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         }
                         break;
-                    case EMS_TYPE_FLOAT:
-                        if (floatArgVal == bufDouble[EMSmapData(idx)]) {
+                    case EMS_TYPE_FLOAT: {
+                        ulong_double alias;
+                        alias.u64 = (uint64_t) key->value;
+                        if (alias.d == bufDouble[EMSmapData(idx)]) {
                             matched = true;
                             bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         }
+                    }
                         break;
                     case EMS_TYPE_STRING: {
                         int64_t keyStrOffset = bufInt64[EMSmapData(idx)];
-                        if (strcmp(arg_c_str, EMSheapPtr(keyStrOffset)) == 0) {
+                        if (strcmp((const char *) key->value, (const char *) EMSheapPtr(keyStrOffset)) == 0) {
                             matched = true;
                             bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         }
                     }
                         break;
                     case EMS_TYPE_UNDEFINED:
-                        // This map key index is still unused, so there was no match.
-                        // Instead, allocate this element
-                        bufTags[EMSmapTag(idx)].tags.type = idxType;
-                        switch (idxType) {
+                        // This map key index is still unused, so there was no match and a new
+                        // mapped element must be allocated to perform the tag bit transitions upon
+                        bufTags[EMSmapTag(idx)].tags.type = key->type;
+                        switch (key->type) {
                             case EMS_TYPE_BOOLEAN:
-                                bufInt64[EMSmapData(idx)] = boolArgVal;
+                                bufInt64[EMSmapData(idx)] = ((int64_t) key->value !=  0);
                                 break;
                             case EMS_TYPE_INTEGER:
-                                bufInt64[EMSmapData(idx)] = intArgVal;
+                                bufInt64[EMSmapData(idx)] = (int64_t) key->value;
                                 break;
-                            case EMS_TYPE_FLOAT:
-                                bufDouble[EMSmapData(idx)] = floatArgVal;
+                            case EMS_TYPE_FLOAT: {
+                                ulong_double alias;
+                                alias.u64 = (uint64_t) key->value;
+                                bufDouble[EMSmapData(idx)] = alias.d;
+                            }
                                 break;
                             case EMS_TYPE_STRING: {
                                 int64_t textOffset;
-                                EMS_ALLOC(textOffset, argString.length() + 1, "EMSwriteIndexMap(string): out of memory to store string", -1);
+                                EMS_ALLOC(textOffset, strlen((const char *) key->value) + 1, bufChar,
+                                          "EMSwriteIndexMap(string): out of memory to store string", -1);
                                 bufInt64[EMSmapData(idx)] = textOffset;
-                                strcpy(EMSheapPtr(textOffset), arg_c_str);
+                                strcpy((char *) EMSheapPtr(textOffset), (const char *) key->value);
                             }
                                 break;
                             case EMS_TYPE_UNDEFINED:
@@ -399,7 +345,7 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                         matched = true;
                         break;
                     default:
-                        fprintf(stderr, "EMS ERROR: EMSwriteIndexMap: Unknown mem type\n");
+                        fprintf(stderr, "EMS ERROR: EMSwriteIndexMap: Unknown tag type (%d) on map key\n", mapTags.tags.type);
                         matched = true;
                 }
             }
@@ -413,13 +359,14 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         }
     } else {  // Wasn't mapped, do bounds check
         if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
+            fprintf(stderr, "Wasn't mapped do bounds check\n");
             idx = -1;
         }
     }
 
     if (nTries >= MAX_OPEN_HASH_STEPS) {
         idx = -1;
-        fprintf(stderr, "EMSwriteIndexMap ran out of key mappings (returning %" PRIu64 ")\n", idx);
+        fprintf(stderr, "EMSwriteIndexMap ran out of key mappings (ntries=%d)\n", nTries);
     }
 
     return idx;
@@ -427,48 +374,46 @@ int64_t EMSwriteIndexMap(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 
-
 //==================================================================
 //  Read EMS memory, enforcing Full/Empty tag transitions
-//
-void EMSreadUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info, // Index to read from
+bool EMSreadUsingTags(const int mmapID,
+                      EMSvalueType *key, // Index to read from
+                      EMSvalueType *returnValue,
                       unsigned char initialFE,            // Block until F/E tags are this value
                       unsigned char finalFE)              // Set the tag to this value when done
 {
     RESET_NAP_TIME;
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+    void *emsBuf = emsBufs[mmapID];
     volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
     volatile int64_t *bufInt64 = (int64_t *) emsBuf;
     volatile double *bufDouble = (double *) emsBuf;
     const char *bufChar = (const char *) emsBuf;
+
+    returnValue->type  = EMS_TYPE_UNDEFINED;
+    returnValue->value = (void *) 0xdeafbeef;  // TODO: Should return default value even when not doing write allocate
+
     EMStag_t newTag, oldTag, memTag;
+    int64_t idx = EMSkey2index(emsBuf, key, EMSisMapped);
 
-    if (info.Length() < 1 || info.Length() > 2) {
-        Nan::ThrowError("EMSreadUsingTags: Wrong number of args");
-        return;
-    }
-
-    int64_t idx = EMSreadIndexMap(info);
     //  Allocate on Write, writes include modification of the tag:
     //  If the EMS object being read is undefined and we're changing the f/e state
     //  then allocate the undefined object and set the state.  If the state is
     //  not changing, do not allocate the undefined element.
-    if(EMSisMapped  &&  idx < 0  && finalFE != EMS_TAG_ANY) {
-        idx = EMSwriteIndexMap(info);
-        if(idx < 0){
-            Nan::ThrowError("EMSreadUsingTags: Unable to allocate on read for new map index");
-            return;
+    if(EMSisMapped  &&  idx < 0) {
+        if (finalFE != EMS_TAG_ANY) {
+            idx = EMSwriteIndexMap(mmapID, key);
+            if (idx < 0) {
+                fprintf(stderr, "EMSreadUsingTags: Unable to allocate on read for new map index\n");
+                return false;
+            }
+        } else {
+            return true;
         }
     }
 
     if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-        if (EMSisMapped) {
-            info.GetReturnValue().Set(Nan::Undefined());
-            return;
-        } else {
-            Nan::ThrowError("EMSreadUsingTags: index out of bounds");
-            return;
-        }
+        fprintf(stderr, "EMSreadUsingTags: index out of bounds\n");
+        return false;
     }
 
     while (true) {
@@ -477,9 +422,9 @@ void EMSreadUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info, // Index
         if (initialFE == EMS_TAG_ANY ||
             (initialFE != EMS_TAG_RW_LOCK && memTag.tags.fe == initialFE) ||
             (initialFE == EMS_TAG_RW_LOCK &&
-             ((memTag.tags.fe == EMS_TAG_RW_LOCK && newTag.tags.rw < EMS_RW_NREADERS_MAX) || memTag.tags.fe ==
-                                                                                             EMS_TAG_FULL) &&
-             (memTag.tags.rw < ((1 << EMS_TYPE_NBITS_RW) - 1))// Counter is already saturated
+             ((memTag.tags.fe == EMS_TAG_RW_LOCK && newTag.tags.rw < EMS_RW_NREADERS_MAX) ||
+              memTag.tags.fe == EMS_TAG_FULL) &&
+             (memTag.tags.rw < ((1 << EMS_TYPE_NBITS_RW) - 1))  // Counter is already saturated
             )
                 ) {
             newTag.byte = memTag.byte;
@@ -496,52 +441,44 @@ void EMSreadUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info, // Index
                 // Under BUSY lock:
                 //   Read the data, then reset the FE tag, then return the original value in memory
                 newTag.tags.fe = finalFE;
+                returnValue->type  = newTag.tags.type;
                 switch (newTag.tags.type) {
                     case EMS_TYPE_BOOLEAN: {
-                        bool retBool = bufInt64[EMSdataData(idx)];
+                        returnValue->value = (void *) (bufInt64[EMSdataData(idx)] != 0);
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
                         if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        info.GetReturnValue().Set(Nan::New(retBool));
-                        return;
+                        return true;
                     }
                     case EMS_TYPE_INTEGER: {
-                        int32_t retInt = bufInt64[EMSdataData(idx)];  //  TODO: Bug -- only 32 bits of 64?
+                        returnValue->value = (void *) bufInt64[EMSdataData(idx)];
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
                         if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        info.GetReturnValue().Set(Nan::New(retInt));
-                        return;
+                        return true;
                     }
                     case EMS_TYPE_FLOAT: {
-                        double retFloat = bufDouble[EMSdataData(idx)];
+                        ulong_double alias;
+                        alias.d = bufDouble[EMSdataData(idx)];
+                        returnValue->value = (void *) alias.u64;
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
                         if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        info.GetReturnValue().Set(Nan::New(retFloat));
-                        return;
+                        return true;
                     }
                     case EMS_TYPE_JSON:
                     case EMS_TYPE_STRING: {
+                        returnValue->value = (void *) EMSheapPtr(bufInt64[EMSdataData(idx)]);
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
                         if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        if (newTag.tags.type == EMS_TYPE_JSON) {
-                            v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-                            retObj->Set(Nan::New("data").ToLocalChecked(),
-                                        Nan::New(EMSheapPtr(bufInt64[EMSdataData(idx)])).ToLocalChecked() );
-                            info.GetReturnValue().Set(retObj);
-                            return;
-                        } else {
-                            info.GetReturnValue().Set(Nan::New(EMSheapPtr(bufInt64[EMSdataData(idx)])).ToLocalChecked());
-                            return;
-                        }
+                        return true;
                     }
                     case EMS_TYPE_UNDEFINED: {
+                        returnValue->value = (void *) 0xcafebeef;
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
                         if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                        info.GetReturnValue().Set(Nan::Undefined());
-                        return;
+                        return true;
                     }
                     default:
-                        Nan::ThrowError("EMSreadFE unknown type");
-                        return;
+                        fprintf(stderr, "EMSreadUsingTags: unknown type (%d) read from memory\n", newTag.tags.type);
+                        return false;
                 }
             } else {
                 // Tag was marked BUSY between test read and CAS, must retry
@@ -562,118 +499,100 @@ void EMSreadUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info, // Index
 
 //==================================================================
 //  Read under multiple readers-single writer lock
-void EMSreadRW(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSreadUsingTags(info, EMS_TAG_RW_LOCK, EMS_TAG_RW_LOCK);
-    return;
+bool EMSreadRW(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue) {
+    return EMSreadUsingTags(mmapID, key, returnValue, EMS_TAG_RW_LOCK, EMS_TAG_RW_LOCK);
 }
 
 
 //==================================================================
 //  Read when full and leave empty
-void EMSreadFE(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSreadUsingTags(info, EMS_TAG_FULL, EMS_TAG_EMPTY);
-    return;
+bool EMSreadFE(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue) {
+    return EMSreadUsingTags(mmapID, key, returnValue, EMS_TAG_FULL, EMS_TAG_EMPTY);
 }
 
 
 //==================================================================
 //  Read when full and leave Full
-void EMSreadFF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSreadUsingTags(info, EMS_TAG_FULL, EMS_TAG_FULL);
-    return;
+bool EMSreadFF(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue) {
+    return EMSreadUsingTags(mmapID, key, returnValue, EMS_TAG_FULL, EMS_TAG_FULL);
 }
 
 
 //==================================================================
-//   Wrapper around read from an EMS array -- first determine the type
-void EMSread(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSreadUsingTags(info, EMS_TAG_ANY, EMS_TAG_ANY);
-    return;
+//   Wrapper around read
+bool EMSread(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue) {
+    return EMSreadUsingTags(mmapID, key, returnValue, EMS_TAG_ANY, EMS_TAG_ANY);
 }
 
 
 //==================================================================
-//  Decrement the reference counte of the multiple readers-single writer lock
-//
-void EMSreleaseRW(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+//  Decrement the reference count of the multiple readers-single writer lock
+int EMSreleaseRW(const int mmapID, EMSvalueType *key) {
     RESET_NAP_TIME;
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+    void *emsBuf = emsBufs[mmapID];
     volatile int64_t *bufInt64 = (int64_t *) emsBuf;
     volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
     EMStag_t newTag, oldTag;
-    if (info.Length() == 1) {
-        int64_t idx = EMSreadIndexMap(info);
-        if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-            Nan::ThrowError("EMSreleaseRW: invalid index");
-            return;
-        }
-        while (true) {
-            oldTag.byte = bufTags[EMSdataTag(idx)].byte;
-            newTag.byte = oldTag.byte;
-            if (oldTag.tags.fe == EMS_TAG_RW_LOCK) {
-                //  Already under a RW lock
-                if (oldTag.tags.rw == 0) {
-                    //  Assert the RW count is consistent with the lock state
-                    Nan::ThrowError("EMSreleaseRW: locked but Count already 0");
-                    return;
-                } else {
-                    //  Decrement the RW reference count
-                    newTag.tags.rw--;
-                    //  If this is the last reader, set the FE tag back to full
-                    if (newTag.tags.rw == 0) { newTag.tags.fe = EMS_TAG_FULL; }
-                    //  Attempt to commit the RW reference count & FE tag
-                    if (__sync_bool_compare_and_swap(&(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte)) {
-                        info.GetReturnValue().Set(Nan::New(newTag.tags.rw));
-                        return;
-                    } else {
-                        // Another thread decremented the RW count while we also tried
-                    }
-                }
+    int64_t idx = EMSkey2index(emsBuf, key, EMSisMapped);
+    if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
+        fprintf(stderr, "EMSreleaseRW: invalid index (%" PRIi64 ")\n", idx);
+        return -1;
+    }
+
+    while (true) {
+        oldTag.byte = bufTags[EMSdataTag(idx)].byte;
+        newTag.byte = oldTag.byte;
+        if (oldTag.tags.fe == EMS_TAG_RW_LOCK) {
+            //  Already under a RW lock
+            if (oldTag.tags.rw == 0) {
+                //  Assert the RW count is consistent with the lock state
+                fprintf(stderr, "EMSreleaseRW: locked but Count already 0\n");
+                return -1;
             } else {
-                if (oldTag.tags.fe != EMS_TAG_BUSY) {
-                    // Assert the RW lock being release is not in some other state then RW_LOCK or BUSY
-                    Nan::ThrowError("EMSreleaseRW: Lost RW lock?  Not locked or busy");
-                    return;
+                //  Decrement the RW reference count
+                newTag.tags.rw--;
+                //  If this is the last reader, set the FE tag back to full
+                if (newTag.tags.rw == 0) { newTag.tags.fe = EMS_TAG_FULL; }
+                //  Attempt to commit the RW reference count & FE tag
+                if (__sync_bool_compare_and_swap(&(bufTags[EMSdataTag(idx)].byte), oldTag.byte, newTag.byte)) {
+                    return (int) newTag.tags.rw;
+                } else {
+                    // Another thread decremented the RW count while we also tried
                 }
             }
-            // Failed to update the RW count, sleep and retry
-            NANOSLEEP;
+        } else {
+            if (oldTag.tags.fe != EMS_TAG_BUSY) {
+                // Assert the RW lock being release is not in some other state then RW_LOCK or BUSY
+                fprintf(stderr, "EMSreleaseRW: The RW lock being released is in some other state then RW_LOCK or BUSY\n");
+                return -1;
+            }
         }
-    } else {
-        Nan::ThrowError("EMSreleaseRW: Wrong number of arguments");
-        return;
+        // Failed to update the RW count, sleep and retry
+        NANOSLEEP;
     }
 }
 
 
 //==================================================================
 //  Write EMS honoring the F/E tags
-//
-void EMSwriteUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info,  // Index to read from
+bool EMSwriteUsingTags(int mmapID,
+                       EMSvalueType *key,
+                       EMSvalueType *value,
                        unsigned char initialFE,             // Block until F/E tags are this value
                        unsigned char finalFE)               // Set the tag to this value when done
 {
     RESET_NAP_TIME;
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
-    int64_t idx = EMSwriteIndexMap(info);
+    char *emsBuf = emsBufs[mmapID];
     volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
     volatile int64_t *bufInt64 = (int64_t *) emsBuf;
     volatile double *bufDouble = (double *) emsBuf;
     char *bufChar = emsBuf;
     EMStag_t newTag, oldTag, memTag;
-    int stringIsJSON = false;
 
-    if (info.Length() == 3) {
-        stringIsJSON = info[2]->ToBoolean()->Value();
-    } else {
-        if (info.Length() != 2) {
-            Nan::ThrowError("EMSwriteUsingTags: Wrong number of args");
-            return;
-        }
-    }
+    int64_t idx = EMSwriteIndexMap(mmapID, key);
     if (idx < 0) {
-        Nan::ThrowError("EMSwriteUsingTags: index out of bounds");
-        return;
+        fprintf(stderr, "EMSwriteUsingTags: index out of bounds\n");
+        return false;
     }
 
     // Wait for the memory to be in the initial F/E state and transition to Busy
@@ -702,31 +621,34 @@ void EMSwriteUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info,  // Ind
                 }
 
                 // Store argument value into EMS memory
-                switch (EMSv8toEMStype(info[1], stringIsJSON)) {
+                switch (value->type) {
                     case EMS_TYPE_BOOLEAN:
-                        bufInt64[EMSdataData(idx)] = info[1]->ToBoolean()->Value();
+                        bufInt64[EMSdataData(idx)] = (int64_t) value->value;
                         break;
                     case EMS_TYPE_INTEGER:
-                        bufInt64[EMSdataData(idx)] = (int64_t) info[1]->ToInteger()->Value();
+                        bufInt64[EMSdataData(idx)] = (int64_t) value->value;
                         break;
-                    case EMS_TYPE_FLOAT:
-                        bufDouble[EMSdataData(idx)] = info[1]->ToNumber()->Value();
+                    case EMS_TYPE_FLOAT: {
+                        ulong_double alias;
+                        alias.u64 = (uint64_t) value->value;
+                        bufDouble[EMSdataData(idx)] = alias.d;
+                    }
                         break;
                     case EMS_TYPE_JSON:
                     case EMS_TYPE_STRING: {
-                        std::string json(*Nan::Utf8String(info[1]));
                         int64_t textOffset;
-                        EMS_ALLOC(textOffset, json.length() + 1, "EMSwriteUsingTags: out of memory to store string", );
+                        EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1, bufChar,  // NULL padding at end
+                                  "EMSwriteUsingTags: out of memory to store string", false);
                         bufInt64[EMSdataData(idx)] = textOffset;
-                        strcpy(EMSheapPtr(textOffset), json.c_str());
+                        strcpy(EMSheapPtr(textOffset), (const char *) value->value);
                     }
                         break;
                     case EMS_TYPE_UNDEFINED:
                         bufInt64[EMSdataData(idx)] = 0xdeadbeef;
                         break;
                     default:
-                        Nan::ThrowError("EMSwriteUsingTags: Unknown arg type");
-                        return;
+                        fprintf(stderr, "EMSwriteUsingTags: Unknown arg type\n");
+                        return false;
                 }
 
                 oldTag.byte = newTag.byte;
@@ -734,17 +656,16 @@ void EMSwriteUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info,  // Ind
                     newTag.tags.fe = finalFE;
                     newTag.tags.rw = 0;
                 }
-                newTag.tags.type = EMSv8toEMStype(info[1], stringIsJSON);
+                newTag.tags.type = value->type;
                 if (finalFE != EMS_TAG_ANY && bufTags[EMSdataTag(idx)].byte != oldTag.byte) {
-                    Nan::ThrowError("EMSwriteUsingTags: Lost tag lock while BUSY");
-                    return;
+                    fprintf(stderr, "EMSwriteUsingTags: Lost tag lock while BUSY\n");
+                    return false;
                 }
 
                 //  Set the tags for the data (and map, if used) back to full to finish the operation
                 bufTags[EMSdataTag(idx)].byte = newTag.byte;
                 if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
-                info.GetReturnValue().Set(Nan::True());
-                return;
+                return true;
             } else {
                 // Tag was marked BUSY between test read and CAS, must retry
             }
@@ -759,226 +680,156 @@ void EMSwriteUsingTags(const Nan::FunctionCallbackInfo<v8::Value>& info,  // Ind
 
 //==================================================================
 //  WriteXF
-void EMSwriteXF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSwriteUsingTags(info, EMS_TAG_ANY, EMS_TAG_FULL);
-    return;
+bool EMSwriteXF(int mmapID, EMSvalueType *key, EMSvalueType *value) {
+    return EMSwriteUsingTags(mmapID, key, value, EMS_TAG_ANY, EMS_TAG_FULL);
 }
 
 //==================================================================
 //  WriteXE
-void EMSwriteXE(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSwriteUsingTags(info, EMS_TAG_ANY, EMS_TAG_EMPTY);
-    return;
+bool EMSwriteXE(int mmapID, EMSvalueType *key, EMSvalueType *value) {
+    return EMSwriteUsingTags(mmapID, key, value, EMS_TAG_ANY, EMS_TAG_EMPTY);
 }
 
 //==================================================================
 //  WriteEF
-void EMSwriteEF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSwriteUsingTags(info, EMS_TAG_EMPTY, EMS_TAG_FULL);
-    return;
+bool EMSwriteEF(int mmapID, EMSvalueType *key, EMSvalueType *value) {
+    return EMSwriteUsingTags(mmapID, key, value, EMS_TAG_EMPTY, EMS_TAG_FULL);
 }
 
 //==================================================================
 //  Write
-void EMSwrite(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSwriteUsingTags(info, EMS_TAG_ANY, EMS_TAG_ANY);
-    return;
+bool EMSwrite(int mmapID, EMSvalueType *key, EMSvalueType *value) {
+    return EMSwriteUsingTags(mmapID, key, value, EMS_TAG_ANY, EMS_TAG_ANY);
 }
 
 
 //==================================================================
 //  Set only the Full/Empty tag  from JavaScript 
 //  without inspecting or modifying the data.
-//
-void EMSsetTag(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSsetTag(int mmapID, EMSvalueType *key, bool is_full) {
+    void *emsBuf = emsBufs[mmapID];
     volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
+    volatile int64_t *bufInt64 = (int64_t *) emsBuf;
     EMStag_t tag;
-    int64_t idx = info[0]->ToInteger()->Value();
+
+    int64_t idx = EMSkey2index(emsBuf, key, EMSisMapped);
+    if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
+        return false;
+    }
 
     tag.byte = bufTags[EMSdataTag(idx)].byte;
-    if (info[1]->ToBoolean()->Value()) {
+    if (is_full) {
         tag.tags.fe = EMS_TAG_FULL;
     } else {
         tag.tags.fe = EMS_TAG_EMPTY;
     }
     bufTags[EMSdataTag(idx)].byte = tag.byte;
+    return true;
 }
 
 
 //==================================================================
 //  Release all the resources associated with an EMS array
-void EMSdestroy(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSdestroy(int mmapID, bool do_unlink) {
+    void *emsBuf = emsBufs[mmapID];
     if(munmap(emsBuf, emsBufLengths[mmapID]) != 0) {
-        Nan::ThrowError("EMSdestroy: Unable to unmap memory");
-        return;
+        fprintf(stderr, "EMSdestroy: Unable to unmap memory\n");
+        return false;
     }
 
-    if (info[0]->ToBoolean()->Value()) {
+    if (do_unlink) {
         if (unlink(emsBufFilenames[mmapID]) != 0) {
-            Nan::ThrowError("EMSdestroy: Unable to unlink file");
-            return;
+            fprintf(stderr, "EMSdestroy: Unable to unlink file\n");
+            return false;
         }
     }
 
     emsBufFilenames[mmapID][0] = 0;
     emsBufLengths[mmapID] = 0;
     emsBufs[mmapID] = NULL;
+    return true;
 }
 
 
 
 //==================================================================
 //  Return the key of a mapped object given the EMS index
-void EMSindex2key(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key) {
+    void *emsBuf = emsBufs[mmapID];
     volatile int64_t *bufInt64 = (int64_t *) emsBuf;
-    char *bufChar = emsBuf;
+    char *bufChar = (char *) emsBuf;
     volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
     volatile double *bufDouble = (double *) emsBuf;
 
     if(!EMSisMapped) {
-        Nan::ThrowError("EMSindex2key: Unmapping an index but Array is not mapped");
-        return;
+        fprintf(stderr, "EMSindex2key: Unmapping an index but Array is not mapped\n");
+        return false;
     }
 
-    int64_t idx = info[0]->ToInteger()->Value();
     if (idx < 0 || idx >= bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-        Nan::ThrowError("EMSindex2key: index out of bounds");
-        return;
+        fprintf(stderr, "EMSindex2key: index out of bounds\n");
+        return false;
     }
 
-    switch (bufTags[EMSmapTag(idx)].tags.type) {
-        case EMS_TYPE_BOOLEAN: {
-            bool retBool = bufInt64[EMSmapData(idx)];
-            info.GetReturnValue().Set(Nan::New(retBool));
-            return;
-        }
+    key->type = bufTags[EMSmapTag(idx)].tags.type;
+    switch (key->type) {
+        case EMS_TYPE_BOOLEAN:
         case EMS_TYPE_INTEGER: {
-            int32_t retInt = bufInt64[EMSmapData(idx)];  //  TODO: Bug -- only 32 bits of 64?
-            info.GetReturnValue().Set(Nan::New(retInt));
-            return;
+            key->value = (void *) bufInt64[EMSmapData(idx)];
+            return true;
         }
         case EMS_TYPE_FLOAT: {
-            double retFloat = bufDouble[EMSmapData(idx)];
-            info.GetReturnValue().Set(Nan::New(retFloat));
-            return;
+            ulong_double alias;
+            alias.d = bufDouble[EMSmapData(idx)];
+            key->value = (void *) alias.u64;
+            return true;
         }
-        case EMS_TYPE_JSON: {
-            v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-            retObj->Set(Nan::New("data").ToLocalChecked(), 
-                        Nan::New(EMSheapPtr(bufInt64[EMSmapData(idx)])).ToLocalChecked());
-            info.GetReturnValue().Set(retObj);
-            return;
-        }
+        case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
-            info.GetReturnValue().Set(Nan::New(EMSheapPtr(bufInt64[EMSmapData(idx)])).ToLocalChecked());
-            return;
+            key->value = (void *)(EMSheapPtr(bufInt64[EMSmapData(idx)]));
+            return true;
         }
         case EMS_TYPE_UNDEFINED: {
-            info.GetReturnValue().Set(Nan::Undefined());
-            return;
+            key->value = NULL;
+            return true;
         }
         default:
-            Nan::ThrowTypeError("EMSindex2key unknown type");
-            return;
+            fprintf(stderr, "EMSindex2key unknown type\n");
+            return false;
     }
 }
-
-
 
 
 //==================================================================
 //  Synchronize the EMS memory to persistent storage
 //
-void EMSsync(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-#if 0
-    v8::HandleScope scope;
-    EMS_DECL(args);
-  int64_t  *bufInt64  = (int64_t *) emsBuf;
-  EMStag_t   *bufTags   = (EMStag_t *) emsBuf;
-  int64_t    idx;
-  if(args[0]->IsUndefined()) {
-    idx    = 0;
-  } else {
-    idx    = args[0]->ToInteger()->Value();
-  }
-  
-  EMStag_t     tag;
-  tag.byte = bufTags[EMSdataTag(idx)].byte;
-  int resultIdx = 0;
-  int resultTag = 0;
-  int resultStr = 0;
-#if 1
-  fprintf(stderr, "msync not complete\n");
-  resultStr = 1;
-#else
-  int flags = MS_SYNC;
-  char     *bufChar   = (char *) emsBuf;
-  int64_t   pgsize    = getpagesize(); //sysconf(_SC_PAGE_SIZE);
-#define PGALIGN(addr) ((void*) (( ((uint64_t)addr) / pgsize) * pgsize ))
-
-  //fprintf(stderr, "msync%lx  %" PRIu64 "  %d\n", emsBuf, length, flags);
-  resultIdx = msync((void*) emsBuf, pgsize, flags);
-  /*
-  if(tag.tags.type != EMS_TYPE_UNDEFINED)
-    //resultIdx = msync(&(bufInt64[idx]), sizeof(int64_t), flags);
-    resultIdx = msync( PGALIGN(&bufInt64[idx]), pgsize, flags);
-  if(tag.tags.type  ==  EMS_TYPE_STRING)
-    //resultStr = msync(&(bufChar[bufInt64[EMScbData(EMS_ARR_HEAPBOT)] + bufInt64[idx]]),
-    //	      strlen(&(bufChar[bufInt64[EMScbData(EMS_ARR_HEAPBOT)] + bufInt64[idx]])),
-    // flags);
-    resultStr = msync( PGALIGN( &(bufChar[bufInt64[EMScbData(EMS_ARR_HEAPBOT)] + bufInt64[idx]]) ),
-               strlen(&(bufChar[bufInt64[EMScbData(EMS_ARR_HEAPBOT)] + bufInt64[idx]])),
-               flags);
-  //resultTag = msync(&(bufTags[EMSdataTag(idx)].byte), 1, flags);
-  //fprintf(stderr, "msync(%llx  %" PRIu64 "  %d\n", PGALIGN(&(bufTags[EMSdataTag(idx)].byte)), pgsize, flags);
-  //  resultTag = msync(PGALIGN(&(bufTags[EMSdataTag(idx)].byte)), pgsize, flags);
-  //  resultTag = msync(PGALIGN(&(bufTags[EMSdataTag(idx)].byte)), 1, flags);
-  //fprintf(stderr, "result  %d  %d  %d\n", resultIdx, resultStr, resultTag);
-*/
-#endif
-  if(resultIdx == 0  &&  resultStr == 0  &&  resultTag == 0)
-    return v8::True();
-  else
-    return v8::False();
-#else
+bool EMSsync(int mmapID) {
+    // resultIdx = msync((void*) emsBuf, pgsize, flags);
     printf("EMSsync() was called but stubbed out\n");
-#endif
+    return false;
 }
 
 
 //==================================================================
 //  EMS Entry Point:   Allocate and initialize the EMS domain memory
 //
-void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    if (info.Length() < 14) {
-        Nan::ThrowError("initialize: Missing arguments");
-        return;
-    }
-
-    //  Parse all the arguments
-    int64_t nElements  = info[0]->ToInteger()->Value();
-    int64_t heapSize   = info[1]->ToInteger()->Value();
-    int64_t useMap         = info[2]->ToBoolean()->Value();
-    std::string filestring(*Nan::Utf8String(info[3]));
-    const char *filename = filestring.c_str();
-
-    int64_t persist        = info[4]->ToBoolean()->Value();
-    int64_t useExisting    = info[5]->ToBoolean()->Value();
-    int64_t doDataFill     = info[6]->ToBoolean()->Value();
-    // Data Fill type TBD during fill
-    int64_t fillIsJSON     = info[8]->ToBoolean()->Value();
-    int64_t doSetFEtags    = info[9]->ToBoolean()->Value();
-    int64_t setFEtags  = info[10]->ToInteger()->Value();
-    EMSmyID            = info[11]->ToInteger()->Value();
-    int64_t pinThreads = info[12]->ToBoolean()->Value();
-    int64_t nThreads   = info[13]->ToInteger()->Value();
-    int64_t pctMLock   = info[14]->ToInteger()->Value();
+int EMSinitialize(int64_t nElements,     // 0
+                  int64_t heapSize,      // 1
+                  bool useMap,           // 2
+                  const char *filename,  // 3
+                  bool persist,          // 4
+                  bool useExisting,      // 5
+                  bool doDataFill,       // 6
+                  bool fillIsJSON,       // 7
+                  EMSvalueType fillValue,// 8
+                  bool doSetFEtags,      // 9
+                  bool setFEtags,        // 10
+                  int EMSmyID,           // 11
+                  bool pinThreads,       // 12
+                  int64_t nThreads,      // 13
+                  int64_t pctMLock ) {   // 14
     int fd;
-
-    //  Node 0 is first and always has mutual excusion during intialization
+    //  Node 0 is first and always has mutual exclusion during initialization
     //  perform once-only initialization here
     if (EMSmyID == 0) {
         if (!useExisting) {
@@ -1001,9 +852,8 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         fd = shm_open(filename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
     if (fd < 0) {
-        perror("Error opening shared memory -- Possibly need to be root?");
-        Nan::ThrowError("Unable to open file");
-        return;
+        perror("Error opening shared memory file -- Possibly need to be root?");
+        return -1;
     }
 
     size_t nMemBlocks = (heapSize / EMS_MEM_BLOCKSZ) + 1;
@@ -1030,22 +880,22 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     }
     if (ftruncate(fd, filesize) != 0) {
         if (errno != EINVAL) {
-            fprintf(stderr, "EMS: Error during initialization, unable to set memory size to %" PRIu64 " bytes\n",
+            fprintf(stderr, "EMSinitialize: Error during initialization, unable to set memory size to %" PRIu64 " bytes\n",
                     (uint64_t) filesize);
-            Nan::ThrowError("Unable to resize domain memory");
-            return;
+            return -1;
         }
     }
 
     char *emsBuf = (char *) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, (off_t) 0);
     if (emsBuf == MAP_FAILED) {
-        Nan::ThrowError("Unable to map domain memory");
+        fprintf(stderr, "EMSinitialize: Unable to map domain memory\n");
+        return -1;
     }
     close(fd);
 
     if (nElements <= 0) pctMLock = 100;   // lock RAM if master control block
     if (mlock((void *) emsBuf, (size_t) (filesize * (pctMLock / 100))) != 0) {
-        fprintf(stderr, "NOTICE: EMS thread %d was not able to lock EMS memory to RAM for %s\n", EMSmyID, filename);
+        fprintf(stderr, "EMSinitialize NOTICE: EMS thread %d was not able to lock EMS memory to RAM for %s\n", EMSmyID, filename);
     } else {
         // success
     }
@@ -1093,9 +943,9 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     if (pinThreads) {
 #if defined(__linux)
         cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET((EMSmyID % nThreads), &cpuset);  // Round-robin over-subscribed systems
-    sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+        CPU_ZERO(&cpuset);
+        CPU_SET((EMSmyID % nThreads), &cpuset);  // Round-robin over-subscribed systems
+        sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
 #endif
     }
     EMStag_t tag;
@@ -1103,36 +953,41 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     int64_t iterPerThread = (nElements / nThreads) + 1;
     int64_t startIter = iterPerThread * EMSmyID;
     int64_t endIter = iterPerThread * (EMSmyID + 1);
+    size_t fillStrLen = 0;
+    if (doDataFill  &&  (fillValue.type == EMS_TYPE_JSON || fillValue.type == EMS_TYPE_STRING)) {
+        fillStrLen = strlen((char *)fillValue.value);
+    }
     if (endIter > nElements) endIter = nElements;
     for (int64_t idx = startIter; idx < endIter; idx++) {
         tag.tags.rw = 0;
         if (doDataFill) {
-            tag.tags.type = EMSv8toEMStype(info[7], fillIsJSON);
+            tag.tags.type = fillValue.type;
             switch (tag.tags.type) {
+                case EMS_TYPE_BOOLEAN:
                 case EMS_TYPE_INTEGER:
-                    bufInt64[EMSdataData(idx)] = info[7]->ToInteger()->Value();
+                    bufInt64[EMSdataData(idx)] = (int64_t) fillValue.value;
                     break;
-                case EMS_TYPE_FLOAT:
-                    bufDouble[EMSdataData(idx)] = info[7]->ToNumber()->Value();
+                case EMS_TYPE_FLOAT: {
+                    ulong_double alias;
+                    alias.u64 = (uint64_t) fillValue.value;
+                    bufDouble[EMSdataData(idx)] = alias.d;
+                }
                     break;
                 case EMS_TYPE_UNDEFINED:
                     bufInt64[EMSdataData(idx)] = 0xdeadbeef;
                     break;
-                case EMS_TYPE_BOOLEAN:
-                    bufInt64[EMSdataData(idx)] = info[7]->ToBoolean()->Value();
-                    break;
                 case EMS_TYPE_JSON:
                 case EMS_TYPE_STRING: {
-                    std::string fill_str(*Nan::Utf8String(info[7]));
                     int64_t textOffset;
-                    EMS_ALLOC(textOffset, fill_str.length() + 1, "EMSinit: out of memory to store string", );
+                    EMS_ALLOC(textOffset, fillStrLen + 1, bufChar,
+                              "EMSinitialize: out of memory to store string", false);
                     bufInt64[EMSdataData(idx)] = textOffset;
-                    strcpy(EMSheapPtr(textOffset), fill_str.c_str());
+                    strcpy(EMSheapPtr(textOffset), (const char *) fillValue.value);
                 }
                     break;
                 default:
-                    Nan::ThrowError("EMSinit: type is unknown");
-                    return;
+                    fprintf(stderr, "EMSinitialize: fill type is unknown\n");
+                    return -1;
             }
         } else {
             tag.tags.type = EMS_TYPE_UNDEFINED;
@@ -1153,8 +1008,6 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         }
     }
 
-    // ========================================================================================
-    v8::Local<v8::Object> obj = Nan::New<v8::Object>();
     int emsBufN = 0;
     while(emsBufN < EMS_MAX_N_BUFS  &&  emsBufs[emsBufN] != NULL)  emsBufN++;
     if(emsBufN < EMS_MAX_N_BUFS) {
@@ -1162,57 +1015,10 @@ void initialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         emsBufLengths[emsBufN] = filesize;
         strncpy(emsBufFilenames[emsBufN], filename, MAX_FNAME_LEN);
     } else {
-        fprintf(stderr, "ERROR: Unable to allocate a buffer ID/index\n");
-    }
-    obj->Set(Nan::New("mmapID").ToLocalChecked(), Nan::New(emsBufN));
-
-#define ADD_FUNC_TO_V8_OBJ(obj, func_name, func) \
-    { \
-        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(func); \
-        v8::Local<v8::Function> fn = tpl->GetFunction(); \
-        fn->SetName(Nan::New(func_name).ToLocalChecked()); \
-        obj->Set(Nan::New(func_name).ToLocalChecked(), tpl->GetFunction()); \
+        fprintf(stderr, "EMSinitialize: ERROR - Unable to allocate a buffer ID/index\n");
+        emsBufN = -1;
     }
 
-    ADD_FUNC_TO_V8_OBJ(obj, "initialize", initialize);
-    ADD_FUNC_TO_V8_OBJ(obj, "faa", EMSfaa);
-    ADD_FUNC_TO_V8_OBJ(obj, "cas", EMScas);
-    ADD_FUNC_TO_V8_OBJ(obj, "read", EMSread);
-    ADD_FUNC_TO_V8_OBJ(obj, "write", EMSwrite);
-    ADD_FUNC_TO_V8_OBJ(obj, "readRW", EMSreadRW);
-    ADD_FUNC_TO_V8_OBJ(obj, "releaseRW", EMSreleaseRW);
-    ADD_FUNC_TO_V8_OBJ(obj, "readFE", EMSreadFE);
-    ADD_FUNC_TO_V8_OBJ(obj, "readFF", EMSreadFF);
-    ADD_FUNC_TO_V8_OBJ(obj, "setTag", EMSsetTag);
-    ADD_FUNC_TO_V8_OBJ(obj, "writeEF", EMSwriteEF);
-    ADD_FUNC_TO_V8_OBJ(obj, "writeXF", EMSwriteXF);
-    ADD_FUNC_TO_V8_OBJ(obj, "writeXE", EMSwriteXE);
-    ADD_FUNC_TO_V8_OBJ(obj, "push", EMSpush);
-    ADD_FUNC_TO_V8_OBJ(obj, "pop", EMSpop);
-    ADD_FUNC_TO_V8_OBJ(obj, "enqueue", EMSenqueue);
-    ADD_FUNC_TO_V8_OBJ(obj, "dequeue", EMSdequeue);
-    ADD_FUNC_TO_V8_OBJ(obj, "sync", EMSsync);
-    ADD_FUNC_TO_V8_OBJ(obj, "index2key", EMSindex2key);
-    ADD_FUNC_TO_V8_OBJ(obj, "destroy", EMSdestroy);
-    info.GetReturnValue().Set(obj);
-
-    return;
+    return emsBufN;
 }
 
-
-
-//---------------------------------------------------------------
-static void RegisterModule(v8::Handle <v8::Object> target) {
-    ADD_FUNC_TO_V8_OBJ(target, "initialize", initialize);
-    ADD_FUNC_TO_V8_OBJ(target, "barrier", EMSbarrier);
-    ADD_FUNC_TO_V8_OBJ(target, "singleTask", EMSsingleTask);
-    ADD_FUNC_TO_V8_OBJ(target, "criticalEnter", EMScriticalEnter);
-    ADD_FUNC_TO_V8_OBJ(target, "criticalExit", EMScriticalExit);
-    ADD_FUNC_TO_V8_OBJ(target, "loopInit", EMSloopInit);
-    ADD_FUNC_TO_V8_OBJ(target, "loopChunk", EMSloopChunk);
-    // ADD_FUNC_TO_V8_OBJ(target, "sync", EMSsync);
-    // ADD_FUNC_TO_V8_OBJ(target, "length");
-    // ADD_FUNC_TO_V8_OBJ(target, "Buffer");
-}
-
-NODE_MODULE(ems, RegisterModule);

@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -31,64 +31,52 @@
  +-----------------------------------------------------------------------------*/
 #include "ems.h"
 
+
 //==================================================================
 //  Push onto stack
-//
-void EMSpush(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+int EMSpush(int mmapID, EMSvalueType *value) {  // TODO: Eventually promote return value to 64bit
+    void *emsBuf = emsBufs[mmapID];
     int64_t *bufInt64 = (int64_t *) emsBuf;
     EMStag_t *bufTags = (EMStag_t *) emsBuf;
-    double *bufDouble = (double *) emsBuf;
     char *bufChar = (char *) emsBuf;
     EMStag_t newTag;
-    int stringIsJSON = false;
-
-    if (info.Length() == 2) {
-        stringIsJSON = info[1]->ToBoolean()->Value();
-    }
 
     // Wait until the stack top is full, then mark it busy while updating the stack
     EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     int32_t idx = bufInt64[EMScbData(EMS_ARR_STACKTOP)];  // TODO BUG: Truncating the full 64b range
     bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
     if (idx == bufInt64[EMScbData(EMS_ARR_NELEM)] - 1) {
-        Nan::ThrowError("EMSpush: Ran out of stack entries");
-        return;
+        fprintf(stderr, "EMSpush: Ran out of stack entries\n");
+        return -1;
     }
 
     //  Wait until the target memory at the top of the stack is empty
     newTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], NULL, EMS_TAG_EMPTY, EMS_TAG_BUSY, EMS_TAG_ANY);
     newTag.tags.rw = 0;
-    newTag.tags.type = EMSv8toEMStype(info[0], stringIsJSON);
+    newTag.tags.type = value->type;
     newTag.tags.fe = EMS_TAG_FULL;
 
     //  Write the value onto the stack
     switch (newTag.tags.type) {
         case EMS_TYPE_BOOLEAN:
-            bufInt64[EMSdataData(idx)] = (int64_t) info[0]->ToBoolean()->Value();
-            break;
         case EMS_TYPE_INTEGER:
-            bufInt64[EMSdataData(idx)] = (int64_t) info[0]->ToInteger()->Value();
-            break;
         case EMS_TYPE_FLOAT:
-            bufDouble[EMSdataData(idx)] = (double) info[0]->ToNumber()->Value();
+            bufInt64[EMSdataData(idx)] = (int64_t) value->value;
             break;
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
-            std::string argString(*Nan::Utf8String(info[0]));
-            const char *arg_c_str = argString.c_str();
             int64_t textOffset;
-            EMS_ALLOC(textOffset, argString.length() + 1, "EMSpush: out of memory to store string", );
+            EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1, bufChar, "EMSpush: out of memory to store string\n", -1);
             bufInt64[EMSdataData(idx)] = textOffset;
-            strcpy(EMSheapPtr(textOffset), arg_c_str);
+            strcpy(EMSheapPtr(textOffset), (const char *) value->value);
         }
             break;
         case EMS_TYPE_UNDEFINED:
             bufInt64[EMSdataData(idx)] = 0xdeadbeef;
             break;
         default:
-            Nan::ThrowTypeError("EMSpush: Unknown arg type");
-            return;
+            fprintf(stderr, "EMSpush: Unknown value type\n");
+            return -1;
     }
 
     //  Mark the data on the stack as FULL
@@ -97,19 +85,17 @@ void EMSpush(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     //  Push is complete, Mark the stack pointer as full
     bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
 
-    info.GetReturnValue().Set(Nan::New(idx));
-    return;
+    return idx;
 }
 
 
 //==================================================================
 //  Pop data from stack
 //
-void EMSpop(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSpop(int mmapID, EMSvalueType *returnValue) {
+    void *emsBuf = emsBufs[mmapID];
     int64_t *bufInt64 = (int64_t *) emsBuf;
     EMStag_t *bufTags = (EMStag_t *) emsBuf;
-    double *bufDouble = (double *) emsBuf;
     char *bufChar = (char *) emsBuf;
     EMStag_t dataTag;
 
@@ -121,63 +107,46 @@ void EMSpop(const Nan::FunctionCallbackInfo<v8::Value> &info) {
         //  Stack is empty, return undefined
         bufInt64[EMScbData(EMS_ARR_STACKTOP)] = 0;
         bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-        info.GetReturnValue().Set(Nan::Undefined());
-        return;
+        returnValue->type = EMS_TYPE_UNDEFINED;
+        returnValue->value = (void *) 0xf00dd00f;
+        return true;
     }
-
     //  Wait until the data pointed to by the stack pointer is full, then mark it
     //  busy while it is copied, and set it to EMPTY when finished
     dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
+    returnValue->type = dataTag.tags.type;
     switch (dataTag.tags.type) {
-        case EMS_TYPE_BOOLEAN: {
-            bool retBool = bufInt64[EMSdataData(idx)];
-            bufTags[EMSdataTag(idx)].tags.fe = EMS_TAG_EMPTY;
-            bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::New(retBool));
-            return;
-        }
-        case EMS_TYPE_INTEGER: {
-            int32_t retInt = bufInt64[EMSdataData(idx)]; // TODO: BUG 64b truncation again
-            bufTags[EMSdataTag(idx)].tags.fe = EMS_TAG_EMPTY;
-            bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::New(retInt));
-            return;
-        }
+        case EMS_TYPE_BOOLEAN:
+        case EMS_TYPE_INTEGER:
         case EMS_TYPE_FLOAT: {
-            double retFloat = bufDouble[EMSdataData(idx)];
+            returnValue->value = (void *) bufInt64[EMSdataData(idx)];
             bufTags[EMSdataTag(idx)].tags.fe = EMS_TAG_EMPTY;
             bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::New(retFloat));
-            return;
+            return true;
         }
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
+            size_t memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));  // TODO: Use size of allocation, not strlen
+            returnValue->value = malloc(memStrLen + 1);  // freed in NodeJSfaa
+            if(returnValue->value == NULL) {
+                fprintf(stderr, "EMSpop: Unable to allocate space to return stack top string\n");
+                return false;
+            }
+            strcpy((char *) returnValue->value, EMSheapPtr(bufInt64[EMSdataData(idx)]));
+            EMS_FREE(bufInt64[EMSdataData(idx)]);
             bufTags[EMSdataTag(idx)].tags.fe = EMS_TAG_EMPTY;
             bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-            if (dataTag.tags.type == EMS_TYPE_JSON) {
-                v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-                retObj->Set(Nan::New("data").ToLocalChecked(),
-                            // v8::String::NewFromUtf8(isolate, EMSheapPtr(bufInt64[EMSdataData(idx)])));
-                            Nan::New(EMSheapPtr(bufInt64[EMSdataData(idx)])).ToLocalChecked());
-                EMS_FREE(bufInt64[EMSdataData(idx)]);
-                info.GetReturnValue().Set(retObj);
-                return;
-            } else {
-                // info.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, EMSheapPtr(bufInt64[EMSdataData(idx)])));
-                info.GetReturnValue().Set(Nan::New(EMSheapPtr(bufInt64[EMSdataData(idx)])).ToLocalChecked());
-                EMS_FREE(bufInt64[EMSdataData(idx)]);
-                return;
-            }
+            return true;
         }
         case EMS_TYPE_UNDEFINED: {
             bufTags[EMSdataTag(idx)].tags.fe = EMS_TAG_EMPTY;
             bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::Undefined());
-            return;
+            returnValue->value = (void *) 0xdeadbeef;
+            return true;
         }
         default:
-            Nan::ThrowTypeError("EMSpop unknown type");
-            return;
+            fprintf(stderr, "EMSpop: ERROR - unknown top of stack data type\n");
+            return false;
     }
 }
 
@@ -186,57 +155,45 @@ void EMSpop(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 //  Enqueue data
 //  Heap top and bottom are monotonically increasing, but the index
 //  returned is a circular buffer.
-//
-void EMSenqueue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+int EMSenqueue(int mmapID, EMSvalueType *value) {  // TODO: Eventually promote return value to 64bit
+    void *emsBuf = emsBufs[mmapID];
     int64_t *bufInt64 = (int64_t *) emsBuf;
     EMStag_t *bufTags = (EMStag_t *) emsBuf;
-    double *bufDouble = (double *) emsBuf;
     char *bufChar = (char *) emsBuf;
-    int stringIsJSON = false;
-    if (info.Length() == 2) {
-        stringIsJSON = info[1]->ToBoolean()->Value();
-    }
 
     //  Wait until the heap top is full, and mark it busy while data is enqueued
     EMStransitionFEtag(&bufTags[EMScbTag(EMS_ARR_STACKTOP)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
-    int32_t idx = bufInt64[EMScbData(EMS_ARR_STACKTOP)] % bufInt64[EMScbData(EMS_ARR_NELEM)];  // TODO: BUG  This could be trucated
+    int32_t idx = bufInt64[EMScbData(EMS_ARR_STACKTOP)] % bufInt64[EMScbData(EMS_ARR_NELEM)];  // TODO: BUG  This could be truncated
     bufInt64[EMScbData(EMS_ARR_STACKTOP)]++;
     if (bufInt64[EMScbData(EMS_ARR_STACKTOP)] - bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] >
         bufInt64[EMScbData(EMS_ARR_NELEM)]) {
-        Nan::ThrowError("EMSenqueue: Ran out of stack entries");
-        return;
+        fprintf(stderr, "EMSenqueue: Ran out of stack entries\n");
+        return -1;
     }
 
     //  Wait for data pointed to by heap top to be empty, then set to Full while it is filled
     bufTags[EMSdataTag(idx)].tags.rw = 0;
-    bufTags[EMSdataTag(idx)].tags.type = EMSv8toEMStype(info[0], stringIsJSON);
+    bufTags[EMSdataTag(idx)].tags.type = value->type;
     switch (bufTags[EMSdataTag(idx)].tags.type) {
         case EMS_TYPE_BOOLEAN:
-            bufInt64[EMSdataData(idx)] = (int64_t) info[0]->ToBoolean()->Value();
-            break;
         case EMS_TYPE_INTEGER:
-            bufInt64[EMSdataData(idx)] = (int64_t) info[0]->ToInteger()->Value();
-            break;
         case EMS_TYPE_FLOAT:
-            bufDouble[EMSdataData(idx)] = (double) info[0]->ToNumber()->Value();
+            bufInt64[EMSdataData(idx)] = (int64_t) value->value;
             break;
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
-            std::string argString(*Nan::Utf8String(info[0]));
-            const char *arg_c_str = argString.c_str();
             int64_t textOffset;
-            EMS_ALLOC(textOffset, argString.length() + 1, "EMSenqueue: out of memory to store string", );
+            EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1, bufChar, "EMSenqueue: out of memory to store string\n", -1);
             bufInt64[EMSdataData(idx)] = textOffset;
-            strcpy(EMSheapPtr(textOffset), arg_c_str);
+            strcpy(EMSheapPtr(textOffset), (const char *) value->value);
         }
             break;
         case EMS_TYPE_UNDEFINED:
             bufInt64[EMSdataData(idx)] = 0xdeadbeef;
             break;
         default:
-            Nan::ThrowTypeError("xEMSwrite: Unknown arg type");
-            return;
+            fprintf(stderr, "EMSenqueue: Unknown value type\n");
+            return -1;
     }
 
     //  Set the tag on the data to FULL
@@ -244,18 +201,16 @@ void EMSenqueue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
     //  Enqueue is complete, set the tag on the heap to to FULL
     bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
-    info.GetReturnValue().Set(Nan::New(idx));
-    return;
+    return idx;
 }
 
 
 //==================================================================
 //  Dequeue
-void EMSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-    THIS_INFO_TO_EMSBUF(info, "mmapID");
+bool EMSdequeue(int mmapID, EMSvalueType *returnValue) {
+    void *emsBuf = emsBufs[mmapID];
     int64_t *bufInt64 = (int64_t *) emsBuf;
     EMStag_t *bufTags = (EMStag_t *) emsBuf;
-    double *bufDouble = (double *) emsBuf;
     char *bufChar = (char *) emsBuf;
     EMStag_t dataTag;
 
@@ -266,8 +221,9 @@ void EMSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     if (bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] >= bufInt64[EMScbData(EMS_ARR_STACKTOP)]) {
         bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)] = bufInt64[EMScbData(EMS_ARR_STACKTOP)];
         bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
-        info.GetReturnValue().Set(Nan::Undefined());
-        return;
+        returnValue->type = EMS_TYPE_UNDEFINED;
+        returnValue->value = (void *) 0xf00dd00f;
+        return true;
     }
 
     bufInt64[EMScbData(EMS_ARR_Q_BOTTOM)]++;
@@ -275,54 +231,38 @@ void EMSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     //  then mark busy while copying it, and finally set it to empty when done
     dataTag.byte = EMStransitionFEtag(&bufTags[EMSdataTag(idx)], NULL, EMS_TAG_FULL, EMS_TAG_BUSY, EMS_TAG_ANY);
     dataTag.tags.fe = EMS_TAG_EMPTY;
+    returnValue->type = dataTag.tags.type;
     switch (dataTag.tags.type) {
-        case EMS_TYPE_BOOLEAN: {
-            bool retBool = bufInt64[EMSdataData(idx)];
-            bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-            bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::New(retBool));
-            return;
-        }
-        case EMS_TYPE_INTEGER: {
-            int32_t retInt = bufInt64[EMSdataData(idx)];
-            bufTags[EMSdataTag(idx)].byte = dataTag.byte;
-            bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::New(retInt));
-            return;
-        }
+        case EMS_TYPE_BOOLEAN:
+        case EMS_TYPE_INTEGER:
         case EMS_TYPE_FLOAT: {
-            double retFloat = bufDouble[EMSdataData(idx)];
+            returnValue->value = (void *) bufInt64[EMSdataData(idx)];
             bufTags[EMSdataTag(idx)].byte = dataTag.byte;
             bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::New(retFloat));
-            return;
+            return true;
         }
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
             bufTags[EMSdataTag(idx)].byte = dataTag.byte;
             bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
-            if (dataTag.tags.type == EMS_TYPE_JSON) {
-                v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-                retObj->Set(Nan::New("data").ToLocalChecked(),
-                            Nan::New(EMSheapPtr(bufInt64[EMSdataData(idx)])).ToLocalChecked());
-                EMS_FREE(bufInt64[EMSdataData(idx)]);
-                info.GetReturnValue().Set(retObj);
-                return;
-            } else {
-                // info.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, EMSheapPtr(bufInt64[EMSdataData(idx)])));
-                info.GetReturnValue().Set(Nan::New(EMSheapPtr(bufInt64[EMSdataData(idx)])).ToLocalChecked());
-                EMS_FREE(bufInt64[EMSdataData(idx)]);
-                return;
+            size_t memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));  // TODO: Use size of allocation, not strlen
+            returnValue->value = malloc(memStrLen + 1);  // freed in NodeJSfaa
+            if(returnValue->value == NULL) {
+                fprintf(stderr, "EMSdequeue: Unable to allocate space to return queue head string\n");
+                return false;
             }
+            strcpy((char *) returnValue->value, EMSheapPtr(bufInt64[EMSdataData(idx)]));
+            EMS_FREE(bufInt64[EMSdataData(idx)]);
+            return true;
         }
         case EMS_TYPE_UNDEFINED: {
             bufTags[EMSdataTag(idx)].byte = dataTag.byte;
             bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
-            info.GetReturnValue().Set(Nan::Undefined());
-            return;
+            returnValue->value = (void *) 0xdeadbeef;
+            return true;
         }
         default:
-            Nan::ThrowTypeError("EMSdequeue unknown type");
-            return;
+            fprintf(stderr, "EMSdequeue: ERROR - unknown type at head of queue\n");
+            return false;
     }
 }
