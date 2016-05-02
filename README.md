@@ -1,4 +1,4 @@
-OSX | Linux | Node 4.1, 4.0, 0.12, 0.11, 0.10, iojs: 
+OSX | Linux | Node 5.1, 4.1, 4.0, 0.12, 0.11, 0.10, iojs: 
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
@@ -17,6 +17,14 @@ that addresses several challenges of parallel programming:
 + Provides dynamic load-balancing between processes
 + May substitute or complement other forms of parallelism
 
+#### Table of Contents
+* [Parallel Execution Models Supported](#Types\ of\ Concurrency)
+* [Atomic Operations](#Built-in\ Atomic\ Operations)
+* [Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+* [Benchmarks](#Examples\ and\ Benchmarks)
+* [Synchronization as a Property of the Data, Not a Duty for Tasks](Synchronization\ as\ a\ Property\ of\ the\ Data,\ Not\ a\ Duty\ for\ Tasks)
+* [Installation](#Installation)
+* [Roadmap](#Roadmap)
 
 #### EMS is targeted at tasks too large for one core, but too small for a scalable cluster.
 
@@ -25,6 +33,7 @@ equivalent to an entire rack of systems from a few years ago.
 As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
+
 
 ## Types of Concurrency
 <table>
@@ -78,7 +87,6 @@ currently available in user defined modes.
     barriers, master and single execution regions
 
 ## Examples and Benchmarks
-
 
 ### Word Counting Using Atomic Operations
 Map-Reduce is often demonstrated using word counting because each document can
@@ -302,7 +310,7 @@ for test in `ls *js`; do node $test 8; done
 ```
 
 ## Platforms Supported
-As of 2016-01-24, Mac/Darwin and Linux are supported.  A windows port pull request is welcomed!
+As of 2016-05-01, Mac/Darwin and Linux are supported.  A windows port pull request is welcomed!
 
 
 ## Roadmap
