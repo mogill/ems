@@ -76,6 +76,7 @@
         case EMS_TYPE_STRING: { \
             argString = std::string(*Nan::Utf8String(info)); \
             localValue.value = (void *) argString.c_str(); \
+            localValue.length = argString.length(); \
         } \
             break; \
         case EMS_TYPE_UNDEFINED: \

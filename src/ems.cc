@@ -330,7 +330,7 @@ int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key) {
                                 break;
                             case EMS_TYPE_STRING: {
                                 int64_t textOffset;
-                                EMS_ALLOC(textOffset, strlen((const char *) key->value) + 1, bufChar,
+                                EMS_ALLOC(textOffset, key->length + 1, bufChar,
                                           "EMSwriteIndexMap(string): out of memory to store string", -1);
                                 bufInt64[EMSmapData(idx)] = textOffset;
                                 strcpy((char *) EMSheapPtr(textOffset), (const char *) key->value);
@@ -637,7 +637,7 @@ bool EMSwriteUsingTags(int mmapID,
                     case EMS_TYPE_JSON:
                     case EMS_TYPE_STRING: {
                         int64_t textOffset;
-                        EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1, bufChar,  // NULL padding at end
+                        EMS_ALLOC(textOffset, value->length + 1, bufChar,  // NULL padding at end
                                   "EMSwriteUsingTags: out of memory to store string", false);
                         bufInt64[EMSdataData(idx)] = textOffset;
                         strcpy(EMSheapPtr(textOffset), (const char *) value->value);
@@ -955,7 +955,7 @@ int EMSinitialize(int64_t nElements,     // 0
     int64_t endIter = iterPerThread * (EMSmyID + 1);
     size_t fillStrLen = 0;
     if (doDataFill  &&  (fillValue.type == EMS_TYPE_JSON || fillValue.type == EMS_TYPE_STRING)) {
-        fillStrLen = strlen((char *)fillValue.value);
+        fillStrLen = fillValue.length;
     }
     if (endIter > nElements) endIter = nElements;
     for (int64_t idx = startIter; idx < endIter; idx++) {

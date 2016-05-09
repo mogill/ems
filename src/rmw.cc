@@ -84,7 +84,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                     break;
                 case EMS_TYPE_STRING: {   //  Bool + string
                     int64_t textOffset;
-                    EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1 + 5, //  String length + Terminating null + 'false'
+                    EMS_ALLOC(textOffset, value->length + 1 + 5, //  String length + Terminating null + 'false'
                               bufChar, "EMSfaa(bool+string): out of memory to store string\n", false);
                     sprintf(EMSheapPtr(textOffset), "%s%s",
                             bufInt64[EMSdataData(idx)] ? "true" : "false", (const char *) value->value);
@@ -136,7 +136,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                     break;
                 case EMS_TYPE_STRING: {   // int + string
                     int64_t textOffset;
-                    EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1 + MAX_NUMBER2STR_LEN,
+                    EMS_ALLOC(textOffset, value->length + 1 + MAX_NUMBER2STR_LEN,
                               bufChar, "EMSfaa(int+string): out of memory to store string\n", false);
                     sprintf(EMSheapPtr(textOffset), "%lld%s",
                             (long long int) bufInt64[EMSdataData(idx)], (const char *) value->value);
@@ -176,7 +176,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                     break;
                 case EMS_TYPE_STRING: {   // Float + string
                     int64_t textOffset;
-                    EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1 + MAX_NUMBER2STR_LEN,
+                    EMS_ALLOC(textOffset, value->length + 1 + MAX_NUMBER2STR_LEN,
                               bufChar, "EMSfaa(float+string): out of memory to store string\n", false);
                     sprintf(EMSheapPtr(textOffset), "%lf%s", bufDouble[EMSdataData(idx)], (const char *) value->value);
                     bufInt64[EMSdataData(idx)] = textOffset;
@@ -226,7 +226,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                 }
                     break;
                 case EMS_TYPE_STRING: { // string + string
-                    len = oldStrLen + 1 + strlen((const char *) value->value);
+                    len = oldStrLen + 1 + value->length;
                     EMS_ALLOC(textOffset, len, bufChar, "EMSfaa(string+string): out of memory to store string\n", false);
                     sprintf(EMSheapPtr(textOffset), "%s%s",
                             EMSheapPtr(bufInt64[EMSdataData(idx)]), (const char *) value->value);
@@ -239,7 +239,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                             EMSheapPtr(bufInt64[EMSdataData(idx)]), (bool) value->value ? "true" : "false");
                     break;
                 case EMS_TYPE_UNDEFINED: // string + undefined
-                    len = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)])) + 1 + strlen("undefined");
+                    len = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)])) + 1 + 9; // 9 == strlen("undefined");
                     EMS_ALLOC(textOffset, len, bufChar, "EMSfaa(string+undefined): out of memory to store string\n", false);
                     sprintf(EMSheapPtr(textOffset), "%s%s",
                             EMSheapPtr(bufInt64[EMSdataData(idx)]), "undefined");
@@ -271,7 +271,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                     break;
                 case EMS_TYPE_STRING: { // Undefined + string
                     int64_t textOffset;
-                    EMS_ALLOC(textOffset, strlen((const char *) value->value) + 1 + 3, //  3 = strlen("NaN");
+                    EMS_ALLOC(textOffset, value->length + 1 + 3, //  3 = strlen("NaN");
                               bufChar, "EMSfaa(undef+String): out of memory to store string\n", false);
                     sprintf(EMSheapPtr(textOffset), "NaN%s", (const char *) value->value);
                     bufInt64[EMSdataData(idx)] = textOffset;
@@ -415,7 +415,7 @@ retry_on_undefined:
                 break;
             case EMS_TYPE_JSON:
             case EMS_TYPE_STRING:
-                EMS_ALLOC(textOffset, strlen((const char *) newValue->value) + 1,
+                EMS_ALLOC(textOffset, newValue->length + 1,
                           bufChar, "EMScas(string): out of memory to store string\n", false);
                 strcpy(EMSheapPtr(textOffset), (const char *) newValue->value);
                 bufInt64[EMSdataData(idx)] = textOffset;

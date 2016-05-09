@@ -208,7 +208,8 @@ union ulong_double {
 
 
 typedef struct {
-    unsigned char  type;
+    unsigned char type;
+    int length;  // Defined only for JSON and strings
     void *value;
 } EMSvalueType;
 
