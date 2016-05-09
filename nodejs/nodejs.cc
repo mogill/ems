@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 #include "nodejs.h"
-#include "ems.h"
+#include "../src/ems.h"
 
 
 void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info) {

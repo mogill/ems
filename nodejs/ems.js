@@ -615,7 +615,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     if (targetScript !== undefined && retObj.myID == 0) {
         var emsThreadStub =
             '// Automatically Generated EMS Slave Thread Script\n' +
-            '// To edit this file, see index.js:emsThreadStub()\n' +
+            '// To edit this file, see ems.js:emsThreadStub()\n' +
             'var ems = require("ems")(parseInt(process.argv[2]));\n' +
             'process.on("message", function(msg) {\n' +
             '    eval("func = " + msg.func);\n' +
