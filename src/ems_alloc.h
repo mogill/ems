@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -36,7 +36,7 @@
 
 // The block size used by the memory allocator for allocating heap space.
 // May be any positive non-zero value
-#define EMS_MEM_BLOCKSZ 24
+#define EMS_MEM_BLOCKSZ 32
 
 
 //  Buddy allocator control structure

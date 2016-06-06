@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -186,17 +186,17 @@ union EMStag_t {
 //  Yield the processor and sleep (using exponential decay) without
 //  using resources/
 //  Used within spin-loops to reduce hot-spotting
-#define RESET_NAP_TIME  int EMScurrentNapTime;
+#define RESET_NAP_TIME  int EMScurrentNapTime = 1
 #define MAX_NAP_TIME  1000000
 #define NANOSLEEP    {                         \
     struct timespec     sleep_time;            \
-    EMScurrentNapTime =  1;                    \
     sleep_time.tv_sec  = 0;                    \
     sleep_time.tv_nsec = EMScurrentNapTime;    \
     nanosleep(&sleep_time, NULL);              \
     EMScurrentNapTime *= 2;                    \
-    if(EMScurrentNapTime > MAX_NAP_TIME)       \
-      EMScurrentNapTime = MAX_NAP_TIME;        \
+    if(EMScurrentNapTime > MAX_NAP_TIME) {     \
+        EMScurrentNapTime = MAX_NAP_TIME;      \
+    }                                          \
  }
 
 
@@ -208,67 +208,67 @@ union ulong_double {
 
 
 typedef struct {
-    unsigned char type;
-    int length;  // Defined only for JSON and strings
+    size_t length;  // Defined only for JSON and strings
     void *value;
+    unsigned char type;
 } EMSvalueType;
 
 
-int EMScriticalEnter(int mmapID, int timeout);
-bool EMScriticalExit(int mmapID);
-int EMSbarrier(int mmapID, int timeout);
-bool EMSsingleTask(int mmapID);
-bool EMScas(int mmapID, EMSvalueType *key,
+extern "C" int EMScriticalEnter(int mmapID, int timeout);
+extern "C" bool EMScriticalExit(int mmapID);
+extern "C" int EMSbarrier(int mmapID, int timeout);
+extern "C" bool EMSsingleTask(int mmapID);
+extern "C" bool EMScas(int mmapID, EMSvalueType *key,
             EMSvalueType *oldValue, EMSvalueType *newValue,
             EMSvalueType *returnValue);
-bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *returnValue);
-int EMSpush(int mmapID, EMSvalueType *value);
-bool EMSpop(int mmapID, EMSvalueType *returnValue);
-int EMSenqueue(int mmapID, EMSvalueType *value);
-bool EMSdequeue(int mmapID, EMSvalueType *returnValue);
-bool EMSloopInit(int mmapID, int32_t start, int32_t end, int32_t minChunk, int schedule_mode);
-bool EMSloopChunk(int mmapID, int32_t *start, int32_t *end);
-unsigned char EMStransitionFEtag(EMStag_t volatile *tag, EMStag_t volatile *mapTag, unsigned char oldFE, unsigned char newFE, unsigned char oldType);
+extern "C" bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *returnValue);
+extern "C" int EMSpush(int mmapID, EMSvalueType *value);
+extern "C" bool EMSpop(int mmapID, EMSvalueType *returnValue);
+extern "C" int EMSenqueue(int mmapID, EMSvalueType *value);
+extern "C" bool EMSdequeue(int mmapID, EMSvalueType *returnValue);
+extern "C" bool EMSloopInit(int mmapID, int32_t start, int32_t end, int32_t minChunk, int schedule_mode);
+extern "C" bool EMSloopChunk(int mmapID, int32_t *start, int32_t *end);
+extern "C" unsigned char EMStransitionFEtag(EMStag_t volatile *tag, EMStag_t volatile *mapTag, unsigned char oldFE, unsigned char newFE, unsigned char oldType);
 int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key);
 int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped);
 int64_t EMShashString(const char *key);
 
-/////////////////////////////////////////////////////////////////////////
-bool EMSreadRW(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-bool EMSreadFF(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-bool EMSreadFE(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-bool EMSread(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-int EMSreleaseRW(const int mmapID, EMSvalueType *key);
-bool EMSwriteXF(int mmapID, EMSvalueType *key, EMSvalueType *value);
-bool EMSwriteXE(int mmapID, EMSvalueType *key, EMSvalueType *value);
-bool EMSwriteEF(int mmapID, EMSvalueType *key, EMSvalueType *value);
-bool EMSwrite(int mmapID, EMSvalueType *key, EMSvalueType *value);
-bool EMSsetTag(int mmapID, EMSvalueType *key, bool is_full);
-bool EMSdestroy(int mmapID, bool do_unlink);
-bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key);
-bool EMSsync(int mmapID);
-int EMSinitialize(int64_t nElements,     // 0
-                  int64_t heapSize,      // 1
-                  bool useMap,           // 2
-                  const char *filename,  // 3
-                  bool persist,          // 4
-                  bool useExisting,      // 5
-                  bool doDataFill,       // 6
-                  bool fillIsJSON,       // 7
-                  EMSvalueType fillValue,// 8
-                  bool doSetFEtags,      // 9
-                  bool setFEtags,        // 10
-                  int EMSmyID,           // 11
-                  bool pinThreads,       // 12
-                  int64_t nThreads,      // 13
-                  int64_t pctMLock );    // 14
+////////////////////////////////////////////////////////////////////////
+extern "C" bool EMSreadRW(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
+extern "C" bool EMSreadFF(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
+extern "C" bool EMSreadFE(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
+extern "C" bool EMSread(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
+extern "C" int EMSreleaseRW(const int mmapID, EMSvalueType *key);
+extern "C" bool EMSwriteXF(int mmapID, EMSvalueType *key, EMSvalueType *value);
+extern "C" bool EMSwriteXE(int mmapID, EMSvalueType *key, EMSvalueType *value);
+extern "C" bool EMSwriteEF(int mmapID, EMSvalueType *key, EMSvalueType *value);
+extern "C" bool EMSwrite(int mmapID, EMSvalueType *key, EMSvalueType *value);
+extern "C" bool EMSsetTag(int mmapID, EMSvalueType *key, bool is_full);
+extern "C" bool EMSdestroy(int mmapID, bool do_unlink);
+extern "C" bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key);
+extern "C" bool EMSsync(int mmapID);
+extern "C" int EMSinitialize(int64_t nElements,     // 0
+                  int64_t heapSize,       // 1
+                  bool useMap,            // 2
+                  const char *filename,   // 3
+                  bool persist,           // 4
+                  bool useExisting,       // 5
+                  bool doDataFill,        // 6
+                  bool fillIsJSON,        // 7
+                  EMSvalueType *fillValue,// 8
+                  bool doSetFEtags,       // 9
+                  bool setFEtagsFull,     // 10
+                  int EMSmyID,            // 11
+                  bool pinThreads,        // 12
+                  int64_t nThreads,       // 13
+                  int64_t pctMLock );     // 14
 
 
 #define EMS_ALLOC(addr, len, bufChar, errmsg, retval)                    \
   addr = emsMutexMem_alloc( EMS_MEM_MALLOCBOT(bufChar), \
                 len, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] ); \
   if(addr < 0)  { \
-      fprintf(stderr, "EMS_ALLOC: ERROR -- Allocation failed\n"); \
+      fprintf(stderr, "EMS_ALLOC: ERROR -- Allocation of len(%zx) failed\n", len); \
       return retval; \
   }
 

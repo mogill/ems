@@ -1,9 +1,9 @@
-/*-----------------------------------------------------------------------------+
+"""
+ +-----------------------------------------------------------------------------+
  |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
- |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,40 +28,46 @@
  |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
- +-----------------------------------------------------------------------------*/
-'use strict';
-var ems = require('ems')(parseInt(process.argv[2]), false);
-var assert = require('assert');
-var arrayElem = ['abcd', 1234.567, true, 987, -1234.567, -987, -986, -988];
-var arrLen = arrayElem.length;
+ +-----------------------------------------------------------------------------+
+"""
+import sys
+import time
+# sys.path.append('./')
+# sys.path.append("../Python/")
 
-var objMap = ems.new({
-    dimensions: [arrLen],
-    heapSize: arrLen * 200,
-    useMap: true,
-    useExisting: false,
-    setFEtags: 'full'
-});
+nprocs = 2
+nelem = 1000
+global_str = "The Global String"   # Hardcoded later
 
-
-arrayElem.forEach(function (elem, idx) {
-    if (ems.myID === 0) { console.log("Trying to map:", elem, typeof elem); }
-    objMap.writeXF(elem, elem + idx);
-    var readback = objMap.readFF(elem);
-    assert(readback === elem + idx, 'Readback of ' + (elem + idx) + 'didnt match:' + readback);
-});
+import ems
+ems.initialize(nprocs, True, 'fj', '/tmp/fj_main.ems')
 
 
-ems.diag("!!!!!!!! SKIPPING THE FUN PROXY TESTS!!!!!!!!!!!!!!!!!!!");
-process.exit(0);
+def fj_test(a, b, c, taskN=None):
+    global global_str, nprocs, ems
+    global_str = "The new globstrrrrrr"
+    # import ems
+    # ems.initialize(nprocs, True, 'fj', '/tmp/fj_main.ems')
+    ems.diag("FJ0")
+    assert taskN == None
+    ems.diag("FJ1")
+    ems.barrier()
+    ems.diag("FJ2")
+    # assert(typeof local_str === "undefined", "The local string did not stay local");
+    # ems.diag("global_str=" + global_str + " a =" + a + "  b=" + b + "  c=" + c)
+    ems.diag("global_str=" + global_str + " a =" + a + "  b=" + b + "  c=" + c)
+    ems.diag("FJ3")
+    assert a == "The Global String"   # Hardcoded due to no closures
+    assert b == 'two'
+    assert c == 'three'
+    ems.diag("FJ4")
+    # global_str += "Updated by process " + str(ems.myID)
 
-objMap['foo'] = 123;
-assert(objMap['foo'] === 123);
-objMap.bar = 321;
-assert(objMap.bar === 321);
-console.log('---------------------------------', typeof objMap['bar'], objMap['bar']);
-console.log('regionN=', objMap['doDataFill']);
+ems.diag("Entering first parallel region")
+ems.parallel(fj_test, global_str, 'two', 'three')
+ems.diag("globstr=" + global_str)
 
-objMap['bar'].writeXF('asd');
-// assert(objMap['bar'].readFE() === 'asd');
-
+ems.diag("This side")
+time.sleep(ems.myID/2)
+ems.parallel(ems.barrer)
+ems.diag("That side")

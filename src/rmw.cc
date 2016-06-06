@@ -291,7 +291,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
             fprintf(stderr, "EMSfaa(?+___: Unknown stored data type\n");
             return false;
     }
-    fprintf(stderr, "EMSfaa: Unknown everything -- failing for unknown reasons\n");
+    // fprintf(stderr, "EMSfaa: Unknown everything -- failing for unknown reasons\n");
     return false;
 }
 

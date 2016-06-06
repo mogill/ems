@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -46,7 +46,7 @@ for (iter = 0; iter < nIters; iter += 1) {
         "myID=" + ems.myID + "  iter=" + iter + "  memval=" + memVal);
     sums.write(idx, memVal + 1);
 }
-ems.barrier();
+ems.barrier(100);
 
 
 for (iter = 0; iter < nIters; iter += 1) {

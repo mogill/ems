@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -36,7 +36,7 @@ var ems = require('ems')(1, 0, 'bsp', '/facto.ems');
 var array_len = 10000;
 var ems_config = {
     dimensions  : [array_len],
-    heapSize    : 10000,
+    heapSize    : 20000,
     useMap      : false,
     useExisting : false,
     filename    : '/tmp/refactor.ems'

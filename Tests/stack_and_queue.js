@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -38,14 +38,18 @@ var a = ems.new({
     heapSize: arrLen * 100,
     useExisting: false,
     filename: '/tmp/EMS_stack',
+    doSetFEtags: true,
     setFEtags: 'empty',
+    doSetDataFill: true,
     dataFill: undefined
 });
 
 var b = ems.new({
     dimensions: [arrLen],
     heapSize: arrLen * 100,
+    doSetFEtags: true,
     setFEtags: 'empty',
+    doSetDataFill: true,
     dataFill: undefined
 });
 
@@ -151,6 +155,7 @@ assert(tmp === undefined, "DQ at end should be mt: " + tmp);
 var p = ems.new({
     dimensions: [arrLen + 1],
     heapSize: arrLen * 50,
+    doSetFEtags: true,
     setFEtags: 'empty',
     dataFill: undefined
 });
@@ -209,6 +214,7 @@ assert(tmp === undefined, "DQend second time should be mt: " + tmp);
 p = ems.new({
     dimensions: [arrLen + 1],
     heapSize: arrLen * 50,
+    doSetFEtags: true,
     setFEtags: 'empty',
     dataFill: undefined
 });

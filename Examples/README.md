@@ -1,10 +1,14 @@
 # EMS Examples
 #### Table of Contents
+##### Node.js
 * [Simple Loop Benchmarks](#Simple\ Loop\ Benchmarks)
 * [Work Queues](#Work\ Queues)
 * [Key-Value Store](#kv_store.js)
 * [Web Server](#web_server.js)
 * [Word Counting](#wordCount.js )
+
+##### Python
+* [Parallel Loops](#Parallel\ Loops)
 
 
 ## Simple Loop Benchmarks
@@ -178,3 +182,7 @@ documents from Project Gutenberg.
 2,981,712,952 words in several languages were parsed, totaling 12,664,852,220 bytes of text.
 
 <img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
+
+
+## Python
+### Parallel Loops

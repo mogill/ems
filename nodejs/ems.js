@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -33,6 +33,21 @@
 var fs = require("fs");
 var child_process = require('child_process');
 var EMS = require("bindings")("ems.node");
+var Reflect = require('harmony-reflect');
+
+var handler = {
+    get: function(target, name) {
+        if (name in target) {
+            return target[name];
+        } else {
+            return target.read(name);
+        }
+    },
+    set: function(target, name, value) {
+        target.write(name, value);
+    }
+};
+
 var EMSglobal;
 
 //==================================================================
@@ -108,7 +123,7 @@ function EMSparForEach(start,         // First iteration's index
                 e = end;
             }
             for (idx = s; idx < e; idx += 1) {
-                loopBody(idx);
+                loopBody(idx + start);
             }
             break;
         case 'dynamic':
@@ -197,7 +212,11 @@ function EMStmEnd(tmHandle,   //  The returned value from tmStart
 //==================================================================
 function EMSreturnData(value) {
     if (typeof value == 'object') {
-        return JSON.parse(value.data);
+        if(value.data[0] == '['  &&  value.data.slice(-1) == ']') {
+            return eval(value.data);
+        } else {
+            return JSON.parse(value.data);
+        }
     } else {
         return value;
     }
@@ -337,8 +356,11 @@ function EMScas(indexes, oldVal, newVal) {
 
 //==================================================================
 //  Serialize execution through this function
-function EMScritical(func) {
-    this.criticalEnter();
+function EMScritical(func, timeout) {
+    if(typeof timeout === 'undefined') {
+        timeout = 1000000;
+    }
+    this.criticalEnter(timeout);
     var retObj = func();
     this.criticalExit();
     return retObj
@@ -374,9 +396,12 @@ function EMSsingle(func) {
 
 //==================================================================
 //  Wrapper around the EMS global barrier
-function EMSbarrier() {
+function EMSbarrier(timeout) {
     if (EMSglobal.inParallelContext) {
-        EMS.barrier();
+        if(typeof timeout === 'undefined') {
+            timeout = 1000000;
+        }
+        EMS.barrier(timeout);
     }
 }
 
@@ -422,6 +447,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         persist: true,  // Optional, default=true: Preserve the file after threads exit
         doDataFill: false, // Optional, default=false: Data values should be initialized
         dataFill: undefined,//Optional, default=false: Value to initialize data to
+        doSetFEtags: false, // Optional, initialize full/empty tags
+        setFEtagsFull: true, // Optional, used only if doSetFEtags is true
         dimStride: []     //  Stride factors for each dimension of multidimensal arrays
     };
 
@@ -455,16 +482,25 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
                 emsDescriptor.useExisting = arg0.useExisting
             }
             if (typeof arg0.doDataFill !== 'undefined') {
-                emsDescriptor.doDataFill = true;
-                if (typeof arg0.dataFill == 'object') {
-                    emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
-                    fillIsJSON = true;
-                } else {
-                    emsDescriptor.dataFill = arg0.dataFill;
+                if(arg0.doDataFill) {
+                    emsDescriptor.doDataFill = arg0.doDataFill;
+                    if (typeof arg0.dataFill == 'object') {
+                        emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
+                        fillIsJSON = true;
+                    } else {
+                        emsDescriptor.dataFill = arg0.dataFill;
+                    }
                 }
             }
+            if (typeof arg0.doSetFEtags !== 'undefined') {
+                emsDescriptor.doSetFEtags = arg0.doSetFEtags
+            }
             if (typeof arg0.setFEtags !== 'undefined') {
-                emsDescriptor.setFEtags = arg0.setFEtags
+                if (arg0.setFEtags == 'full') {
+                    emsDescriptor.setFEtagsFull = true;
+                } else {
+                    emsDescriptor.setFEtagsFull = false;
+                }
             }
             if (typeof arg0.hashFunc !== 'undefined') {
                 emsDescriptor.hashFunc = arg0.hashFunc
@@ -521,8 +557,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.persist, emsDescriptor.useExisting,  // 4, 5
         emsDescriptor.doDataFill, fillIsJSON, // 6, 7
         emsDescriptor.dataFill,  // 8
-        (typeof emsDescriptor.setFEtags !== 'undefined'),  // 9
-        (emsDescriptor.setFEtags == 'full'),  // 10
+        emsDescriptor.doSetFEtags,  // 9
+        emsDescriptor.setFEtagsFull,  // 10
         this.myID, this.pinThreads, this.nThreads,  // 11, 12, 13
         emsDescriptor.mlock);  // 14
     if (!emsDescriptor.useExisting && this.myID == 0)  EMSbarrier();
@@ -549,6 +585,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     emsDescriptor.destroy = EMSdestroy;
     this.newRegionN++;
     EMSbarrier();
+    // return new Proxy(emsDescriptor, handler);  // TODO: Make default in Node.js v6.x
     return emsDescriptor;
 }
 
@@ -585,7 +622,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
         false, // 2 = useMap 
         domainName, false, false,  // 3=name, 4=persist, 5=useExisting
         false, false, undefined,  //  6=doDataFill, 7=fillIsJSON, 8=fillValue
-        false, false,  retObj.myID, //  9=doSetFEtags, 10=setFEtags, 11=EMS myID
+        false, false,  retObj.myID, //  9=doSetFEtags, 10=setFEtagsFull, 11=EMS myID
         pinThreads, nThreads, 99);  // 12=pinThread,  13=nThreads, 14=pctMlock
 
     var targetScript;

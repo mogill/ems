@@ -1,9 +1,10 @@
-/*-----------------------------------------------------------------------------+
+#!/usr/bin/env python3
+"""
+ +-----------------------------------------------------------------------------+
  |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
- |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -28,40 +29,11 @@
  |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
- +-----------------------------------------------------------------------------*/
-'use strict';
-var ems = require('ems')(parseInt(process.argv[2]), false);
-var assert = require('assert');
-var arrayElem = ['abcd', 1234.567, true, 987, -1234.567, -987, -986, -988];
-var arrLen = arrayElem.length;
-
-var objMap = ems.new({
-    dimensions: [arrLen],
-    heapSize: arrLen * 200,
-    useMap: true,
-    useExisting: false,
-    setFEtags: 'full'
-});
-
-
-arrayElem.forEach(function (elem, idx) {
-    if (ems.myID === 0) { console.log("Trying to map:", elem, typeof elem); }
-    objMap.writeXF(elem, elem + idx);
-    var readback = objMap.readFF(elem);
-    assert(readback === elem + idx, 'Readback of ' + (elem + idx) + 'didnt match:' + readback);
-});
-
-
-ems.diag("!!!!!!!! SKIPPING THE FUN PROXY TESTS!!!!!!!!!!!!!!!!!!!");
-process.exit(0);
-
-objMap['foo'] = 123;
-assert(objMap['foo'] === 123);
-objMap.bar = 321;
-assert(objMap.bar === 321);
-console.log('---------------------------------', typeof objMap['bar'], objMap['bar']);
-console.log('regionN=', objMap['doDataFill']);
-
-objMap['bar'].writeXF('asd');
-// assert(objMap['bar'].readFE() === 'asd');
+ +-----------------------------------------------------------------------------+
+"""
+import sys
+import os
+import time
+sys.path.append('./')
+sys.path.append("../Python/")
 

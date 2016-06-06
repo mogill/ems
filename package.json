@@ -1,6 +1,6 @@
 {
   "name": "ems",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "author": "Synthetic Semantics <info@synsem.com>",
   "description": "Persistent Shared Memory and Parallel Programming Model",
   "contributors": [
@@ -10,8 +10,8 @@
     }
   ],
   "scripts": {
-    "test": "cd Tests && rm -f EMSthreadStub.js && for test in `ls *js`; do node $test 8; err=$?; echo $test \": ERROR=\" $err;  if [ $err -ne 0 ] ; then exit 1; fi; done",
-    "example": "cd Examples; node concurrent_Q_and_TM.js 8"
+    "test": "cd Tests && rm -f EMSthreadStub.js && for test in `ls *js`; do node --harmony_proxies $test 8; err=$?; echo $test \": ERROR=\" $err;  if [ $err -ne 0 ] ; then exit 1; fi; done",
+    "example": "cd Examples; node --harmony_proxies concurrent_Q_and_TM.js 8"
   },
   "main": "nodejs/ems.js",
   "repository": {
@@ -40,7 +40,7 @@
   ],
   "license": "BSD-3-Clause",
   "engines": {
-    "node": ">=0.10.25"
+    "node": ">=4.0.0"
   },
   "dependencies": {
     "bindings": "^1.2.1",

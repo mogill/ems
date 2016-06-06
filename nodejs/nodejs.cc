@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -35,7 +35,14 @@
 
 void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     NODE_MMAPID_DECL();
-    int timeRemaining = EMScriticalEnter(mmapID, INT32_MAX);  // TODO: Infinite wait time
+    int timeout = INT32_MAX;
+    if(info.Length() == 1) {
+        timeout = info[0]->ToInteger()->Value();
+    } else {
+        Nan::ThrowError("NodeJScriticalEner: invalid or missing timeout duration");
+        return;
+    }
+    int timeRemaining = EMScriticalEnter(mmapID, timeout);
     if (timeRemaining <= 0) {
         Nan::ThrowError("NodeJScriticalEnter: Unable to enter critical region before timeout");
     } else {
@@ -57,7 +64,14 @@ void NodeJScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 void NodeJSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     NODE_MMAPID_DECL();
-    int timeRemaining = EMSbarrier(mmapID, INT32_MAX);  // TODO: infinite wait time
+    int timeout = INT32_MAX;
+    if(info.Length() == 1) {
+        timeout = info[0]->ToInteger()->Value();
+    } else {
+        Nan::ThrowError("NodeJSbarrier: invalid or missing timeout duration");
+        return;
+    }
+    int timeRemaining = EMSbarrier(mmapID, timeout);
     if (timeRemaining <= 0) {
         Nan::ThrowError("NodeJSbarrer: Failed to sync at barrier");
     } else {
@@ -315,21 +329,21 @@ void NodeJSinitialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         NAN_OBJ_TO_EMS_VAL(NodeJSinitialize, info[8], fillData, fillString, fillIsJSON);
     }
 
-    int emsBufN = EMSinitialize(nElements,  // 0
-                                heapSize,   // 1
-                                useMap,     // 2
-                                filename,   // 3
-                                persist,    // 4
-                                useExisting,// 5
-                                doDataFill, // 6 Data Fill type TBD during fill
-                                fillIsJSON, // 7
-                                fillData,   // 8
-                                doSetFEtags,// 9
-                                setFEtags,  // 10
-                                EMSmyID,    // 11
-                                pinThreads, // 12
-                                nThreads,   // 13
-                                pctMLock);  // 14
+    int emsBufN = EMSinitialize(nElements,   // 0
+                                heapSize,    // 1
+                                useMap,      // 2
+                                filename,    // 3
+                                persist,     // 4
+                                useExisting, // 5
+                                doDataFill,  // 6 Data Fill type TBD during fill
+                                fillIsJSON,  // 7
+                                &fillData,   // 8
+                                doSetFEtags, // 9
+                                setFEtags,   // 10
+                                EMSmyID,     // 11
+                                pinThreads,  // 12
+                                nThreads,    // 13
+                                pctMLock);   // 14
 
     if(emsBufN < 0) {
         Nan::ThrowError("NodeJSinitialize: failed to initialize EMS array");
