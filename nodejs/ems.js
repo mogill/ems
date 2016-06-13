@@ -560,8 +560,8 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var retObj = {tasks: []};
 
     // TODO: Determining the thread ID should be done via shared memory
-    if (process.argv[process.argv.length - 2] === 'EMS_Subtask') {
-        retObj.myID = parseInt(process.argv[process.argv.length - 1])
+    if (process.env.EMS_Subtask != undefined ) {
+        retObj.myID = parseInt(process.env.EMS_Subtask);
     } else {
         retObj.myID = 0;
     }
@@ -574,8 +574,12 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var nThreads;
     nThreads = parseInt(nThreadsArg);
     if (!(nThreads > 0)) {
-        console.log("EMS: Must declare number of nodes to use.  Input:" + nThreadsArg);
-        process.exit(1);
+        if (process.env.EMS_Ntasks != undefined) {
+            nThreads = parseInt(process.env.EMS_Ntasks);
+        } else {
+            console.log("EMS: Must declare number of nodes to use.  Input:" + nThreadsArg);
+            process.exit(1);
+        }
     }
 
     var domainName = '/EMS_MainDomain';
@@ -616,16 +620,18 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
         var emsThreadStub =
             '// Automatically Generated EMS Slave Thread Script\n' +
             '// To edit this file, see ems.js:emsThreadStub()\n' +
-            'var ems = require("ems")(parseInt(process.argv[2]));\n' +
+            'var ems = require("ems")(parseInt(process.env.EMS_Ntasks));\n' +
             'process.on("message", function(msg) {\n' +
             '    eval("func = " + msg.func);\n' +
             '    func.apply(null, msg.args);\n' +
             '} );\n';
         fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag: 'w+'});
+        process.env.EMS_Ntasks = nThreads;
         for (var taskN = 1; taskN < nThreads; taskN++) {
+            process.env.EMS_Subtask = taskN;
             retObj.tasks.push(
                 child_process.fork(targetScript,
-                    process.argv.slice(2, process.argv.length).concat('EMS_Subtask', taskN)));
+                    process.argv.slice(2, process.argv.length)));
         }
     }
 
