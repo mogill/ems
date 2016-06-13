@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.5   |
+ |  Extended Memory Semantics (EMS)                            Version 1.3.6   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -39,7 +39,6 @@ var tests = ems.new({
     heapSize: 10000,
     useMap: true,
     useExisting: false,
-    persist: false,
     filename: '/tmp/issue11.ems',
     setFEtags: 'empty'
 });
