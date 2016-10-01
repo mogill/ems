@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -144,7 +144,7 @@ for (i = 0; i < nIters; i++) {
         var x = dim1.read(30);
         x++;
         dim1.write(30, x);
-    });
+    }, 1000);  // TODO: Write proper fail case test for critical timeout
 }
 
 
@@ -235,3 +235,6 @@ if (ems.myID != 0) {
 }
 ems.barrier();
 stopTimer(start, 2 * dims2d[0] * dims2d[1], " Dataflow w/strgs ");
+
+
+

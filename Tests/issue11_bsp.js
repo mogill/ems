@@ -40,6 +40,7 @@ var tests = ems.new({
     useMap: true,
     useExisting: false,
     filename: '/tmp/issue11.ems',
+    doSetFEtags: true,
     setFEtags: 'empty'
 });
 

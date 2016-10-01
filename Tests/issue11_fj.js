@@ -44,6 +44,7 @@ ems.parallel(nProcs, function foo(nProcs) {
         useMap: true,
         useExisting: false,
         filename: '/tmp/issue11.ems',
+        doSetFEtags: true,
         setFEtags: 'empty'
     });
 

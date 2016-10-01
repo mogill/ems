@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -38,6 +38,8 @@ var nIters = Math.floor(100000 / process.argv[2]);
 var sums = ems.new(ems.nThreads);
 sums.writeXF(ems.myID, 0);
 
+
+
 for (iter = 0; iter < nIters; iter += 1) {
     ems.barrier();
     idx = (ems.myID + iter) % ems.nThreads;
@@ -46,7 +48,7 @@ for (iter = 0; iter < nIters; iter += 1) {
         "myID=" + ems.myID + "  iter=" + iter + "  memval=" + memVal);
     sums.write(idx, memVal + 1);
 }
-ems.barrier();
+ems.barrier(100);
 
 
 for (iter = 0; iter < nIters; iter += 1) {
@@ -107,3 +109,13 @@ ems.barrier();
 var sr = shared.read(0);
 ems.barrier();
 assert(sr === ems.nThreads * nIter, "Fast Looped FAA failed: count (" + sr + ") to nnodes (" + nIter + ")");
+
+
+var timeout = -1;
+try {
+    timeout = ems.barrier(0);
+    console.log("Barrier timeout succeeded but should have failed");
+} catch (err) {
+    ems.diag("Correctly timed out at barrier:", err);
+}
+assert(timeout <= 0);

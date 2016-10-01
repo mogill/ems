@@ -108,7 +108,7 @@ function EMSparForEach(start,         // First iteration's index
                 e = end;
             }
             for (idx = s; idx < e; idx += 1) {
-                loopBody(idx);
+                loopBody(idx + start);
             }
             break;
         case 'dynamic':
@@ -196,8 +196,12 @@ function EMStmEnd(tmHandle,   //  The returned value from tmStart
 
 //==================================================================
 function EMSreturnData(value) {
-    if (typeof value == 'object') {
-        return JSON.parse(value.data);
+    if (typeof value === "object") {
+        if (value.data[0] == "[" && value.data.slice(-1) == "]") {
+            return eval(value.data);
+        } else {
+            return JSON.parse(value.data);
+        }
     } else {
         return value;
     }
@@ -337,8 +341,11 @@ function EMScas(indexes, oldVal, newVal) {
 
 //==================================================================
 //  Serialize execution through this function
-function EMScritical(func) {
-    this.criticalEnter();
+function EMScritical(func, timeout) {
+    if (typeof timeout === "undefined") {
+        timeout = 1000;  // TODO: Magic number
+    }
+    this.criticalEnter(timeout);
     var retObj = func();
     this.criticalExit();
     return retObj
@@ -374,10 +381,15 @@ function EMSsingle(func) {
 
 //==================================================================
 //  Wrapper around the EMS global barrier
-function EMSbarrier() {
+function EMSbarrier(timeout) {
     if (EMSglobal.inParallelContext) {
-        EMS.barrier();
+        if(typeof timeout === "undefined") {
+            timeout = 1000;  // TODO: Magic number
+        }
+        var remaining_time = EMS.barrier(timeout);
+        return remaining_time;
     }
+    return(timeout);
 }
 
 
@@ -422,6 +434,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         persist: true,  // Optional, default=true: Preserve the file after threads exit
         doDataFill: false, // Optional, default=false: Data values should be initialized
         dataFill: undefined,//Optional, default=false: Value to initialize data to
+        doSetFEtags: false, // Optional, initialize full/empty tags
+        setFEtagsFull: true, // Optional, used only if doSetFEtags is true
         dimStride: []     //  Stride factors for each dimension of multidimensal arrays
     };
 
@@ -454,8 +468,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
             if (typeof arg0.useExisting !== 'undefined') {
                 emsDescriptor.useExisting = arg0.useExisting
             }
-            if (typeof arg0.doDataFill !== 'undefined') {
-                emsDescriptor.doDataFill = true;
+            if(arg0.doDataFill) {
+                emsDescriptor.doDataFill = arg0.doDataFill;
                 if (typeof arg0.dataFill == 'object') {
                     emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
                     fillIsJSON = true;
@@ -463,8 +477,15 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
                     emsDescriptor.dataFill = arg0.dataFill;
                 }
             }
+            if (typeof arg0.doSetFEtags !== 'undefined') {
+                emsDescriptor.doSetFEtags = arg0.doSetFEtags
+            }
             if (typeof arg0.setFEtags !== 'undefined') {
-                emsDescriptor.setFEtags = arg0.setFEtags
+                if (arg0.setFEtags == 'full') {
+                    emsDescriptor.setFEtagsFull = true;
+                } else {
+                    emsDescriptor.setFEtagsFull = false;
+                }
             }
             if (typeof arg0.hashFunc !== 'undefined') {
                 emsDescriptor.hashFunc = arg0.hashFunc
@@ -521,8 +542,8 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.persist, emsDescriptor.useExisting,  // 4, 5
         emsDescriptor.doDataFill, fillIsJSON, // 6, 7
         emsDescriptor.dataFill,  // 8
-        (typeof emsDescriptor.setFEtags !== 'undefined'),  // 9
-        (emsDescriptor.setFEtags == 'full'),  // 10
+        emsDescriptor.doSetFEtags,  // 9
+        emsDescriptor.setFEtagsFull,  // 10
         this.myID, this.pinThreads, this.nThreads,  // 11, 12, 13
         emsDescriptor.mlock);  // 14
     if (!emsDescriptor.useExisting && this.myID == 0)  EMSbarrier();

@@ -35,11 +35,18 @@
 
 void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     NODE_MMAPID_DECL();
-    int timeRemaining = EMScriticalEnter(mmapID, INT32_MAX);  // TODO: Infinite wait time
+    int timeout = INT32_MAX;
+    if(info.Length() == 1) {
+        timeout = info[0]->ToInteger()->Value();
+    } else {
+        Nan::ThrowError("NodeJScriticalEner: invalid or missing timeout duration");
+        return;
+    }
+    int timeRemaining = EMScriticalEnter(mmapID, timeout);
     if (timeRemaining <= 0) {
         Nan::ThrowError("NodeJScriticalEnter: Unable to enter critical region before timeout");
     } else {
-        info.GetReturnValue().Set(Nan::New(true));
+        info.GetReturnValue().Set(Nan::New(timeRemaining));
     }
 }
 
@@ -57,11 +64,18 @@ void NodeJScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 void NodeJSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     NODE_MMAPID_DECL();
-    int timeRemaining = EMSbarrier(mmapID, INT32_MAX);  // TODO: infinite wait time
+    int timeout = INT32_MAX;
+    if(info.Length() == 1) {
+        timeout = info[0]->ToInteger()->Value();
+    } else {
+        Nan::ThrowError("NodeJSbarrier: invalid or missing timeout duration");
+        return;
+    }
+    int timeRemaining = EMSbarrier(mmapID, timeout);
     if (timeRemaining <= 0) {
         Nan::ThrowError("NodeJSbarrer: Failed to sync at barrier");
     } else {
-        info.GetReturnValue().Set(Nan::New(true));
+        info.GetReturnValue().Set(Nan::New(timeRemaining));
     }
 }
 
