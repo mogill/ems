@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -34,7 +34,7 @@
 //==================================================================
 //  Resolve External Declarations
 //
-int EMSmyID;   // EMS Thread ID
+int EMSmyID = -1;   // EMS Process ID
 char   *emsBufs[EMS_MAX_N_BUFS] = { NULL };
 size_t  emsBufLengths[EMS_MAX_N_BUFS] = { 0 };
 char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN] = { { 0 } };
@@ -95,10 +95,10 @@ int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped) {
             else                    idx = 0;
             break;
         case EMS_TYPE_INTEGER:
-            idx = (int64_t) key->value;
+            idx = llabs((int64_t) key->value);
             break;
         case EMS_TYPE_FLOAT:
-            idx = (int64_t) key->value;
+            idx = llabs((int64_t) key->value);
             break;
         case EMS_TYPE_STRING:
             idx = EMShashString((char *) key->value);
@@ -163,7 +163,8 @@ int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped) {
         if (!matched) { idx = -1; }
     }
 
-    return idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
+    int64_t retval = idx % bufInt64[EMScbData(EMS_ARR_NELEM)];
+    return retval;
 }
 
 
@@ -271,7 +272,6 @@ int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key) {
         return idx;
     }
     idx = EMSkey2index(emsBuf, key, false);
-
     int nTries = 0;
     if (EMSisMapped) {
         int matched = false;
@@ -466,6 +466,7 @@ bool EMSreadUsingTags(const int mmapID,
                     case EMS_TYPE_JSON:
                     case EMS_TYPE_STRING: {
                         returnValue->value = (void *) EMSheapPtr(bufInt64[EMSdataData(idx)]);
+                        returnValue->length = strlen((const char *)returnValue->value);
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
                         if (EMSisMapped) bufTags[EMSmapTag(idx)].tags.fe = EMS_TAG_FULL;
                         return true;
@@ -588,7 +589,6 @@ bool EMSwriteUsingTags(int mmapID,
     volatile double *bufDouble = (double *) emsBuf;
     char *bufChar = emsBuf;
     EMStag_t newTag, oldTag, memTag;
-
     int64_t idx = EMSwriteIndexMap(mmapID, key);
     if (idx < 0) {
         fprintf(stderr, "EMSwriteUsingTags: index out of bounds\n");
@@ -821,14 +821,16 @@ int EMSinitialize(int64_t nElements,     // 0
                   bool useExisting,      // 5
                   bool doDataFill,       // 6
                   bool fillIsJSON,       // 7
-                  EMSvalueType fillValue,// 8
+                  EMSvalueType *fillValue,// 8
                   bool doSetFEtags,      // 9
-                  bool setFEtags,        // 10
-                  int EMSmyID,           // 11
+                  bool setFEtagsFull,    // 10
+                  int EMSmyIDarg,        // 11
                   bool pinThreads,       // 12
                   int64_t nThreads,      // 13
                   int64_t pctMLock ) {   // 14
     int fd;
+    EMSmyID = EMSmyIDarg;
+
     //  Node 0 is first and always has mutual exclusion during initialization
     //  perform once-only initialization here
     if (EMSmyID == 0) {
@@ -843,7 +845,7 @@ int EMSinitialize(int64_t nElements,     // 0
         sleep_time.tv_sec = 0;
         sleep_time.tv_nsec = 200000000;
         struct stat statbuf;
-        while (stat(filename, &statbuf) != 0) nanosleep(&sleep_time, NULL);
+        while (stat(filename, &statbuf) != 0) nanosleep(&sleep_time, NULL); // TODO: timeout?
     }
 
     if (persist)
@@ -954,22 +956,22 @@ int EMSinitialize(int64_t nElements,     // 0
     int64_t startIter = iterPerThread * EMSmyID;
     int64_t endIter = iterPerThread * (EMSmyID + 1);
     size_t fillStrLen = 0;
-    if (doDataFill  &&  (fillValue.type == EMS_TYPE_JSON || fillValue.type == EMS_TYPE_STRING)) {
-        fillStrLen = fillValue.length;
+    if (doDataFill  &&  (fillValue->type == EMS_TYPE_JSON || fillValue->type == EMS_TYPE_STRING)) {
+        fillStrLen = fillValue->length;
     }
     if (endIter > nElements) endIter = nElements;
     for (int64_t idx = startIter; idx < endIter; idx++) {
         tag.tags.rw = 0;
         if (doDataFill) {
-            tag.tags.type = fillValue.type;
+            tag.tags.type = fillValue->type;
             switch (tag.tags.type) {
                 case EMS_TYPE_BOOLEAN:
                 case EMS_TYPE_INTEGER:
-                    bufInt64[EMSdataData(idx)] = (int64_t) fillValue.value;
+                    bufInt64[EMSdataData(idx)] = (int64_t) fillValue->value;
                     break;
                 case EMS_TYPE_FLOAT: {
                     ulong_double alias;
-                    alias.u64 = (uint64_t) fillValue.value;
+                    alias.u64 = (uint64_t) fillValue->value;
                     bufDouble[EMSdataData(idx)] = alias.d;
                 }
                     break;
@@ -982,7 +984,7 @@ int EMSinitialize(int64_t nElements,     // 0
                     EMS_ALLOC(textOffset, fillStrLen + 1, bufChar,
                               "EMSinitialize: out of memory to store string", false);
                     bufInt64[EMSdataData(idx)] = textOffset;
-                    strcpy(EMSheapPtr(textOffset), (const char *) fillValue.value);
+                    strcpy(EMSheapPtr(textOffset), (const char *) fillValue->value);
                 }
                     break;
                 default:
@@ -994,7 +996,7 @@ int EMSinitialize(int64_t nElements,     // 0
         }
 
         if (doSetFEtags) {
-            if (setFEtags) tag.tags.fe = EMS_TAG_FULL;
+            if (setFEtagsFull) tag.tags.fe = EMS_TAG_FULL;
             else tag.tags.fe = EMS_TAG_EMPTY;
         }
 

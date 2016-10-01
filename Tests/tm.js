@@ -40,9 +40,7 @@ var tables = [];
 var workQ = ems.new({
     dimensions: [nTransactions + ems.nThreads],
     heapSize: nTransactions * 200,
-    useExisting: false,
-    //dataFill : 0,
-    setFEtags: 'empty'
+    useExisting: false
 });
 
 var totalNops = ems.new(2);
@@ -59,8 +57,7 @@ for (var tableN = 0; tableN < nTables; tableN++) {
         useExisting: false,
         filename: '/tmp/EMS_tm' + tableN,
         dataFill: 0,
-        doDataFill: true,
-        setFEtags: 'full'
+        doDataFill: true
     });
 }
 util.timerStop(startTime, nTables, " tables initialized    ", ems.myID);
