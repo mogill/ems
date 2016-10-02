@@ -4,8 +4,8 @@
 * [Work Queues](#Work\ Queues)
 * [Key-Value Store](#kv_store.js)
 * [Web Server](#web_server.js)
-* [Word Counting](#wordCount.js )
-
+* [Word Counting](#wordCount.js)
+* [Implied EMS Operations](#harmony_proxies.js)
 
 ## Simple Loop Benchmarks
 The original [STREAMS](https://www.cs.virginia.edu/stream/)
@@ -178,3 +178,20 @@ documents from Project Gutenberg.
 2,981,712,952 words in several languages were parsed, totaling 12,664,852,220 bytes of text.
 
 <img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
+
+
+## harmony_proxies.js
+Ordinary JS objects can be made into EMS objects by wrapping them
+using ES6 proxies.  Access to the object uses EMS `read` and `write` operations
+  that do not use full/empty tag bits preserving legacy load/store semantics,
+  but inherit the atomic and transactional capabilities of EMS.
+  The syntax allows incrementally adding EMS operations to legacy programs.
+
+```javascript
+emsData["foo"] = 123  // Equivalent to emsData.write("foo", 123)
+emsData.foo   // 123, equivalent to emsData.read("foo")
+
+emsData.readFE("foo")  // 123, read "foo" when full and atomically mark empty
+emsData.writeEF("foo", "one two three")   // Write "foo" when empty and mark full
+emsData["foo"]  // "one two three", Full/empty tags not used
+```

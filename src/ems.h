@@ -208,7 +208,7 @@ union ulong_double {
 
 
 typedef struct {
-    int length;  // Defined only for JSON and strings
+    size_t length;  // Defined only for JSON and strings
     void *value;
     unsigned char type;
 } EMSvalueType;
@@ -268,7 +268,7 @@ extern "C" int EMSinitialize(int64_t nElements,     // 0
   addr = emsMutexMem_alloc( EMS_MEM_MALLOCBOT(bufChar), \
                 len, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] ); \
   if(addr < 0)  { \
-      fprintf(stderr, "EMS_ALLOC: ERROR -- Allocation of len(%zx) failed\n", (size_t)len); \
+      fprintf(stderr, "EMS_ALLOC: ERROR -- Allocation of len(%zx) failed\n", len); \
       return retval; \
   }
 
