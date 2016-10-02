@@ -343,7 +343,7 @@ function EMScas(indexes, oldVal, newVal) {
 //  Serialize execution through this function
 function EMScritical(func, timeout) {
     if (typeof timeout === "undefined") {
-        timeout = 1000;  // TODO: Magic number
+        timeout = 10000;  // TODO: Magic number
     }
     this.criticalEnter(timeout);
     var retObj = func();
@@ -384,7 +384,7 @@ function EMSsingle(func) {
 function EMSbarrier(timeout) {
     if (EMSglobal.inParallelContext) {
         if(typeof timeout === "undefined") {
-            timeout = 1000;  // TODO: Magic number
+            timeout = 10000;  // TODO: Magic number
         }
         var remaining_time = EMS.barrier(timeout);
         return remaining_time;

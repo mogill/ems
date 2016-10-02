@@ -166,23 +166,6 @@ extern char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN];
 
 
 //==================================================================
-//  The EMS Tag structure
-#define EMS_TYPE_NBITS_FE    2U
-#define EMS_TYPE_NBITS_TYPE  3U
-#define EMS_TYPE_NBITS_RW    3U
-#define EMS_RW_NREADERS_MAX  ((1 << EMS_TYPE_NBITS_RW) - 1)
-
-union EMStag_t {
-    struct {
-        unsigned char fe   : EMS_TYPE_NBITS_FE;
-        unsigned char type : EMS_TYPE_NBITS_TYPE;
-        unsigned char rw   : EMS_TYPE_NBITS_RW;
-    } tags;
-    unsigned char byte;
-};
-
-
-//==================================================================
 //  Yield the processor and sleep (using exponential decay) without
 //  using resources/
 //  Used within spin-loops to reduce hot-spotting
@@ -198,70 +181,6 @@ union EMStag_t {
         EMScurrentNapTime = MAX_NAP_TIME;      \
     }                                          \
  }
-
-
-// Type-punning is now a warning in GCC, but this syntax is still okay
-union ulong_double {
-    double d;
-    uint64_t u64;
-};
-
-
-typedef struct {
-    size_t length;  // Defined only for JSON and strings
-    void *value;
-    unsigned char type;
-} EMSvalueType;
-
-
-extern "C" int EMScriticalEnter(int mmapID, int timeout);
-extern "C" bool EMScriticalExit(int mmapID);
-extern "C" int EMSbarrier(int mmapID, int timeout);
-extern "C" bool EMSsingleTask(int mmapID);
-extern "C" bool EMScas(int mmapID, EMSvalueType *key,
-            EMSvalueType *oldValue, EMSvalueType *newValue,
-            EMSvalueType *returnValue);
-extern "C" bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *returnValue);
-extern "C" int EMSpush(int mmapID, EMSvalueType *value);
-extern "C" bool EMSpop(int mmapID, EMSvalueType *returnValue);
-extern "C" int EMSenqueue(int mmapID, EMSvalueType *value);
-extern "C" bool EMSdequeue(int mmapID, EMSvalueType *returnValue);
-extern "C" bool EMSloopInit(int mmapID, int32_t start, int32_t end, int32_t minChunk, int schedule_mode);
-extern "C" bool EMSloopChunk(int mmapID, int32_t *start, int32_t *end);
-extern "C" unsigned char EMStransitionFEtag(EMStag_t volatile *tag, EMStag_t volatile *mapTag, unsigned char oldFE, unsigned char newFE, unsigned char oldType);
-int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key);
-int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped);
-int64_t EMShashString(const char *key);
-
-////////////////////////////////////////////////////////////////////////
-extern "C" bool EMSreadRW(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-extern "C" bool EMSreadFF(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-extern "C" bool EMSreadFE(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-extern "C" bool EMSread(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);
-extern "C" int EMSreleaseRW(const int mmapID, EMSvalueType *key);
-extern "C" bool EMSwriteXF(int mmapID, EMSvalueType *key, EMSvalueType *value);
-extern "C" bool EMSwriteXE(int mmapID, EMSvalueType *key, EMSvalueType *value);
-extern "C" bool EMSwriteEF(int mmapID, EMSvalueType *key, EMSvalueType *value);
-extern "C" bool EMSwrite(int mmapID, EMSvalueType *key, EMSvalueType *value);
-extern "C" bool EMSsetTag(int mmapID, EMSvalueType *key, bool is_full);
-extern "C" bool EMSdestroy(int mmapID, bool do_unlink);
-extern "C" bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key);
-extern "C" bool EMSsync(int mmapID);
-extern "C" int EMSinitialize(int64_t nElements,     // 0
-                  int64_t heapSize,       // 1
-                  bool useMap,            // 2
-                  const char *filename,   // 3
-                  bool persist,           // 4
-                  bool useExisting,       // 5
-                  bool doDataFill,        // 6
-                  bool fillIsJSON,        // 7
-                  EMSvalueType *fillValue, // 8
-                  bool doSetFEtags,       // 9
-                  bool setFEtagsFull,     // 10
-                  int EMSmyID,            // 11
-                  bool pinThreads,        // 12
-                  int64_t nThreads,       // 13
-                  int64_t pctMLock );     // 14
 
 
 #define EMS_ALLOC(addr, len, bufChar, errmsg, retval)                    \
@@ -286,5 +205,7 @@ void emsMutexMem_free(struct emsMem *heap,  // Base of EMS malloc structs
 extern int EMSmyID;   // EMS Thread ID
 
 #define EMSisMapped (bufInt64[EMScbData(EMS_ARR_MAPBOT)]*(int64_t)EMSwordSize != bufInt64[EMScbData(EMS_ARR_MALLOCBOT)])
+
+#include "ems_proto.h"
 
 #endif //EMSPROJ_EMS_H
