@@ -48,10 +48,10 @@ struct emsMem {
 
 struct emsMem *emsMem_new(int level);
 void           emsMem_delete(struct emsMem *);
-int64_t        emsMem_alloc(struct emsMem *, int64_t bytesRequested);
-void           emsMem_free(struct emsMem *, int64_t offset);
-int64_t        emsMem_size(struct emsMem *, int64_t offset);
+size_t         emsMem_alloc(struct emsMem *, size_t bytesRequested);
+void           emsMem_free(struct emsMem *, size_t offset);
+size_t         emsMem_size(struct emsMem *, size_t offset);
 void           emsMem_dump(struct emsMem *);
-size_t         emsNextPow2(uint64_t x);
+size_t         emsNextPow2(int64_t x);
 
 #endif

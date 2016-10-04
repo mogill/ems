@@ -104,9 +104,9 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
         }  // End of:  Bool + ___
 
         case EMS_TYPE_INTEGER: {
-            int32_t retInt = bufInt64[EMSdataData(idx)];  // Read original value in memory
+            int64_t retInt = bufInt64[EMSdataData(idx)];  // Read original value in memory
             returnValue->type = EMS_TYPE_INTEGER;
-            returnValue->value = (void *) (int64_t) retInt;
+            returnValue->value = (void *) retInt;
             switch (value->type) {
                 case EMS_TYPE_INTEGER: {  // Int + int
                     int64_t memInt = bufInt64[EMSdataData(idx)] + (int64_t) value->value;
@@ -291,7 +291,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
             fprintf(stderr, "EMSfaa(?+___: Unknown stored data type\n");
             return false;
     }
-    fprintf(stderr, "EMSfaa: Unknown everything -- failing for unknown reasons\n");
+    // fprintf(stderr, "EMSfaa: Unknown everything -- this statement is unreachable\n");
     return false;
 }
 

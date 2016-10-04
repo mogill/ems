@@ -185,7 +185,7 @@ extern char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN];
 
 #define EMS_ALLOC(addr, len, bufChar, errmsg, retval)                    \
   addr = emsMutexMem_alloc( EMS_MEM_MALLOCBOT(bufChar), \
-                len, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] ); \
+                (size_t) len, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] ); \
   if(addr < 0)  { \
       fprintf(stderr, "EMS_ALLOC: ERROR -- Allocation of len(%zx) failed\n", len); \
       return retval; \
@@ -193,7 +193,7 @@ extern char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN];
 
 #define EMS_FREE(addr) \
   emsMutexMem_free( EMS_MEM_MALLOCBOT(bufChar), \
-            addr, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] )
+            (size_t) addr, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] )
 
 size_t emsMutexMem_alloc(struct emsMem *heap,   // Base of EMS malloc structs
                          size_t len,    // Number of bytes to allocate

@@ -35,8 +35,8 @@
 import sys
 import os
 import time
-sys.path.append('./')
-sys.path.append("../Python/")
+# sys.path.append('./')
+sys.path.append("../Python/")  # Path to EMS Python Module
 
 nprocs = 15
 nelem = 1000

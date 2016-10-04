@@ -97,7 +97,7 @@ extern "C" bool EMSdestroy(int mmapID, bool do_unlink);
 extern "C" bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key);
 extern "C" bool EMSsync(int mmapID);
 extern "C" int EMSinitialize(int64_t nElements,     // 0
-                  int64_t heapSize,       // 1
+                  size_t heapSize,        // 1
                   bool useMap,            // 2
                   const char *filename,   // 3
                   bool persist,           // 4
@@ -109,5 +109,5 @@ extern "C" int EMSinitialize(int64_t nElements,     // 0
                   bool setFEtagsFull,     // 10
                   int EMSmyID,            // 11
                   bool pinThreads,        // 12
-                  int64_t nThreads,       // 13
-                  int64_t pctMLock );     // 14
+                  int32_t nThreads,       // 13
+                  int32_t pctMLock );     // 14

@@ -814,7 +814,7 @@ bool EMSsync(int mmapID) {
 //  EMS Entry Point:   Allocate and initialize the EMS domain memory
 //
 int EMSinitialize(int64_t nElements,     // 0
-                  int64_t heapSize,      // 1
+                  size_t heapSize,      // 1
                   bool useMap,           // 2
                   const char *filename,  // 3
                   bool persist,          // 4
@@ -826,8 +826,8 @@ int EMSinitialize(int64_t nElements,     // 0
                   bool setFEtagsFull,    // 10
                   int EMSmyIDarg,        // 11
                   bool pinThreads,       // 12
-                  int64_t nThreads,      // 13
-                  int64_t pctMLock ) {   // 14
+                  int32_t nThreads,      // 13
+                  int32_t pctMLock ) {   // 14
     int fd;
     EMSmyID = EMSmyIDarg;
 
@@ -860,13 +860,13 @@ int EMSinitialize(int64_t nElements,     // 0
 
     size_t nMemBlocks = (heapSize / EMS_MEM_BLOCKSZ) + 1;
     size_t nMemBlocksPow2 = emsNextPow2(nMemBlocks);
-    size_t nMemLevels = __builtin_ctzl(nMemBlocksPow2);
+    int32_t nMemLevels = __builtin_ctzl(nMemBlocksPow2);
     size_t bottomOfMap = -1;
     size_t bottomOfMalloc = -1;
     size_t bottomOfHeap = -1;
     size_t filesize;
 
-    bottomOfMap = EMSdataTagWord(nElements) + EMSwordSize;  // Map begins 1 word AFTER the last tag word of data
+    bottomOfMap = (size_t)EMSdataTagWord(nElements) + (size_t)EMSwordSize;  // Map begins 1 word AFTER the last tag word of data
     if (useMap) {
         bottomOfMalloc = bottomOfMap + bottomOfMap;
     } else {

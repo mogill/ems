@@ -61,16 +61,16 @@ void emsMem_delete(struct emsMem *self) {
 
 //-----------------------------------------------------------------------------+
 //  Pow-2 utility functions for 64 bit
-size_t emsNextPow2(uint64_t x) {
-    if (__builtin_popcountl(x) == 1) return x;
+size_t emsNextPow2(int64_t x) {
+    if (__builtin_popcountll(x) == 1) return x;
     // Yes, that will overflow on 63 bit numbers.  Hopefully someone will rewrite this by then.
     //  fprintf(stderr, ">>>lz=%d   shift=%d\n", __builtin_clzl(x), (64 - __builtin_clzl(x)));
-    return (1UL << (64 - __builtin_clzl(x)));
+    return (1UL << (64 - __builtin_clzll(x)));
 }
 
 
 static inline int64_t EMS_index_offset(int64_t index, int32_t level, int64_t max_level) {
-    return ((index + 1) - (1L << level)) << (max_level - level);
+    return ((index + 1) - (1UL << level)) << (max_level - level);
 }
 
 
@@ -91,11 +91,11 @@ static void EMS_mark_parent(struct emsMem *self, int64_t index) {
 
 //-----------------------------------------------------------------------------+
 //  Allocate new memory from the EMS heap
-int64_t emsMem_alloc(struct emsMem *self, int64_t bytesRequested) {
+size_t emsMem_alloc(struct emsMem *self, size_t bytesRequested) {
     size_t size;
     size = emsNextPow2((bytesRequested + (EMS_MEM_BLOCKSZ - 1)) / EMS_MEM_BLOCKSZ);
     if (size == 0) size++;
-    size_t length = 1L << self->level;
+    size_t length = 1UL << self->level;
 
     //  fprintf(stderr, "emsMem_alloc: self=%x   size=%ld   s=%ld    len=%ld\n", self, size, s, length);
     if (size > length) return -1;
@@ -108,7 +108,7 @@ int64_t emsMem_alloc(struct emsMem *self, int64_t bytesRequested) {
             if (self->tree[index] == BUDDY_UNUSED) {
                 self->tree[index] = BUDDY_USED;
                 EMS_mark_parent(self, index);
-                return (EMS_index_offset(index, level, self->level) * EMS_MEM_BLOCKSZ);
+                return ((size_t)EMS_index_offset(index, level, self->level) * EMS_MEM_BLOCKSZ);
             }
         } else {
             // size < length
@@ -168,11 +168,11 @@ static void EMS_combine(struct emsMem *self, int64_t index) {
 
 //-----------------------------------------------------------------------------+
 //  Release EMS memory back to the heap for reuse
-void emsMem_free(struct emsMem *self, int64_t offset) {
+void emsMem_free(struct emsMem *self, size_t offset) {
     offset /= EMS_MEM_BLOCKSZ;
-    assert(offset < (1L << self->level));
-    int64_t left = 0;
-    int64_t length = 1L << self->level;
+    assert(offset < (1UL << self->level));
+    size_t left = 0;
+    size_t length = 1UL << self->level;
     int64_t index = 0;
 
     for (; ;) {
@@ -200,11 +200,11 @@ void emsMem_free(struct emsMem *self, int64_t offset) {
 
 //-----------------------------------------------------------------------------+
 //  Return the size of a block of memory
-int64_t emsMem_size(struct emsMem *self, int64_t offset) {
-    assert(offset < (1L << self->level));
-    int64_t left = 0;
-    int64_t length = 1L << self->level;
-    int64_t index = 0;
+size_t emsMem_size(struct emsMem *self, size_t offset) {
+    assert(offset < (1UL << self->level));
+    size_t left = 0;
+    size_t length = 1UL << self->level;
+    size_t index = 0;
 
     for (; ;) {
         switch (self->tree[index]) {
@@ -230,15 +230,15 @@ int64_t emsMem_size(struct emsMem *self, int64_t offset) {
 
 //-----------------------------------------------------------------------------+
 //  Diagnostic state dump
-static void EMS_dump(struct emsMem *self, int64_t index, int32_t level) {
+static void EMS_dump(struct emsMem *self, size_t index, int32_t level) {
     switch (self->tree[index]) {
         case BUDDY_UNUSED:
             printf("(%lld:%ld)", (long long int) EMS_index_offset(index, level, self->level),
-                   1L << (self->level - level));
+                   1UL << (self->level - level));
             break;
         case BUDDY_USED:
             printf("[%lld:%ld]", (long long int) EMS_index_offset(index, level, self->level),
-                   1L << (self->level - level));
+                   1UL << (self->level - level));
             break;
         case BUDDY_FULL:
             printf("{");
