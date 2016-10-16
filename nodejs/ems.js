@@ -389,22 +389,22 @@ function EMSbarrier(timeout) {
         var remaining_time = EMS.barrier(timeout);
         return remaining_time;
     }
-    return(timeout);
+    return timeout;
 }
 
 
 //==================================================================
 //  Utility functions for determining types
 function EMSisArray(a) {
-    return ( (typeof a.pop !== 'undefined') )
+    return typeof a.pop !== 'undefined'
 }
 
 function EMSisObject(o) {
-    return ( (typeof o === 'object' && !EMSisArray(o)) )
+    return typeof o === 'object' && !EMSisArray(o)
 }
 
 function EMSisDefined(x) {
-    return ( (typeof x !== 'undefined') )
+    return typeof x !== 'undefined'
 }
 
 
@@ -417,6 +417,7 @@ function EMSdestroy(unlink_file) {
     }
     EMSbarrier();
 }
+
 
 //==================================================================
 //  Creating a new EMS memory region

@@ -6,16 +6,16 @@ os:
 dist: trusty
 
 node_js:
+  - "6.1"
   - "5.1"
   - "4.1"
-  - "4.0"
-  - "0.12"
-  - "0.11"
-  - "0.10"
   - "iojs"
 
 before_script:
   - npm link ../ems
+
+script:
+  - make test
 
 env:
   - CXX=g++-4.8

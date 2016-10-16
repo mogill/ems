@@ -39,17 +39,16 @@ import json
 import re
 import subprocess
 from multiprocessing import Process, Pipe
+from cffi import FFI
+import site
 
-# =======================================================================================
-#   rm -f libems.so *.o; clang -dynamiclib -dynamiclib *.cc -o libems.so
-#   gcc -fPIC -shared -Wl,-soname,libems.so -o libems.so *.cc -lrt
 """
 sudo apt-get install python-pip
 sudo apt-get install libffi-dev
 sudo pip install cffi
 sudo apt-get install python3-cffi
 """
-from cffi import FFI
+
 ffi = FFI()
 cpp_out = subprocess.check_output(["cpp", "../src/ems_proto.h"]).decode("utf-8")
 prototypes = cpp_out.split("\n")
@@ -67,7 +66,6 @@ ffi.cdef('\n'.join(headerLines))
 
 # Find the .so and load it
 libems = None
-import site
 package_paths = site.getsitepackages()
 for package_path in package_paths:
     try:
@@ -106,55 +104,45 @@ TAG_EMPTY   = 1
 TAG_FULL    = 0
 
 
-# def emsThreadStub(taskN, nProcs, conn):
-def emsThreadStub():
-    global ems
-    import socket
-    import sys
-    sys.path.append('./')
+def emsThreadStub(conn, taskn):
+    """Function that receives EMS fork-join functions, executes them,
+       and returns the results."""
     sys.path.append("../Python/")
+    global ems
     import ems
-    print("STUB: This is the start of it", sys.argv[2])
-    ems.initialize(sys.argv[2])
-    # ems.initialize(nProcs)
-    taskN = int(sys.argv[2])
-    sock = socket.create_connection(('localhost', 10000 + taskN)) # TODO MAGIC NUMBER
-    # sock = socket.create_connection(('localhost', 10000 + taskN))  # TODO MAGIC NUMBER
-    ems.diag("Reporting for duty!" + str(taskN))
-    # ems.diag("Reporting for duty:" + str(taskN))
-    try:
-        while True:
-            data = sock.recv(16000)  # TODO MAGIC
-            if data == "STOP!":
-                print('STUB: Stopping')
-                sock.close()
-                exit(0)
-            try:
-                exec(data)
-                sock.send(bytes("STUB says: That was fun", 'utf-8'))
-                # print('STUB: successful EXEC: "%s %s"' % (data, type(data)))
-            except:
-                sock.send(bytes("STUB says: Something went wrong", 'utf-8'))
-                print('STUB: bad EXEC: "%s %s"' % (data, type(data)))
-    finally:
-        print('STUB:  Awww crap, everything went wrong.  closing socket')
-        sock.close()
+    ems.initialize(taskn, True, 'fj', '/tmp/fj_main.ems')
+    print("STUB: This is the start of it", taskn)
+    ems.myID = taskn
+    ems.diag("Stub diag.  Taskn=" + str(taskn) + "   myid=" + str(ems.myID))
+    while True:
+        msg = conn.recv()
+        print("CONN RECV ON", taskn)
+        func = msg['func']
+        args = msg['args']
+        if func is None:
+            print("Farewell!!!!!!!!  from ", taskn)
+            conn.close()
+            exit(0)
+        ems.diag("func=" + str(func) + "   args=" + str(args))
+        # print("func=" + str(func) + "   args=" + str(args))
+        retval = func(*args)
+        conn.send(str(retval))
+        # time.sleep(taskn * 0.01)
 
 
 def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
-             contextname='/EMS_MainDomain'):
+               contextname='/EMS_MainDomain'):
     """EMS object initialization, invoked by the require statement"""
     nThreadsArg = int(nThreadsArg)
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
     if not nThreadsArg > 0:
-        print("EMS: Must declare number of nodes to use.  Input:" + nThreadsArg)
+        print("EMS: Must declare number of nodes to use.  Input:" + str(nThreadsArg))
         return
 
     if sys.argv[len(sys.argv) - 2] == 'EMS_Subtask':
         myID = int(sys.argv[len(sys.argv) - 1])
     else:
         myID = 0
-
     _regionN = 0
     nThreads = nThreadsArg
     pinThreads = pinThreadsArg
@@ -178,36 +166,17 @@ def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
             for taskN in range(1, nThreads):
                 os.system('./' + (' '.join(sys.argv)) + " EMS_Subtask " + str(taskN) + ' &')
     elif threadingType == 'fj':
-        inParallelContext = False
         if myID == 0:
-            args = sys.argv[:]
-            args[0] = './EMS_thread_stub.py'
-            text_file = open(args[0], "w")
-            text_file.write(inspect.getsource(emsThreadStub) + "\nemsThreadStub()\n")
-            text_file.close()
+            inParallelContext = False
             tasks = []
             for taskN in range(1, nThreads):
-                """
                 parent_conn, child_conn = Pipe()
-                p = Process(target=emsThreadStub, args=(taskN, nThreads, child_conn))
-                # tasks.append(parent_conn)
+                p = Process(target=emsThreadStub, args=(child_conn, taskN), name="EMS" + str(taskN))
                 p.start()
-                """
-                print("Running:", 'python3 ./' + (' '.join(args)) + " EMS_Subtask " + str(taskN) + ' &')
-                os.system('python3 ./' + (' '.join(args)) + " EMS_Subtask " + str(taskN) + ' &')
-                # Slave process is presently running thread_stub, now connect to it
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                server_address = ('localhost', 10000 + taskN)  # TODO MAGIC NUMBER
-                print('starting up on %s port %s' % server_address)
-                sock.bind(server_address)
-                print("after bind")
-                sock.listen(1)
-                print("after listen")
-                connection, client_address = sock.accept()
-                print("after accept")
-                tasks.append(connection)
-        print("that job is started:", taskN)
-
+                print("Started job:", taskN)
+                tasks.append((p, parent_conn, child_conn))
+        else:
+            inParallelContext = True
     elif threadingType == 'user':
         inParallelContext = False
     else:
@@ -234,25 +203,20 @@ def diag(text):
 
 
 def parallel(func, *kargs):
-    """Co-Begin a parallel region, executing the function 'func'"""
+    """Co-Begin a FJ parallel region, executing the function 'func'"""
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
-    print("EMSparallel: starting without closures!")
+    print("EMSparallel: starting", len(tasks), tasks)
     inParallelContext = True
     taskN = 1
-    for conn in tasks:
-        command_str = "\n" + inspect.getsource(func) + "\n"
-        quoted_args = [json.dumps(arg) for arg in kargs]
-        command_str += func.__name__ + "(" + ",".join(quoted_args) + ")"
-        # print("commandstr:", command_str1, "||||||", command_str2)
-        conn.sendall(bytes(command_str +
-                           "\nems.diag(\"This is befgore the barrier\")\nems.barrier()\nems.diag(\"This is after the varrier\")\n", 'utf-8'))
-        # data = conn.recv(16000)  # TODO MAGIC
-        # print('user work received "%s"' % data)
-        # # conn.sendall(bytes("\nprint(\"This is befgore the barrier\")\nems.barrier()\n", 'utf-8'))
-        # data = conn.recv(16000)  # TODO MAGIC
-        # print('barrier received "%s"' % data)
+    for proc, parent_conn, child_conn in tasks:
+        print("Sending to", kargs[0])
+        parent_conn.send({'func': func, 'args': kargs})
         taskN += 1
-    print("Starting local copy in perallel region")
+    for proc, parent_conn, child_conn in tasks:
+        retval = parent_conn.recv()
+        print("ParRegion ret: ", retval)
+        # assert retval ==
+    print("Starting local copy in parallel region")
     func(*kargs)  # Perform the work on this process
     print("barrier at end of perallel region")
     barrier()
@@ -374,11 +338,13 @@ def critical(func, timeout=1000000):
     libems.EMScriticalExit(EMSmmapID)
     return retObj
 
+
 def master(func):
     """Perform func only on thread 0"""
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
     if myID == 0:
         return func()
+
 
 def single(func):
     """Perform the function func once by the first thread to reach
@@ -396,13 +362,14 @@ def single(func):
     barrier()
     return retObj
 
+
 def barrier(timeout=10000):
     """Wrapper around the EMS global barrier"""
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
     if inParallelContext:
         return libems.EMSbarrier(EMSmmapID, timeout)
     else:
-        return True
+        return 1  # Return a positive non-zero integer -- as if time left on clock
 
 
 def new(arg0=None,   # Maximum number of elements the EMS region can hold
@@ -411,7 +378,7 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
     """Creating a new EMS memory region"""
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
     fillIsJSON = False
-    emsDescriptor = EMSarray(  #  Internal EMS descriptor
+    emsDescriptor = EMSarray(  # Internal EMS descriptor
         nElements=1,    # Required: Maximum number of elements in array
         heapSize=0,     # Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
         mlock=0,        # Optional, 0-100% of EMS memory into RAM
@@ -420,7 +387,7 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
         persist=True,   # Optional, default=true: Preserve the file after threads exit
         doDataFill=False, # Optional, default=false: Data values should be initialized
         dataFill=None,  # Optional, default=false: Value to initialize data to
-        dimStride=[]    # Stride factors for each dimension of multidimensal arrays
+        dimStride=[]    # Stride factors for each dimension of multidimensional arrays
     )
 
     emsDescriptor.dataFill = _new_EMSval(None)

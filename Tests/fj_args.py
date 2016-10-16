@@ -34,8 +34,7 @@
 """
 import sys
 import time
-sys.path.append('./')
-sys.path.append("../Python/")
+sys.path.append("../Python/ems/")
 
 nprocs = 2
 nelem = 1000
@@ -66,10 +65,10 @@ def fj_test(a, b, c, taskN=None):
     # global_str += "Updated by process " + str(ems.myID)
 
 ems.diag("Entering first parallel region")
-ems.parallel(fj_test, global_str, 'two', 'three')
+ems.parallel(fj_test, global_str, 'two', 'three', 'taaaaaasdasdasda')
 ems.diag("globstr=" + global_str)
 
 ems.diag("This side")
 time.sleep(ems.myID/2)
-ems.parallel(ems.barrer)
+ems.parallel(ems.barrier)
 ems.diag("That side")

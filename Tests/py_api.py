@@ -35,13 +35,11 @@
 import sys
 import os
 import time
-# sys.path.append('./')
-sys.path.append("../Python/")  # Path to EMS Python Module
-
-nprocs = 15
-nelem = 1000
-
+sys.path.append("../Python/ems/")  # Path to EMS Python Module
 import ems
+
+nprocs = 12
+nelem = 1000
 ems.initialize(nprocs, False, 'bsp', '/tmp/pyems_foo_test.ems')
 time.sleep(ems.myID/5)
 assert ems.barrier()
@@ -53,13 +51,14 @@ unmapped_fname = '/tmp/py_unmapped.ems'
 unmapped = ems.new(nelem * nprocs, nprocs * nelem * 100, unmapped_fname)
 ems.diag("=============== INIT COMPLETE ======================")
 
-def sum(const, idx):
-    if type(const) == int:
-        return idx + const
-    if type(const) == float:
-        return idx * const
+
+def sum(left, right):
+    if type(left) == int:
+        return right + left
+    if type(left) == float:
+        return right * left
     else:
-        return str(idx) + str(const)
+        return str(right) + str(left)
 
 
 def target(idx):
