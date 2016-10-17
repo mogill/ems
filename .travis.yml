@@ -13,6 +13,10 @@ node_js:
 
 before_script:
   - npm link ../ems
+  - sudo apt-get install python-pip
+  - sudo apt-get install libffi-dev
+  - sudo pip install cffi
+  - sudo apt-get install python3-cffi
 
 script:
   - make test
