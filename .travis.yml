@@ -15,7 +15,7 @@ before_script:
   - npm link ../ems
   - sudo -H apt-get install python-pip
   - sudo -H apt-get install libffi-dev
-  - sudo -H pip install cffi
+  - python3 -m pip install cffi
   - sudo -H apt-get install python3-cffi
 
 script:
