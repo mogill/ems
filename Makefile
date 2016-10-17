@@ -22,7 +22,7 @@ test_js: node
 	npm test
 
 test_py3: py3
-	(cd Tests; py_api.py)
+	(cd Tests; ./py_api.py)
 
 node: build/Release/ems.node
 
