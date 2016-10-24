@@ -29,39 +29,18 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 "use strict";
-var ems = require("ems")(1, false);
+var ems = require("ems")(1);
 var assert = require("assert");
-
-// The Proxy object is defined by Reflect
-var Reflect = require("harmony-reflect");
-
-// Setter/Getter methods for the proxy object
-// If the target is built into EMS use the built-in object,
-// otherwise read/write the EMS value without honoring the Full/Empty tag
-var proxyHandler = {
-    get: function(target, name) {
-        if (name in target) {
-            return target[name];
-        } else {
-            return target.read(name);
-        }
-    },
-    set: function(target, name, value) {
-        target.write(name, value);
-    }
-};
 
 // Create a temporary EMS space to demonstrate read/write operations
 var emsData = ems.new({
     dimensions: 1000,
-    heapSize: 2000,
+    heapSize: 20000,
     useMap: true,
+    ES6proxies: true,
     useExisting: false
 });
-// Wrao the object with a proxy
-emsData = new Proxy(emsData, proxyHandler);
 
-// The object is now accessible as an object.
 emsData["foo"] = 123;
 assert(emsData["foo"] === 123);
 assert(emsData.foo === 123);
