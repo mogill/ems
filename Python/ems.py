@@ -1,6 +1,6 @@
 """
  +-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.1   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
@@ -30,8 +30,6 @@
  |                                                                             |
  +-----------------------------------------------------------------------------+
 """
-import socket
-import inspect
 import sys
 import os
 import math
@@ -48,6 +46,7 @@ sudo apt-get install libffi-dev
 sudo pip install cffi
 sudo apt-get install python3-cffi
 """
+
 
 ffi = FFI()
 cpp_out = subprocess.check_output(["cpp", "../src/ems_proto.h"]).decode("utf-8")
@@ -166,7 +165,10 @@ def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
         inParallelContext = True
         if myID == 0:
             for taskN in range(1, nThreads):
-                os.system('EMS_Subtask=' + str(taskN) + ' ./' + (' '.join(sys.argv)) + ' &')
+                py_ver = "python"
+                if sys.version_info[0] == 3:
+                    py_ver += "3"
+                os.system('EMS_Subtask=' + str(taskN) + " " + py_ver + ' ./' + (' '.join(sys.argv)) + ' &')
     elif threadingType == 'fj':
         if myID == 0:
             inParallelContext = False
@@ -238,8 +240,8 @@ def parForEach(start,        # First iteration's index
 
     if scheduleType == 'static':  # Evenly divide the iterations across threads
         blocksz = math.floor((end - start) / nThreads) + 1
-        s = (blocksz * myID) + start
-        e = (blocksz * (myID + 1)) + start
+        s = int((blocksz * myID) + start)
+        e = int((blocksz * (myID + 1)) + start)
         if e > end:
             e = end
         for idx in range(s, e):
@@ -526,8 +528,11 @@ def _new_EMSval(val):
     emsval = ffi.new("EMSvalueType *")
     emsval[0].length = 0
     if type(val) == str:
-        newval = ffi.new('char []', bytes(val, 'utf-8'))
-        emsval[0].value = ffi.cast('void *', newval)
+        if sys.version_info[0] == 2:  # Python 2 or 3
+            newval = ffi.new('char []', bytes(val))
+        else:
+            newval = ffi.new('char []', bytes(val, 'utf-8'))
+        emsval[0].value = newval
         emsval[0].length = len(newval)
         emsval[0].type = TYPE_STRING
         global_weakkeydict[emsval] = (emsval[0].length, emsval[0].type, emsval[0].value, newval)
@@ -543,15 +548,20 @@ def _new_EMSval(val):
         emsval[0].type = TYPE_BOOLEAN
         emsval[0].value = ffi.cast('void *', val)
     elif type(val) == list:
-        # newval = ffi.new('char []', bytes(str(val), 'utf-8'))
-        newval = ffi.new('char []', bytes(json.dumps(val), 'utf-8'))
-        emsval[0].value = ffi.cast('void *', newval)
+        if sys.version_info[0] == 2:  # Python 2 or 3
+            newval = ffi.new('char []', bytes(json.dumps(val)))
+        else:
+            newval = ffi.new('char []', bytes(json.dumps(val), 'utf-8'))
+        emsval[0].value = newval
         emsval[0].length = len(newval)
         emsval[0].type = TYPE_JSON
         global_weakkeydict[emsval] = (emsval[0].length, emsval[0].type, emsval[0].value, newval)
     elif type(val) == dict:
-        newval = ffi.new('char []', bytes(json.dumps(val), 'utf-8'))
-        emsval[0].value = ffi.cast('void *', newval)
+        if sys.version_info[0] == 2:  # Python 2 or 3
+            newval = ffi.new('char []', bytes(json.dumps(val)))
+        else:
+            newval = ffi.new('char []', bytes(json.dumps(val), 'utf-8'))
+        emsval[0].value = newval
         emsval[0].length = len(newval)
         emsval[0].type = TYPE_JSON
         global_weakkeydict[emsval] = (emsval[0].length, emsval[0].type, emsval[0].value, newval)
@@ -617,10 +627,16 @@ class EMSarray(object):
     def _returnData(self, emsval):
         global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
         if emsval[0].type == TYPE_STRING:
-            return ffi.string(ffi.cast('char *', emsval[0].value)).decode('utf-8')
+            if sys.version_info[0] == 2:  # Python 2 or 3
+                return ffi.string(ffi.cast("char *", emsval[0].value))
+            else:
+                return ffi.string(ffi.cast('char *', emsval[0].value)).decode('utf-8')
         elif emsval[0].type == TYPE_JSON:
-            str = ffi.string(ffi.cast('char *', emsval[0].value)).decode('utf-8')
-            tmp_str = "{\"data\":" + str + "}"
+            if sys.version_info[0] == 2:  # Python 2 or 3
+                json_str = ffi.string(ffi.cast("char *", emsval[0].value))
+            else:
+                json_str = ffi.string(ffi.cast('char *', emsval[0].value)).decode('utf-8')
+            tmp_str = "{\"data\":" + json_str + "}"
             return json.loads(tmp_str)['data']
         elif emsval[0].type == TYPE_INTEGER:
             return int(ffi.cast('int64_t', emsval[0].value))

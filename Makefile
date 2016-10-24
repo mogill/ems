@@ -1,5 +1,6 @@
+#make
 # *-----------------------------------------------------------------------------+
-# |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
+# |  Extended Memory Semantics (EMS)                            Version 1.4.1   |
 # |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
 # +-----------------------------------------------------------------------------+
 # |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
@@ -44,13 +45,19 @@ help:
 help_notice:
 	@echo "=== \"make help\" for list of targets"
 
-test: test_js test_py3
+test: test_js test_py
+
 
 test_js: node
 	npm test
 
+test_py: test_py2 test_py3
+
 test_py3: py3
-	(cd Tests; ./py_api.py)
+	(cd Tests; python3 ./py_api.py)
+
+test_py2: py2
+	(cd Tests; python ./py_api.py)
 
 node: build/Release/ems.node
 
@@ -58,12 +65,18 @@ build/Release/ems.node:
 	node-gyp rebuild
 
 py3:
-	(cd Python; ./setup.py build --build-temp=./ install)
+	(cd Python; python3 ./setup.py build --build-temp=./ install)
 
-clean: clean_js clean_py3
+py2:
+	(cd Python; python ./setup.py build --build-temp=./ install)
+
+clean: clean_js clean_py3 clean_py2
 
 clean_js:
 	$(RM) -rf build
 
 clean_py3:
-	$(RM) -rf Python/build /usr/local/lib/python3.4/dist-packages/*ems*
+	$(RM) -rf Python/build Python/py3ems/build /usr/local/lib/python*/dist-packages/*ems* ~/Library/Python/*/lib/python/site-packages/*ems* ~/Library/Python/*/lib/python/site-packages/__pycache__/*ems* /Library/Frameworks/Python.framework/Versions/*/lib/python*/site-packages/*ems*
+
+clean_py2:
+	$(RM) -rf Python/build Python/py2ems/build /usr/local/lib/python*/dist-packages/*ems* ~/Library/Python/*/lib/python/site-packages/*ems* ~/Library/Python/*/lib/python/site-packages/__pycache__/*ems* /Library/Python/*/site-packages/*ems*
