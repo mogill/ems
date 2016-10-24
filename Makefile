@@ -58,7 +58,7 @@ build/Release/ems.node:
 	node-gyp rebuild
 
 py3:
-	(cd Python; ./setup.py build --build-temp=./ install --user)
+	(cd Python; ./setup.py build --build-temp=./ install)
 
 clean: clean_js clean_py3
 
@@ -66,4 +66,4 @@ clean_js:
 	$(RM) -rf build
 
 clean_py3:
-	$(RM) -rf Python/build
+	$(RM) -rf Python/build /usr/local/lib/python3.4/dist-packages/*ems*
