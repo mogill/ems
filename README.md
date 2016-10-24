@@ -252,20 +252,22 @@ lightweight threads communicating through shared memory
 is reflected in a rapid code-debug cycle for ad-hoc application development.
 
 ### Quick Start with the Makefile
-To build and test all C, Python, and Node.js targets,
+To build and test all C, Python 2 and 3, and Node.js targets,
 a makefile can automate most build and test tasks.
 
 ```sh
 dunlin> make help
          Extended Memory Semantics  --  Build Targets
 ===========================================================
-    all             Build all targets, run all tests
-    node            Build only Node.js
-    py3             Build only Python3
-    test            Run both Node.js and Py3 tests
-    test[_js|_py3]  Run only Node.js, or only Py3 tests, respectively
-    clean           Remove all files that can be regenerated
-    clean[_js|_py3] Remove Node.js or Py3 files that can be regenerated
+    all                       Build all targets, run all tests
+    node                      Build only Node.js
+    py                        Build both Python 2 and 3
+
+    py[2|3]                   Build only Python2 or 3
+    test                      Run both Node.js and Py tests
+    test[_js|_py|_py2|_py3]   Run only Node.js, or only Py tests, respectively
+    clean                     Remove all files that can be regenerated
+    clean[_js|_py|_py2|_py3]  Remove Node.js or Py files that can be regenerated
 ```
 
 

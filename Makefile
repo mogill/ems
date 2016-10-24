@@ -34,13 +34,15 @@ all: py3 node tests help_notice
 help:
 	@echo "         Extended Memory Semantics  --  Build Targets"
 	@echo "==========================================================="
-	@echo "    all             Build all targets, run all tests"
-	@echo "    node            Build only Node.js"
-	@echo "    py3             Build only Python3"
-	@echo "    test            Run both Node.js and Py3 tests"
-	@echo "    test[_js|_py3]  Run only Node.js, or only Py3 tests, respectively"
-	@echo "    clean           Remove all files that can be regenerated"
-	@echo "    clean[_js|_py3] Remove Node.js or Py3 files that can be regenerated"
+	@echo "    all                       Build all targets, run all tests"
+	@echo "    node                      Build only Node.js"
+	@echo "    py                        Build both Python 2 and 3"
+	@echo " "
+	@echo "    py[2|3]                   Build only Python2 or 3"
+	@echo "    test                      Run both Node.js and Py tests"
+	@echo "    test[_js|_py|_py2|_py3]   Run only Node.js, or only Py tests, respectively"
+	@echo "    clean                     Remove all files that can be regenerated"
+	@echo "    clean[_js|_py|_py2|_py3]  Remove Node.js or Py files that can be regenerated"
 
 help_notice:
 	@echo "=== \"make help\" for list of targets"
@@ -63,6 +65,8 @@ node: build/Release/ems.node
 
 build/Release/ems.node:
 	node-gyp rebuild
+
+py: py2 py3
 
 py3:
 	(cd Python; python3 ./setup.py build --build-temp=./ install)
