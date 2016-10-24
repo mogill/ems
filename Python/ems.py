@@ -139,10 +139,12 @@ def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
         print("EMS: Must declare number of nodes to use.  Input:" + str(nThreadsArg))
         return
 
-    if sys.argv[len(sys.argv) - 2] == 'EMS_Subtask':
-        myID = int(sys.argv[len(sys.argv) - 1])
-    else:
+    myID = os.getenv("EMS_Subtask")
+    if myID is None:
         myID = 0
+    else:
+        myID = int(myID)
+
     _regionN = 0
     nThreads = nThreadsArg
     pinThreads = pinThreadsArg
@@ -164,7 +166,7 @@ def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
         inParallelContext = True
         if myID == 0:
             for taskN in range(1, nThreads):
-                os.system('./' + (' '.join(sys.argv)) + " EMS_Subtask " + str(taskN) + ' &')
+                os.system('EMS_Subtask=' + str(taskN) + ' ./' + (' '.join(sys.argv)) + ' &')
     elif threadingType == 'fj':
         if myID == 0:
             inParallelContext = False
@@ -380,9 +382,9 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
     fillIsJSON = False
     emsDescriptor = EMSarray(  # Internal EMS descriptor
         nElements=1,    # Required: Maximum number of elements in array
-        heapSize=0,     # Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
+        heapSize=0,  # Optional, default=0: Space, in bytes, for strings, maps, objects, etc.
         mlock=0,        # Optional, 0-100% of EMS memory into RAM
-        useMap=False,   # Optional, default=false: Use a map from keys to indexes
+        useMap=False,   # Optional, default=False: Use a map from keys to indexes
         useExisting=False, # Optional, default=false: Preserve data if a file already exists
         persist=True,   # Optional, default=true: Preserve the file after threads exit
         doDataFill=False, # Optional, default=false: Data values should be initialized
@@ -445,6 +447,10 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
         if heapSize > 0:
             emsDescriptor.heapSize = heapSize
 
+        if emsDescriptor.heapSize <= 0 and emsDescriptor.useMap:
+            print("WARNING: New EMS array with no heap, disabling mapped keys")
+            emsDescriptor.useMap = False
+
         if type(filename) == str:
             emsDescriptor.filename = filename
 
@@ -458,15 +464,15 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
 
     # Name the region if a name wasn't given
     if not emsDescriptor.filename:
-        emsDescriptor.filename = '/EMS_region_' + _regionN
+        emsDescriptor.filename = '/EMS_region_' + str(_regionN)
         emsDescriptor.persist = False
 
     if emsDescriptor.useExisting:
         try:
-            fh = open(emsDescriptor.filename, 'r')
+            fh = open(str(emsDescriptor.filename), 'r')
             fh.close()
         except Exception as err:
-            print("EMS ERROR: file " + emsDescriptor.filename + " should already exist, but does not. " + err)
+            print("EMS ERROR: file " + str(emsDescriptor.filename) + " should already exist, but does not. " + err)
             return
 
     # init() is first called from thread 0 to perform one-thread
@@ -498,7 +504,7 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
     barrier()  # Wait until all processes finished initialization
     return emsDescriptor
 
-
+'''
 # ================================================
 def ems_thread_stub(taskN, conn):
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
@@ -511,7 +517,7 @@ def ems_thread_stub(taskN, conn):
             mesg['func'](*mesg['args'])
         except:
             print("Had exception in the stub", taskN)
-
+'''
 
 # =======================================================================================
 def _new_EMSval(val):
@@ -767,12 +773,12 @@ class EMSarray(object):
     def __getattr__(self, attr):
         return self.read(attr)
 
-    def __setattr__(self, item, value):
-        if not '_EMSarray__initialised' in self.__dict__  or  item in self.__dict__:
+    def __setattr__(self, attr, value):
+        if not '_EMSarray__initialised' in self.__dict__ or attr in self.__dict__:
             # Ignore object initialization and normal attribute access
-            return dict.__setattr__(self, item, value)
+            return dict.__setattr__(self, attr, value)
         else:
-            return self.write(item, value)
+            return self.write(attr, value)
 
     def __getitem__(self, item):
         return EMSelement(self, item)

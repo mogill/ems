@@ -1,4 +1,4 @@
-OSX | Linux | Node 5.1, 4.1, 4.0, 0.12, 0.11, 0.10, iojs: 
+OSX | Linux | Node 6.x, 5.x, 4.x, 0.10, iojs, Python3: 
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
@@ -7,7 +7,7 @@ OSX | Linux | Node 5.1, 4.1, 4.0, 0.12, 0.11, 0.10, iojs:
 ### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) | [EMS Website](http://syntheticsemantics.com/EMS.js)
 
 # Extended Memory Semantics (EMS)
-___EMS makes possible shared memory parallelism in Node.js (and soon Python)___.
+___EMS makes possible shared memory parallelism between C/C++, Node.js, and Python___.
 
 Extended Memory Semantics (EMS) is a unified programming and execution model
 that addresses several challenges of parallel programming:
@@ -34,6 +34,7 @@ As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
+<img src="http://synsem.com/images/ems_js_py.gif" />
 
 ## Types of Concurrency
 <table>
@@ -250,6 +251,24 @@ The reduced complexity of
 lightweight threads communicating through shared memory
 is reflected in a rapid code-debug cycle for ad-hoc application development.
 
+### Quick Start with the Makefile
+To build and test all C, Python, and Node.js targets,
+a makefile can automate most build and test tasks.
+
+```sh
+dunlin> make help
+         Extended Memory Semantics  --  Build Targets
+===========================================================
+    all             Build all targets, run all tests
+    node            Build only Node.js
+    py3             Build only Python3
+    test            Run both Node.js and Py3 tests
+    test[_js|_py3]  Run only Node.js, or only Py3 tests, respectively
+    clean           Remove all files that can be regenerated
+    clean[_js|_py3] Remove Node.js or Py3 files that can be regenerated
+```
+
+
 ### Install via npm
 EMS is available as a NPM Package.  EMS itself has no external dependencies,
 but does require compiling native C++ functions using <code>node-gyp</code>,
@@ -319,7 +338,7 @@ develop on OSX and Linux via Vagrant.
 
 EMS 1.3 introduces a C API.
 
-EMS 1.4 **[Planned]** Python API
+EMS 1.4 Python API
 
 EMS 1.5 **[Planned]** Support for [persistent memory](http://pmem.io/).
 

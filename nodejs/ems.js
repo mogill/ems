@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -34,6 +34,13 @@ var fs = require("fs");
 var child_process = require('child_process');
 var EMS = require("bindings")("ems.node");
 var EMSglobal;
+
+// The Proxy object is built in or defined by Reflect
+try {
+    var EMS_Harmony_Reflect = require("harmony-reflect");
+} catch (err) {
+    // Not installed, but possibly not needed anyhow
+}
 
 //==================================================================
 //  Convert the different possible index types into a linear EMS index
@@ -432,12 +439,13 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         mlock: 0,   // Optional, 0-100% of EMS memory into RAM
         useMap: false, // Optional, default=false: Use a map from keys to indexes
         useExisting: false, // Optional, default=false: Preserve data if a file already exists
+        ES6proxies: false, // Optional, default=false: Inferred EMS read/write syntax
         persist: true,  // Optional, default=true: Preserve the file after threads exit
         doDataFill: false, // Optional, default=false: Data values should be initialized
         dataFill: undefined,//Optional, default=false: Value to initialize data to
         doSetFEtags: false, // Optional, initialize full/empty tags
         setFEtagsFull: true, // Optional, used only if doSetFEtags is true
-        dimStride: []     //  Stride factors for each dimension of multidimensal arrays
+        dimStride: []     //  Stride factors for each dimension of multidimensional arrays
     };
 
     if (!EMSisDefined(arg0)) {  // Nothing passed in, assume length 1
@@ -451,8 +459,11 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
                     emsDescriptor.dimensions = arg0.dimensions
                 }
             }
+            if (typeof arg0.ES6proxies !== 'undefined') {
+                emsDescriptor.ES6proxies = arg0.ES6proxies;
+            }
             if (typeof arg0.heapSize !== 'undefined') {
-                emsDescriptor.heapSize = arg0.heapSize
+                emsDescriptor.heapSize = arg0.heapSize;
             }
             if (typeof arg0.mlock !== 'undefined') {
                 emsDescriptor.mlock = arg0.mlock
@@ -504,13 +515,17 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         }
         if (typeof heapSize === 'number') {
             emsDescriptor.heapSize = heapSize
+            if (heapSize <= 0  &&  emsDescriptor.useMap) {
+                console.log("Warning: New EMS array with no heap, disabling mapped keys");
+                emsDescriptor.useMap = false;
+            }
         }
         if (typeof filename === 'string') {
             emsDescriptor.filename = filename
         }
     }
 
-    // Compute the stride factors for each dimension of a multidimensal array
+    // Compute the stride factors for each dimension of a multidimensional array
     for (var dimN = 0; dimN < emsDescriptor.dimensions.length; dimN++) {
         emsDescriptor.dimStride.push(emsDescriptor.nElements);
         emsDescriptor.nElements *= emsDescriptor.dimensions[dimN];
@@ -571,6 +586,33 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     emsDescriptor.destroy = EMSdestroy;
     this.newRegionN++;
     EMSbarrier();
+
+    // Wrap the object with a proxy
+    if(emsDescriptor.ES6proxies) {
+        // Setter/Getter methods for the proxy object
+        // If the target is built into EMS use the built-in object,
+        // otherwise read/write the EMS value without honoring the Full/Empty tag
+        var EMSproxyHandler = {
+            get: function(target, name) {
+                if (name in target) {
+                    return target[name];
+                } else {
+                    return target.read(name);
+                }
+            },
+            set: function(target, name, value) {
+                target.write(name, value);
+                return true
+            }
+        };
+        try {
+            emsDescriptor = new Proxy(emsDescriptor, EMSproxyHandler);
+        }
+        catch (err) {
+            // console.log("Harmony proxies not supported:", err);
+        }
+    }
+
     return emsDescriptor;
 }
 

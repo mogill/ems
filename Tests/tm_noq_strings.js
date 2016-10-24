@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -47,9 +47,7 @@ for (tableN = 0; tableN < nTables; tableN++) {
     tables[tableN] = ems.new({
         dimensions: [arrLen],
         heapSize: arrLen * 40,
-        //useMap: true,
         useExisting: false,
-//	persist: true, 
         filename: '/tmp/EMS_tm' + tableN,
         dataFill: 0,
         doDataFill: true,

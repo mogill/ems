@@ -34,7 +34,7 @@
 """
 import sys
 import time
-sys.path.append("../Python/ems/")
+sys.path.append("../Python/")
 
 nprocs = 2
 nelem = 1000

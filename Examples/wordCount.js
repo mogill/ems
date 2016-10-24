@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.0.7   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -87,7 +87,7 @@ ems.parForEach(0, file_list.length, function (fileNum) {
     try {
         var text = fs.readFileSync(doc_path + file_list[fileNum], 'utf8', "r");
         var words = text.replace(/[\n\r]/g, ' ').toLowerCase().split(splitPattern);
-        //  Iterate over all the wods in the document
+        //  Iterate over all the words in the document
         words.forEach(function (word) {
             //  Ignore words over 15 characters long as non-English
             if (word.length < 15 && word.length > 0) {

@@ -4,7 +4,7 @@
 * [Work Queues](#Work\ Queues)
 * [Key-Value Store](#kv_store.js)
 * [Web Server](#web_server.js)
-* [Word Counting](#wordCount.js)
+* [Word Counting](#Word\ Count)
 * [Implied EMS Operations](#harmony_proxies.js)
 
 ## Simple Loop Benchmarks
@@ -102,15 +102,25 @@ curl http://localhost:8080/existing/persist/reset?foo=data5  # Persisted data is
 curl http://localhost:8080/existing?foo=final  # Persisted reset data is appended to
 ```
 
-## wordCount<nolink>.js
-### Word Counting Using Atomic Operations
+## Word Count
 Map-Reduce is often demonstrated using word counting because each document can
 be processed in parallel, and the results of each document's dictionary reduced
-into a single dictionary.  This EMS implementation also
-iterates over documents in parallel, but it maintains a single shared dictionary
-across processes, atomically incrementing the count of each word found.
-The final word counts are sorted and the most frequently appearing words
+into a single dictionary.
+In contrast with Map-Reduce implementations using a 
+dictionary per document, the EMS implementation 
+maintains a single shared dictionary, eliminating the need for a reduce phase.
+
+The word counts are sorted in parallel and the most frequently appearing words
 are printed with their counts.
+
+
+### Word Counting Using Atomic Operations
+A parallel word counting program is implemented in Python and Javascript.
+A shared dictionary is used by all the tasks, updates are made using
+atomic operations.  Specifically, `Compare And Swap` is used to
+initialize a new word from undefined to a count of 1.  If this CAS
+fails, the word already exists in the dictionary and the operation
+is retried using `Fetch and Add`, atomically incrementing the count.
 
 ### Forming the "Bag of Words" with Word Counts
 ```javascript
