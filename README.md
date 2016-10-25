@@ -26,7 +26,7 @@ that addresses several challenges of parallel programming:
 * [Installation](#Installation)
 * [Roadmap](#Roadmap)
 
-#### EMS is targeted at tasks too large for one core, but too small for a scalable cluster.
+#### EMS is targeted at tasks too large for one core or one process
 
 A modern multicore server has 16-32 cores and over 200GB of memory,
 equivalent to an entire rack of systems from a few years ago.
@@ -34,7 +34,22 @@ As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
+## Sharing Persistent Objects Between Python and Javascript
 <img src="http://synsem.com/images/ems_js_py.gif" />
+* Start Node.js REPL, create an EMS memory
+* Store "Hello"
+* Open a second session, begin the Python REPL
+* Connect to the EMS shared memory from Python
+* Show the object created by JS is present
+* Modify the object, and show the modification can be seen in JS
+* Exit both REPLs so no programs are running to "own" the EMS memory
+* Restart Python, show the memory is still present
+* Initialize a counter from Python
+* Demonstrate atomic Fetch and Add in JS
+* Start a loop in Python incrementing the counter
+* Simultaneously print and modify the value from JS
+* Try to read "empty" data from Python, process blocks
+* Write the empty memory, marking it full, Python resumes execution
 
 ## Types of Concurrency
 <table>
