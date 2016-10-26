@@ -7,7 +7,7 @@ OSX | Linux | Node 6.x, 5.x, 4.x, 0.10, iojs, Python2/3:
 ### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) | [EMS Website](http://syntheticsemantics.com/EMS.js)
 
 # Extended Memory Semantics (EMS)
-___EMS makes possible shared memory parallelism between C/C++, Node.js, and Python___.
+___EMS makes possible shared memory parallelism between Node.js, Python, and C/C++___.
 
 Extended Memory Semantics (EMS) is a unified programming and execution model
 that addresses several challenges of parallel programming:
