@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.2   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-var ems = require('ems')(1, true, 'user');
+var ems = require('ems')(1, false, 'user');
 var http = require('http');
 var url_module = require("url");
 var cluster = require('cluster');

@@ -357,7 +357,7 @@ EMS 1.3 introduces a C API.
 
 EMS 1.4 Python API
 
-EMS 1.5 **[Planned]** Support for [persistent memory](http://pmem.io/).
+EMS 1.5 **[Planned]** Support for [persistent main system memory](http://pmem.io/).
 
 EMS 2.0 **[Planned]** New API with more tightly integrate with 
 ES6, Python, and other dynamically typed languages languages,
