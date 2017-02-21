@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.3.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.3   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
@@ -31,6 +31,8 @@
  +-----------------------------------------------------------------------------*/
 #ifndef EMSPROJ_NODEJS_H
 #define EMSPROJ_NODEJS_H
+#define __STDC_LIMIT_MACROS
+#include <stdint.h>
 #include <node.h>
 #include <v8.h>
 #include "nan.h"
