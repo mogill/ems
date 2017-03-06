@@ -29,9 +29,9 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-'use strict';
+"use strict";
 var fs = require("fs");
-var child_process = require('child_process');
+var child_process = require("child_process");
 var EMS = require("bindings")("ems.node");
 var EMSglobal;
 
@@ -52,7 +52,7 @@ function EMSidx(indexes,    // Index given by application
             idx += x * EMSarray.dimStride[i];
         });
     } else {
-        if (!(typeof indexes === 'number') && !EMSarray.useMap) {  //  If no map, only use integers
+        if (!(typeof indexes === "number") && !EMSarray.useMap) {  //  If no map, only use integers
             console.log("EMS ERROR: Non-integer index used, but EMS memory was not configured to use a map (useMap)",
                 indexes, typeof indexes, EMSarray.useMap);
             idx = -1;
@@ -73,15 +73,15 @@ function EMSdiag(text) {
 
 
 //==================================================================
-//  Co-Begin a parallel region, executing the function 'func'
+//  Co-Begin a parallel region, executing the function "func"
 function EMSparallel() {
     EMSglobal.inParallelContext = true;
     var user_args = (arguments.length === 1?[arguments[0]]:Array.apply(null, arguments));
     var func = user_args.pop();  // Remove the function
     // Loop over remote processes, starting each of them
     this.tasks.forEach(function (task, taskN) {
-        task.send({'taskN': taskN + 1, 'args': user_args, 'func': func.toString()});
-        task.send({'taskN': taskN + 1, 'args': [], 'func': "function() { ems.barrier(); }"});
+        task.send({"taskN": taskN + 1, "args": user_args, "func": func.toString()});
+        task.send({"taskN": taskN + 1, "args": [], "func": "function() { ems.barrier(); }"});
     });
     func.apply(null, user_args);  // Invoke on master process
     EMSbarrier();  // Wait for all processes to finish
@@ -99,14 +99,14 @@ function EMSparForEach(start,         // First iteration's index
                        minChunk) {    // Smallest block of iterations
     var sched = scheduleType;
     var idx;
-    if (typeof sched === 'undefined') {
-        sched = 'guided';
+    if (typeof sched === "undefined") {
+        sched = "guided";
     }
-    if (typeof minChunk === 'undefined') {
+    if (typeof minChunk === "undefined") {
         minChunk = 1;
     }
     switch (scheduleType) {
-        case 'static':     // Evenly divide the iterations across threads
+        case "static":     // Evenly divide the iterations across threads
             var range = end - start;
             var blocksz = Math.floor(range / EMSglobal.nThreads) + 1;
             var s = blocksz * EMSglobal.myID;
@@ -118,8 +118,8 @@ function EMSparForEach(start,         // First iteration's index
                 loopBody(idx + start);
             }
             break;
-        case 'dynamic':
-        case 'guided':
+        case "dynamic":
+        case "guided":
         default:
             //  Initialize loop bounds, block size, etc.
             EMSglobal.loopInit(start, end, sched, minChunk);
@@ -224,9 +224,9 @@ function EMSsync(emsArr) {
 
 
 //==================================================================
-//  Synchronize memory with storage
+//  Convert an EMS index into a mapped key
 function EMSindex2key(index) {
-    if(typeof(index) != 'number') {
+    if(typeof(index) != "number") {
         console.log('EMSindex2key: Index (' + index + ') is not an integer');
         return undefined;
     }
@@ -238,7 +238,7 @@ function EMSindex2key(index) {
 //==================================================================
 //  Wrappers around Stacks and Queues
 function EMSpush(value) {
-    if (typeof value == 'object') {
+    if (typeof value == "object") {
         return this.data.push(JSON.stringify(value), true);
     } else {
         return this.data.push(value);
@@ -254,7 +254,7 @@ function EMSdequeue() {
 }
 
 function EMSenqueue(value) {
-    if (typeof value == 'object') {
+    if (typeof value == "object") {
         return this.data.enqueue(JSON.stringify(value), true);   // Retuns only integers
     } else {
         return this.data.enqueue(value);   // Retuns only integers
@@ -264,12 +264,12 @@ function EMSenqueue(value) {
 
 //==================================================================
 //  Wrappers around Primitive AMOs
-//  Translate EMS maps and multi-dimensional array indexes/keys 
-//  into EMS linear addresses 
+//  Translate EMS maps and multi-dimensional array indexes/keys
+//  into EMS linear addresses
 //  Apparently it is illegal to pass a native function as an argument
 function EMSwrite(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value == 'object') {
+    if (typeof value == "object") {
         this.data.write(linearIndex, JSON.stringify(value), true);  
     } else {
         this.data.write(linearIndex, value);
@@ -278,7 +278,7 @@ function EMSwrite(indexes, value) {
 
 function EMSwriteEF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value == 'object') {
+    if (typeof value == "object") {
         this.data.writeEF(linearIndex, JSON.stringify(value), true);
     } else {
         this.data.writeEF(linearIndex, value);
@@ -287,7 +287,7 @@ function EMSwriteEF(indexes, value) {
 
 function EMSwriteXF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value == 'object') {
+    if (typeof value == "object") {
         this.data.writeXF(linearIndex, JSON.stringify(value), true);
     } else {
         this.data.writeXF(linearIndex, value);
@@ -296,7 +296,7 @@ function EMSwriteXF(indexes, value) {
 
 function EMSwriteXE(indexes, value) {
     var nativeIndex = EMSidx(indexes, this);
-    if (typeof value == 'object') {
+    if (typeof value == "object") {
         this.data.writeXE(nativeIndex, JSON.stringify(value), true);
     } else {
         this.data.writeXE(nativeIndex, value);
@@ -328,7 +328,7 @@ function EMSsetTag(indexes, fe) {
 }
 
 function EMSfaa(indexes, val) {
-    if (typeof val == 'object') {
+    if (typeof val == "object") {
         console.log("EMSfaa: Cannot add an object to something");
         return undefined;
     } else {
@@ -337,7 +337,7 @@ function EMSfaa(indexes, val) {
 }
 
 function EMScas(indexes, oldVal, newVal) {
-    if (typeof newVal == 'object') {
+    if (typeof newVal == "object") {
         console.log("EMScas: ERROR -- objects are not a valid new type");
         return undefined;
     } else {
@@ -403,15 +403,15 @@ function EMSbarrier(timeout) {
 //==================================================================
 //  Utility functions for determining types
 function EMSisArray(a) {
-    return typeof a.pop !== 'undefined'
+    return typeof a.pop !== "undefined"
 }
 
 function EMSisObject(o) {
-    return typeof o === 'object' && !EMSisArray(o)
+    return typeof o === "object" && !EMSisArray(o)
 }
 
 function EMSisDefined(x) {
-    return typeof x !== 'undefined'
+    return typeof x !== "undefined"
 }
 
 
@@ -452,75 +452,75 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.dimensions = [1];
     } else {
         if (EMSisObject(arg0)) {  // User passed in emsArrayDescriptor
-            if (typeof arg0.dimensions !== 'undefined') {
-                if (typeof arg0.dimensions !== 'object') {
+            if (typeof arg0.dimensions !== "undefined") {
+                if (typeof arg0.dimensions !== "object") {
                     emsDescriptor.dimensions = [ arg0.dimensions ]
                 } else {
                     emsDescriptor.dimensions = arg0.dimensions
                 }
             }
-            if (typeof arg0.ES6proxies !== 'undefined') {
+            if (typeof arg0.ES6proxies !== "undefined") {
                 emsDescriptor.ES6proxies = arg0.ES6proxies;
             }
-            if (typeof arg0.heapSize !== 'undefined') {
+            if (typeof arg0.heapSize !== "undefined") {
                 emsDescriptor.heapSize = arg0.heapSize;
             }
-            if (typeof arg0.mlock !== 'undefined') {
+            if (typeof arg0.mlock !== "undefined") {
                 emsDescriptor.mlock = arg0.mlock
             }
-            if (typeof arg0.useMap !== 'undefined') {
+            if (typeof arg0.useMap !== "undefined") {
                 emsDescriptor.useMap = arg0.useMap
             }
-            if (typeof arg0.filename !== 'undefined') {
+            if (typeof arg0.filename !== "undefined") {
                 emsDescriptor.filename = arg0.filename
             }
-            if (typeof arg0.persist !== 'undefined') {
+            if (typeof arg0.persist !== "undefined") {
                 emsDescriptor.persist = arg0.persist
             }
-            if (typeof arg0.useExisting !== 'undefined') {
+            if (typeof arg0.useExisting !== "undefined") {
                 emsDescriptor.useExisting = arg0.useExisting
             }
             if(arg0.doDataFill) {
                 emsDescriptor.doDataFill = arg0.doDataFill;
-                if (typeof arg0.dataFill == 'object') {
+                if (typeof arg0.dataFill == "object") {
                     emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
                     fillIsJSON = true;
                 } else {
                     emsDescriptor.dataFill = arg0.dataFill;
                 }
             }
-            if (typeof arg0.doSetFEtags !== 'undefined') {
+            if (typeof arg0.doSetFEtags !== "undefined") {
                 emsDescriptor.doSetFEtags = arg0.doSetFEtags
             }
-            if (typeof arg0.setFEtags !== 'undefined') {
-                if (arg0.setFEtags == 'full') {
+            if (typeof arg0.setFEtags !== "undefined") {
+                if (arg0.setFEtags == "full") {
                     emsDescriptor.setFEtagsFull = true;
                 } else {
                     emsDescriptor.setFEtagsFull = false;
                 }
             }
-            if (typeof arg0.hashFunc !== 'undefined') {
+            if (typeof arg0.hashFunc !== "undefined") {
                 emsDescriptor.hashFunc = arg0.hashFunc
             }
         } else {
             if (EMSisArray(arg0)) { // User passed in multi-dimensional array
                 emsDescriptor.dimensions = arg0
             } else {
-                if (typeof arg0 === 'number') { // User passed in scalar 1-D array length
+                if (typeof arg0 === "number") { // User passed in scalar 1-D array length
                     emsDescriptor.dimensions = [arg0]
                 } else {
                     console.log("EMSnew: Couldn't determine type of arg0", arg0, typeof arg0)
                 }
             }
         }
-        if (typeof heapSize === 'number') {
+        if (typeof heapSize === "number") {
             emsDescriptor.heapSize = heapSize
             if (heapSize <= 0  &&  emsDescriptor.useMap) {
                 console.log("Warning: New EMS array with no heap, disabling mapped keys");
                 emsDescriptor.useMap = false;
             }
         }
-        if (typeof filename === 'string') {
+        if (typeof filename === "string") {
             emsDescriptor.filename = filename
         }
     }
@@ -530,18 +530,18 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.dimStride.push(emsDescriptor.nElements);
         emsDescriptor.nElements *= emsDescriptor.dimensions[dimN];
     }
-    if (typeof emsDescriptor.dimensions === 'undefined') {
+    if (typeof emsDescriptor.dimensions === "undefined") {
         emsDescriptor.dimensions = [emsDescriptor.nElements];
     }
 
     // Name the region if a name wasn't given
     if (!EMSisDefined(emsDescriptor.filename)) {
-        emsDescriptor.filename = '/EMS_region_' + this.newRegionN;
+        emsDescriptor.filename = "/EMS_region_" + this.newRegionN;
         emsDescriptor.persist = false;
     }
 
     if (emsDescriptor.useExisting) {
-        try { fs.openSync(emsDescriptor.filename, 'r'); }
+        try { fs.openSync(emsDescriptor.filename, "r"); }
         catch (err) {
             console.log("ERROR: EMS file " + emsDescriptor.filename + " should already exist, but does not.");
             return;
@@ -631,7 +631,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     }
 
     var pinThreads = false;
-    if (typeof pinThreadsArg === 'boolean') {
+    if (typeof pinThreadsArg === "boolean") {
         pinThreads = pinThreadsArg;
     }
 
@@ -646,11 +646,11 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
         }
     }
 
-    var domainName = '/EMS_MainDomain';
+    var domainName = "/EMS_MainDomain";
     if (filename) domainName = filename;
     //  All arguments are defined -- now do the EMS initialization
     retObj.data = EMS.initialize(0, 0, // 0= # elements, 1=Heap Size
-        false, // 2 = useMap 
+        false, // 2 = useMap
         domainName, false, false,  // 3=name, 4=persist, 5=useExisting
         false, false, undefined,  //  6=doDataFill, 7=fillIsJSON, 8=fillValue
         false, false,  retObj.myID, //  9=doSetFEtags, 10=setFEtags, 11=EMS myID
@@ -659,16 +659,16 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var targetScript;
     switch (threadingType) {
         case undefined:
-        case 'bsp':
+        case "bsp":
             targetScript = process.argv[1];
-            threadingType = 'bsp';
+            threadingType = "bsp";
             retObj.inParallelContext = true;
             break;
-        case 'fj':
-            targetScript = './EMSthreadStub';
+        case "fj":
+            targetScript = "./EMSthreadStub";
             retObj.inParallelContext = false;
             break;
-        case 'user':
+        case "user":
             targetScript = undefined;
             retObj.inParallelContext = false;
             break;
@@ -682,13 +682,13 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     //  safely execute.
     if (targetScript !== undefined && retObj.myID == 0) {
         var emsThreadStub =
-            '// Automatically Generated EMS Slave Thread Script\n' +
-            '// To edit this file, see ems.js:emsThreadStub()\n' +
-            'var ems = require("ems")(parseInt(process.env.EMS_Ntasks));\n' +
-            'process.on("message", function(msg) {\n' +
-            '    eval("func = " + msg.func);\n' +
-            '    func.apply(null, msg.args);\n' +
-            '} );\n';
+            "// Automatically Generated EMS Slave Thread Script\n" +
+            "// To edit this file, see ems.js:emsThreadStub()\n" +
+            "var ems = require(\"ems\")(parseInt(process.env.EMS_Ntasks));\n" +
+            "process.on(\"message\", function(msg) {\n" +
+            "    eval(\"func = \" + msg.func);\n" +
+            "    func.apply(null, msg.args);\n" +
+            "} );\n";
         fs.writeFileSync('./EMSthreadStub.js', emsThreadStub, {flag: 'w+'});
         process.env.EMS_Ntasks = nThreads;
         for (var taskN = 1; taskN < nThreads; taskN++) {
