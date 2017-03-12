@@ -6,6 +6,7 @@
 * [Web Server](#web_server.js)
 * [Word Counting](#Word\ Count)
 * [Implied EMS Operations](#harmony_proxies.js)
+* [Inter-language Programming](#Inter-language\ Programming)
 
 ## Simple Loop Benchmarks
 The original [STREAMS](https://www.cs.virginia.edu/stream/)
@@ -193,9 +194,9 @@ documents from Project Gutenberg.
 ## harmony_proxies.js
 Ordinary JS objects can be made into EMS objects by wrapping them
 using ES6 proxies.  Access to the object uses EMS `read` and `write` operations
-  that do not use full/empty tag bits preserving legacy load/store semantics,
-  but inherit the atomic and transactional capabilities of EMS.
-  The syntax allows incrementally adding EMS operations to legacy programs.
+that do not use full/empty tag bits preserving legacy load/store semantics,
+but inherit the atomic and transactional capabilities of EMS.
+The syntax allows incrementally adding EMS operations to legacy programs.
 
 ```javascript
 emsData["foo"] = 123  // Equivalent to emsData.write("foo", 123)
@@ -205,3 +206,26 @@ emsData.readFE("foo")  // 123, read "foo" when full and atomically mark empty
 emsData.writeEF("foo", "one two three")   // Write "foo" when empty and mark full
 emsData["foo"]  // "one two three", Full/empty tags not used
 ```
+
+
+## Inter-language Programming
+
+The programs `interlanguage.js` and `interlanguage.py` demonstrate sharing
+objects between Javascript and Python.
+A variety of synchronization and execution models are shown.
+
+### Possible Orders for Starting Processes
+| Persistent EMS Array File  | (Re-)Initialize | Use |
+| :------------- |:-------------:| :-----:|
+| Already exists      | A one-time initialization process truncates and creates the EMS array. The first program to start must create the EMS file with the ```useExisting : false``` attribute | Any number of processes may attach to the EMS array in any order using the attribute  `useExisting : true` |
+| Does not yet exist  |   Subsequent programs attach to the new EMS file with the `useExisting : true` attribute | N/A |
+
+
+### Synchronizing Processes
+EMS collective operations like barriers and parallel loops are
+not available in `user` parallelism modes like inter-language programs.
+An example of a simple two process barrier is shown in the example,
+a more scalable and robust implementation can be found in the EMS
+source code.
+
+

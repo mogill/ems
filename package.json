@@ -1,6 +1,6 @@
 {
   "name": "ems",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "author": "Synthetic Semantics <info@synsem.com>",
   "description": "Persistent Shared Memory and Parallel Programming Model",
   "contributors": [

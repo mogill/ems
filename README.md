@@ -36,6 +36,9 @@ without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
 <img src="http://synsem.com/images/ems_js_py.gif" />
+
+Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+
 * Start Node.js REPL, create an EMS memory
 * Store "Hello"
 * Open a second session, begin the Python REPL
