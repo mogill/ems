@@ -7,7 +7,7 @@ OSX | Linux | Node 6.x, 5.x, 4.x, 0.10, iojs, Python2/3:
 ### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) | [EMS Website](http://syntheticsemantics.com/EMS.js)
 
 # Extended Memory Semantics (EMS)
-___EMS makes possible shared memory parallelism between Node.js, Python, and C/C++___.
+__EMS makes possible shared memory parallelism between Node.js, Python, and C/C++__.
 
 Extended Memory Semantics (EMS) is a unified programming and execution model
 that addresses several challenges of parallel programming:
@@ -26,7 +26,7 @@ that addresses several challenges of parallel programming:
 * [Installation](#Installation)
 * [Roadmap](#Roadmap)
 
-#### EMS is targeted at tasks too large for one core or one process
+#### EMS is targeted at tasks too large for one core or one process but too small for a scalable cluster
 
 A modern multicore server has 16-32 cores and over 200GB of memory,
 equivalent to an entire rack of systems from a few years ago.
@@ -317,6 +317,12 @@ set up a global npm link to the current build:
 ```sh
 sudo npm link ../ems
 ```
+
+### Installing for Python
+Python users should download and install EMS git (see above).
+There is no PIP package, but not due lack of desire or effort.
+I concede defeat to the Python "documentation" and package tooling.
+A pull request is most welcome!
 
 
 ### Run Some Examples

@@ -220,6 +220,9 @@ A variety of synchronization and execution models are shown.
 | Already exists      | A one-time initialization process truncates and creates the EMS array. The first program to start must create the EMS file with the ```useExisting : false``` attribute | Any number of processes may attach to the EMS array in any order using the attribute  `useExisting : true` |
 | Does not yet exist  |   Subsequent programs attach to the new EMS file with the `useExisting : true` attribute | N/A |
 
+### Example
+<img src="http://synsem.com/images/ems_js_py.gif" />
+
 
 ### Synchronizing Processes
 EMS collective operations like barriers and parallel loops are
