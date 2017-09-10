@@ -19,8 +19,8 @@ before_script:
   - sudo -H apt-get install python-pip
   - sudo -H apt-get install python3-pip
   - sudo -H apt-get install libffi-dev
-  - python3 -m pip install cffi
-  - python -m pip install cffi
+  - sudo python3 -m pip install cffi
+  - sudo python -m pip install cffi
   - sudo -H apt-get install python3-cffi
 
 script:
