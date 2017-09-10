@@ -377,7 +377,7 @@ EMS 1.3 introduces a C API.
 
 EMS 1.4 Python API
 
-EMS 1.4.7 **[This Release]** Improved examples and documentation
+EMS 1.4.8 **[This Release]** Improved examples and documentation
 
 EMS 1.5 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
     low-level EMS diagnostic tools.

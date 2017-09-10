@@ -69,10 +69,10 @@ build/Release/ems.node:
 py: py2 py3
 
 py3:
-	(cd Python; python3 ./setup.py build --build-temp=./ install)
+	(cd Python; sudo python3 ./setup.py build --build-temp=./ install)
 
 py2:
-	(cd Python; python ./setup.py build --build-temp=./ install)
+	(cd Python; sudo python ./setup.py build --build-temp=./ install)
 
 clean: clean_js clean_py3 clean_py2
 
