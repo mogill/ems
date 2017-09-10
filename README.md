@@ -377,12 +377,12 @@ EMS 1.3 introduces a C API.
 
 EMS 1.4 Python API
 
-EMS 1.4.5 **[This Release]** Improved examples and documentation
+EMS 1.4.6 **[This Release]** Improved examples and documentation
 
-EMS 1.6 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
+EMS 1.5 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
     low-level EMS diagnostic tools.
 
-EMS 1.7 **[Planned]** Support for NVDIMMs and other technologies that behave
+EMS 1.6 **[Planned]** Support for NVDIMMs and other technologies that behave
      as [persistent main system memory](http://pmem.io/).
 
 EMS 2.0 **[Planned]** New API which more tightly integrates with 
