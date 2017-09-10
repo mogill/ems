@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -204,11 +204,20 @@ function EMStmEnd(tmHandle,   //  The returned value from tmStart
 //==================================================================
 function EMSreturnData(value) {
     if (typeof value === "object") {
-        if (value.data[0] == "[" && value.data.slice(-1) == "]") {
-            return eval(value.data);
-        } else {
-            return JSON.parse(value.data);
+        var retval;
+        try {
+            if (value.data[0] === "[" && value.data.slice(-1) === "]") {
+                retval = eval(value.data);
+            } else {
+                retval = JSON.parse(value.data);
+            }
+        } catch (err) {
+            // TODO: Throw error?
+            console.log('EMSreturnData: Corrupt memory, unable to reconstruct JSON value of (' +
+                value.data + ')\n');
+            retval = undefined;
         }
+        return retval;
     } else {
         return value;
     }
@@ -226,7 +235,7 @@ function EMSsync(emsArr) {
 //==================================================================
 //  Convert an EMS index into a mapped key
 function EMSindex2key(index) {
-    if(typeof(index) != "number") {
+    if(typeof(index) !== "number") {
         console.log('EMSindex2key: Index (' + index + ') is not an integer');
         return undefined;
     }
@@ -238,7 +247,7 @@ function EMSindex2key(index) {
 //==================================================================
 //  Wrappers around Stacks and Queues
 function EMSpush(value) {
-    if (typeof value == "object") {
+    if (typeof value === "object") {
         return this.data.push(JSON.stringify(value), true);
     } else {
         return this.data.push(value);
@@ -254,7 +263,7 @@ function EMSdequeue() {
 }
 
 function EMSenqueue(value) {
-    if (typeof value == "object") {
+    if (typeof value === "object") {
         return this.data.enqueue(JSON.stringify(value), true);   // Retuns only integers
     } else {
         return this.data.enqueue(value);   // Retuns only integers
@@ -269,7 +278,7 @@ function EMSenqueue(value) {
 //  Apparently it is illegal to pass a native function as an argument
 function EMSwrite(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value == "object") {
+    if (typeof value === "object") {
         this.data.write(linearIndex, JSON.stringify(value), true);  
     } else {
         this.data.write(linearIndex, value);
@@ -278,7 +287,7 @@ function EMSwrite(indexes, value) {
 
 function EMSwriteEF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value == "object") {
+    if (typeof value === "object") {
         this.data.writeEF(linearIndex, JSON.stringify(value), true);
     } else {
         this.data.writeEF(linearIndex, value);
@@ -287,7 +296,7 @@ function EMSwriteEF(indexes, value) {
 
 function EMSwriteXF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value == "object") {
+    if (typeof value === "object") {
         this.data.writeXF(linearIndex, JSON.stringify(value), true);
     } else {
         this.data.writeXF(linearIndex, value);
@@ -296,7 +305,7 @@ function EMSwriteXF(indexes, value) {
 
 function EMSwriteXE(indexes, value) {
     var nativeIndex = EMSidx(indexes, this);
-    if (typeof value == "object") {
+    if (typeof value === "object") {
         this.data.writeXE(nativeIndex, JSON.stringify(value), true);
     } else {
         this.data.writeXE(nativeIndex, value);
@@ -328,7 +337,7 @@ function EMSsetTag(indexes, fe) {
 }
 
 function EMSfaa(indexes, val) {
-    if (typeof val == "object") {
+    if (typeof val === "object") {
         console.log("EMSfaa: Cannot add an object to something");
         return undefined;
     } else {
@@ -337,7 +346,7 @@ function EMSfaa(indexes, val) {
 }
 
 function EMScas(indexes, oldVal, newVal) {
-    if (typeof newVal == "object") {
+    if (typeof newVal === "object") {
         console.log("EMScas: ERROR -- objects are not a valid new type");
         return undefined;
     } else {
@@ -362,7 +371,7 @@ function EMScritical(func, timeout) {
 //==================================================================
 //  Perform func only on thread 0
 function EMSmaster(func) {
-    if (this.myID == 0) {
+    if (this.myID === 0) {
         return func();
     }
 }
@@ -482,7 +491,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
             }
             if(arg0.doDataFill) {
                 emsDescriptor.doDataFill = arg0.doDataFill;
-                if (typeof arg0.dataFill == "object") {
+                if (typeof arg0.dataFill === "object") {
                     emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
                     fillIsJSON = true;
                 } else {
@@ -493,7 +502,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
                 emsDescriptor.doSetFEtags = arg0.doSetFEtags
             }
             if (typeof arg0.setFEtags !== "undefined") {
-                if (arg0.setFEtags == "full") {
+                if (arg0.setFEtags === "full") {
                     emsDescriptor.setFEtagsFull = true;
                 } else {
                     emsDescriptor.setFEtagsFull = false;
@@ -514,7 +523,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
             }
         }
         if (typeof heapSize === "number") {
-            emsDescriptor.heapSize = heapSize
+            emsDescriptor.heapSize = heapSize;
             if (heapSize <= 0  &&  emsDescriptor.useMap) {
                 console.log("Warning: New EMS array with no heap, disabling mapped keys");
                 emsDescriptor.useMap = false;
@@ -543,7 +552,6 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     if (emsDescriptor.useExisting) {
         try { fs.openSync(emsDescriptor.filename, "r"); }
         catch (err) {
-            console.log("ERROR: EMS file " + emsDescriptor.filename + " should already exist, but does not.");
             return;
         }
     }
@@ -552,7 +560,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     //  only operations (ie: unlinking an old file, opening a new
     //  file).  After thread 0 has completed initialization, other
     //  threads can safely share the EMS array.
-    if (!emsDescriptor.useExisting && this.myID != 0)    EMSbarrier();
+    if (!emsDescriptor.useExisting && this.myID !== 0)    EMSbarrier();
     emsDescriptor.data = this.init(emsDescriptor.nElements, emsDescriptor.heapSize,  // 0, 1
         emsDescriptor.useMap, emsDescriptor.filename,  // 2, 3
         emsDescriptor.persist, emsDescriptor.useExisting,  // 4, 5
@@ -562,7 +570,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.setFEtagsFull,  // 10
         this.myID, this.pinThreads, this.nThreads,  // 11, 12, 13
         emsDescriptor.mlock);  // 14
-    if (!emsDescriptor.useExisting && this.myID == 0)  EMSbarrier();
+    if (!emsDescriptor.useExisting && this.myID === 0)  EMSbarrier();
 
     emsDescriptor.regionN = this.newRegionN;
     emsDescriptor.push = EMSpush;
@@ -624,7 +632,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var retObj = {tasks: []};
 
     // TODO: Determining the thread ID should be done via shared memory
-    if (process.env.EMS_Subtask != undefined ) {
+    if (process.env.EMS_Subtask !== undefined ) {
         retObj.myID = parseInt(process.env.EMS_Subtask);
     } else {
         retObj.myID = 0;
@@ -638,7 +646,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     var nThreads;
     nThreads = parseInt(nThreadsArg);
     if (!(nThreads > 0)) {
-        if (process.env.EMS_Ntasks != undefined) {
+        if (process.env.EMS_Ntasks !== undefined) {
             nThreads = parseInt(process.env.EMS_Ntasks);
         } else {
             console.log("EMS: Must declare number of nodes to use.  Input:" + nThreadsArg);
@@ -680,7 +688,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
 
     //  The master thread has completed initialization, other threads may now
     //  safely execute.
-    if (targetScript !== undefined && retObj.myID == 0) {
+    if (targetScript !== undefined && retObj.myID === 0) {
         var emsThreadStub =
             "// Automatically Generated EMS Slave Thread Script\n" +
             "// To edit this file, see ems.js:emsThreadStub()\n" +

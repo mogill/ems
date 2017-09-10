@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
  +-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.4   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2017, Jace A Mogill.  All rights reserved.                   |
@@ -49,11 +49,15 @@
 import time
 import sys
 import random
-sys.path.append("../Python/")
+sys.path.append("../../Python/")
 import ems
 
 # Initialize EMS: 1 process, no thread-core affinity, user provided parallelism
-ems.initialize(1, False, "user")
+# Initialize EMS with 1 process, no thread-CPU affinity,
+# "user" mode parallelism, and a unique namespace for EMS runtime
+# ("pyExample") to keep the JS program distinct from Javascript EMS
+# program also running.
+ems.initialize(1, False, "user", "pyExample")
 
 
 # The EMS array attributes must be the same by all programs sharing the array,
@@ -63,7 +67,7 @@ maxNKeys = 100
 bytesPerEntry = 100  # Bytes of storage per key, used for key (dictionary word) itself
 shared = ems.new({
     'useExisting': True,        # Connect the EMS memory created by JS, do not create a new memory
-    'filename': "interlanguage.ems",  # Persistent EMS array's filename
+    'filename': "/tmp/interlanguage.ems",  # Persistent EMS array's filename
     'dimensions': maxNKeys,   # Maximum # of different keys the array can store
     'heapSize': maxNKeys * 100,  # 100 bytes of storage per key, used for key (dictionary word) itself
     'useMap': True             # Use a key-index mapping, not integer indexes

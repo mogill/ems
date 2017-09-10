@@ -1,9 +1,9 @@
 """
  +-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.1   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
- |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
+ |  Copyright (c) 2016-2017, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -474,7 +474,7 @@ def new(arg0=None,   # Maximum number of elements the EMS region can hold
             fh = open(str(emsDescriptor.filename), 'r')
             fh.close()
         except Exception as err:
-            print("EMS ERROR: file " + str(emsDescriptor.filename) + " should already exist, but does not. " + err)
+            print("EMS ERROR: file " + str(emsDescriptor.filename) + " should already exist, but does not. " + str(err))
             return
 
     # init() is first called from thread 0 to perform one-thread

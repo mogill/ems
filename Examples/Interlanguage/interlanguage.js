@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.4   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2017, Jace A Mogill.  All rights reserved.                   |
@@ -48,14 +48,24 @@
 
  */
 "use strict";
-let ems = require("ems")(1, false, "user");  // User mode parallelism -- no EMS parallel intrinsics
+// Initialize EMS with 1 process, no thread-CPU affinity,
+// "user" mode parallelism, and a unique namespace for EMS runtime
+// ("jsExample") to keep the JS program distinct from Python EMS
+// program also running.
+let ems = require("ems")(1, false, "user", "jsExample");
+
+if (Number(process.version[1]) < 6) {
+    console.log('Requires Node.js version 6.x or higher -- will not work with polyfill Harmony');
+    process.exit(1);
+}
+
 
 const maxNKeys = 100;
 const bytesPerEntry = 100;  // Bytes of storage per key, used for key (dictionary word) itself
 let shared = ems.new({
     "ES6proxies": true,  // Enable native JS object-like syntax
     "useExisting": false,      // Create a new EMS memory area, do not use existing one if present
-    "filename": "interlanguage.ems",  // Persistent EMS array's filename
+    "filename": "/tmp/interlanguage.ems",  // Persistent EMS array's filename
     "dimensions": maxNKeys,  // Maximum # of different keys the array can store
     "heapSize": maxNKeys *  bytesPerEntry,
     "setFEtags": "empty",  // Set default full/empty state of EMS memory to empty
@@ -67,7 +77,7 @@ let shared = ems.new({
 
 //------------------------------------------------------------------------------------------
 //  Begin Main Program
-
+console.log("JS Started, waiting for Python to start...");
 // One-time initialization should be performed before syncing to Py
 shared.writeXF("nestedObj", undefined);
 

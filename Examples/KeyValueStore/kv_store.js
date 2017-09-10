@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.2   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -43,7 +43,6 @@ var persistent_data_options = {
     heapSize: [10000000],
     useExisting: false,
     useMap: true,
-    setFEtags: 'full',
     filename: '/tmp/persistent_shared_web_data.ems'
 };
 
@@ -52,9 +51,6 @@ var shared_counters_options = {
     heapSize: [10000],
     useExisting: false,
     useMap: true,
-    doDataFill: true,
-    dataFill: 0,
-    setFEtags: 'full',
     filename: '/tmp/counters.ems'
 };
 
@@ -106,7 +102,6 @@ function handleRequest(request, response) {
     } else {
         data = "ERROR: No EMS command specified.";
     }
-
     var datastr = JSON.stringify(data);
     console.log("Request #" + requestN + ", slave process " + myID + ":   Op(" +
         opname + ")  key(" + key + ")  val(" + value + ")   data=" + datastr);
@@ -119,7 +114,14 @@ if (cluster.isMaster) {
      * will attach to before creating the slave processes.  This prevents
      * parallel hazards if all slaves tried creating the EMS arrays.
      */
+    persistent_data_options.setFEtags = 'empty';
+    persistent_data_options.doSetFEtags = true;
     persistent_data = ems.new(persistent_data_options);
+
+    shared_counters_options.dataFill = 0;
+    shared_counters_options.doDataFill = true;
+    shared_counters_options.setFEtags = 'full';
+    shared_counters_options.doSetFEtags = true;
     shared_counters = ems.new(shared_counters_options);
 
     // Seed the GUID generator with a unique starting value
@@ -128,12 +130,13 @@ if (cluster.isMaster) {
     // All the one-time initialization is complete, now start slave processes.
     // The number of processes is the limit of the number of pending requests
     // before deadlock occurs.
-    for (var procnum = 0; procnum < 8; procnum++) {
+    var nProcesses = Number(process.argv[2]) || 8;  // Number of "cluster" processes to start
+    for (var procnum = 0; procnum < nProcesses; procnum++) {
         cluster.fork();
     }
 
     console.log(
-        "REST API:  [EMSCommand]?key[=value]\n" +
+        "REST API:  <EMSCommand>?key[=value]\n" +
         "  EMSCommand:  read, readFE, readFF, writeXE, writeXF, writeEF, faa, cas\n" +
         "  key: The index into the EMS array, must be a valid JSON element\n" +
         "  value: For write commands, the value stored in EMS.\n" +
@@ -147,13 +150,9 @@ if (cluster.isMaster) {
     /* Each Slave Cluster processes must connect to the EMS array created
      * by the master process.
      */
-    delete persistent_data_options.setFEtags;
     persistent_data_options.useExisting = true;
     persistent_data = ems.new(persistent_data_options);
 
-    delete shared_counters_options.doDataFill;
-    delete shared_counters_options.dataFill;
-    delete shared_counters_options.setFEtags;
     shared_counters_options.useExisting = true;
     shared_counters = ems.new(shared_counters_options);
 

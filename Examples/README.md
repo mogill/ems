@@ -1,43 +1,47 @@
-# EMS Examples
+# Extended Memory Semantics (EMS) Examples
 #### Table of Contents
-* [Simple Loop Benchmarks](#Simple\ Loop\ Benchmarks)
-* [Work Queues](#Work\ Queues)
+* [Simple Loop Benchmarks](#Simple-Loop-Benchmarks)
 * [Key-Value Store](#kv_store.js)
-* [Web Server](#web_server.js)
-* [Word Counting](#Word\ Count)
+* [Work Queues](#Work-Queues)
+* [Parallel Web Server](#web_server.js)
+* [Word Counting](#Word-Count)
 * [Implied EMS Operations](#harmony_proxies.js)
-* [Inter-language Programming](#Inter-language\ Programming)
+* [Inter-Language Programming](#Inter-language-Programming)
 
 ## Simple Loop Benchmarks
+
+Click here for a __[Detailed Description of the EMS<nolink>.js STREAMS implementation](https://github.com/SyntheticSemantics/ems/tree/master/Examples/STREAMS)__.
+
 The original [STREAMS](https://www.cs.virginia.edu/stream/)
-benchmark measures the _Speed Not To Exceed_ 
+benchmark attempts to measure the _Speed Not To Exceed_ 
 bandwidth of a CPU to it's attached RAM by performing large
-numbers of simple operations.  This version for
-EMS<nolink>.js measures the rate of different atomic operations on
-shared integer data and is implemented using two different parallelization schemes:
-Bulk Synchronous Parallel (BSP), and Fork-Join.
+numbers of simple operations on an array of integers or floats.
+This version of STREAMS for EMS<nolink>.js measures the rate of different atomic operations on
+shared integer data, it is implemented twice using two different parallelization schemes:
+Bulk Synchronous Parallel (BSP), and Fork-Join (FJ).
 
-Experimental results are from an AWS
-`c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
+Experimental results are from the BSP version
+ on an AWS `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
 
-<center><img src="http://synsem.com/images/ems/streams.svg" type="image/svg+xml" height="300px">
+<center><img src="http://synsem.com/images/ems/streams.svg" type="image/svg+xml" height="360px">
 </center>
 
-### streams_bulk_sync_parallel.js
-```bash
-node streams_bulk_sync_parallel.js 6   # Use 6 processes
-```
-BSP parallelism starts all the processes at the program's main entry point
-and all statements are executed, barriers are used to synchronize execution
-between loops.
 
-### streams_fork_join.js
-```bash
-node streams_fork_join.js 4  # Use 4 processes
-```
-FJ parallel execution begins with a single master thread which creates
-new threads as needed (ie: to execute a loop) which exit when there is
-no work left, at which point the master thread joins 
+## Parallelism Within a Single HTTP Request
+[Web Server Parallelism Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
+
+EMS is a memory model and has no daemon process to monitor a network interface
+for operations to execute.
+This example builds on a standard HTTP server to implement
+shared memory parallelism within a single web request.
+
+## EMS as a Key Value Store
+[EMS Key-Value Store Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
+
+An EMS array is used as a Key-Value store with a 1-to-1 mapping of REST operations 
+to EMS memory operations.
+The KV server is implemented using the Node.js built-in `Cluster` module to
+demonstrate parallelism sources outside of EMS.
 
 
 ## Work Queues
@@ -56,7 +60,7 @@ all the transactions were performed properly.
     maxNops = 5;              // Maximum number of EMS arrays to update during a transaction
 ```
 
-### concurrent_Q_and_TM.js
+### `concurrent_Q_and_TM.js`
 ```bash
 node concurrent_Q_and_TM.js 4   # 1 process enqueues then processes work, 3 processes perform work
 ````
@@ -64,7 +68,7 @@ All processes are started, one enqueues transactions while the others dequeue
 and perform the work.  When all the work has been enqueued, that process also
 begins dequeing and performing work.
 
-### workQ_and_TM.js
+### `workQ_and_TM.js`
 ```bash
 node workQ_and_TM.js 4   # Enqueue all the work, all 4 processes deqeue and perform work
 ````
@@ -73,37 +77,7 @@ to dequeue and perform work until no work remains in the queue.
 
 
 
-
-## kv_store.js
-An EMS array is presented as a Key-Value store with EMS memory operations
-presented as a REST interface.
-An ordinary Node.js Cluster is started to demonstrate parallelism outside of EMS.
-
-```bash
-node kv_store.js 2   # Start the server, logs will appear on this terminal
-```
-
-```bash
-curl localhost:8080/writeXF?foo=Hello   # Unconditionally write "Hello" to the key "foo" and mark Full
-curl localhost:8080/faa?foo=+World!   # Fetch And Add returns original value: "Hello"
-curl localhost:8080/readFF?foo  # Read Full and leave Full, final value is "Hello World!"
-```
-
-
-## web_server.js
-A parallel region is created for each request received by the web server,
-handling the single request with multiple processes.
-
-```bash
-curl http://localhost:8080/?foo=data1   # Insert ephemeral data1 with the key "foo"
-curl http://localhost:8080/persist?foo=data2   # Previous data was not persistent, this is a new persistent foo
-curl http://localhost:8080/existing/persist?foo=data3   # This data is appended to the already persisted data
-curl http://localhost:8080/existing/persist/unique?foo=nowhere  # A GUID is generated for this operation
-curl http://localhost:8080/existing/persist/reset?foo=data5  # Persisted data is appended to, the response is issued, and the data is deleted
-curl http://localhost:8080/existing?foo=final  # Persisted reset data is appended to
-```
-
-## Word Count
+## [Word Counting](#Word-Count)
 Map-Reduce is often demonstrated using word counting because each document can
 be processed in parallel, and the results of each document's dictionary reduced
 into a single dictionary.
@@ -118,7 +92,7 @@ are printed with their counts.
 ### Word Counting Using Atomic Operations
 A parallel word counting program is implemented in Python and Javascript.
 A shared dictionary is used by all the tasks, updates are made using
-atomic operations.  Specifically, `Compare And Swap` is used to
+atomic operations.  Specifically, `Compare And Swap (CAS)` is used to
 initialize a new word from undefined to a count of 1.  If this CAS
 fails, the word already exists in the dictionary and the operation
 is retried using `Fetch and Add`, atomically incrementing the count.
@@ -191,44 +165,16 @@ documents from Project Gutenberg.
 <img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
 
 
-## harmony_proxies.js
-Ordinary JS objects can be made into EMS objects by wrapping them
-using ES6 proxies.  Access to the object uses EMS `read` and `write` operations
-that do not use full/empty tag bits preserving legacy load/store semantics,
-but inherit the atomic and transactional capabilities of EMS.
-The syntax allows incrementally adding EMS operations to legacy programs.
 
-```javascript
-emsData["foo"] = 123  // Equivalent to emsData.write("foo", 123)
-emsData.foo   // 123, equivalent to emsData.read("foo")
-
-emsData.readFE("foo")  // 123, read "foo" when full and atomically mark empty
-emsData.writeEF("foo", "one two three")   // Write "foo" when empty and mark full
-emsData["foo"]  // "one two three", Full/empty tags not used
-```
-
-
-## Inter-language Programming
+## Inter-Language Programming
+[Inter-Language Shared Memory Programming](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
 
 The programs `interlanguage.js` and `interlanguage.py` demonstrate sharing
 objects between Javascript and Python.
 A variety of synchronization and execution models are shown.
 
-### Possible Orders for Starting Processes
-| Persistent EMS Array File  | (Re-)Initialize | Use |
-| :------------- |:-------------:| :-----:|
-| Already exists      | A one-time initialization process truncates and creates the EMS array. The first program to start must create the EMS file with the ```useExisting : false``` attribute | Any number of processes may attach to the EMS array in any order using the attribute  `useExisting : true` |
-| Does not yet exist  |   Subsequent programs attach to the new EMS file with the `useExisting : true` attribute | N/A |
 
 ### Example
 <img src="http://synsem.com/images/ems_js_py.gif" />
 
-
-### Synchronizing Processes
-EMS collective operations like barriers and parallel loops are
-not available in `user` parallelism modes like inter-language programs.
-An example of a simple two process barrier is shown in the example,
-a more scalable and robust implementation can be found in the EMS
-source code.
-
-
+###### Copyright (C)2017 Jace A Mogill

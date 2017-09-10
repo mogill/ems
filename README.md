@@ -1,4 +1,4 @@
-OSX | Linux | Node 6.x, 5.x, 4.x, 0.10, iojs, Python2/3:
+OSX | Linux | Node 0.10-8.x, iojs, Python2/3:
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
@@ -7,43 +7,43 @@ OSX | Linux | Node 6.x, 5.x, 4.x, 0.10, iojs, Python2/3:
 ### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) | [EMS Website](http://syntheticsemantics.com/EMS.js)
 
 # Extended Memory Semantics (EMS)
-__EMS makes possible shared memory parallelism between Node.js, Python, and C/C++__.
+__EMS makes possible persistent shared memory parallelism between Node.js, Python, and C/C++__.
 
-Extended Memory Semantics (EMS) is a unified programming and execution model
-that addresses several challenges of parallel programming:
+Extended Memory Semantics (EMS) unifies synchronization and storage primitives
+to address several challenges of parallel programming:
 + Allows any number or kind of processes to share objects
 + Manages synchronization and object coherency
-+ Implements persistence to NVM and secondary storage
++ Implements persistence to non-volatile memory and secondary storage
 + Provides dynamic load-balancing between processes
 + May substitute or complement other forms of parallelism
 
 #### Table of Contents
-* [Parallel Execution Models Supported](#Types\ of\ Concurrency)
-* [Atomic Operations](#Built-in\ Atomic\ Operations)
-* [Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
-* [Benchmarks](#Examples\ and\ Benchmarks)
-* [Synchronization as a Property of the Data, Not a Duty for Tasks](Synchronization\ as\ a\ Property\ of\ the\ Data,\ Not\ a\ Duty\ for\ Tasks)
-* [Installation](#Installation)
-* [Roadmap](#Roadmap)
+* [Parallel Execution Models Supported](#Types-of-Concurrency) Fork Join, Bulk Synchronous Parallel, User defined
+* [Atomic Operations](#Built-in-Atomic-Operations) Atomic Read-Modify-Write operations
+* [Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples) Parallel web servers, word counting
+* [Benchmarks](#Examples-and-Benchmarks) Bandwidth, Transaction processing
+* [Synchronization as a Property of the Data, Not a Duty for Tasks](#Synchronization-Property) Full/Empty tags
+* [Installation](#Installation) Downloading from Git or NPM
+* [Roadmap](#Roadmap) The Future™! It's all already happened
 
 #### EMS is targeted at tasks too large for one core or one process but too small for a scalable cluster
 
-A modern multicore server has 16-32 cores and over 200GB of memory,
+A modern multicore server has 16-32 cores and nearly 1TB of memory,
 equivalent to an entire rack of systems from a few years ago.
 As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
-<img src="http://synsem.com/images/ems_js_py.gif" />
+<img src="http://synsem.com/images/ems_js_py.gifx" />
 
-Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
-
+Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
+The animated GIF demonstrates the following steps:
 * Start Node.js REPL, create an EMS memory
 * Store "Hello"
 * Open a second session, begin the Python REPL
-* Connect to the EMS shared memory from Python
-* Show the object created by JS is present
+* Connect Python to the EMS shared memory
+* Show the object created by JS is present in Python
 * Modify the object, and show the modification can be seen in JS
 * Exit both REPLs so no programs are running to "own" the EMS memory
 * Restart Python, show the memory is still present
@@ -51,13 +51,13 @@ Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSe
 * Demonstrate atomic Fetch and Add in JS
 * Start a loop in Python incrementing the counter
 * Simultaneously print and modify the value from JS
-* Try to read "empty" data from Python, process blocks
+* Try to read "empty" data from Python, the process blocks
 * Write the empty memory, marking it full, Python resumes execution
 
 ## Types of Concurrency
 <table>
     <tr>
-      <td>
+      <td width="50%">
 EMS extends application capabilities to include transactional memory and
 other fine-grained synchronization capabilities.
 <br><br>
@@ -74,40 +74,54 @@ EMS implements several different parallel execution models:
 		</td>
         <td width="50%">
         <center>
-		  <img height="350px" style="margin: 10px;" src="http://synsem.com/images/ems/typesOfParallelism.svg" type="image/svg+xml"  />
+    		  <img height="350px" style="margin: 10px;" src="http://synsem.com/images/ems/typesOfParallelism.svg" type="image/svg+xml"  />
+            </center>
+            </td>
+    </tr>
+    <tr>
+    <td width="50%">
+        <center>
+    		  <img height="350px" style="margin: 10px;" src="http://synsem.com/images/ems/ParallelContextsBSP.svg" type="image/svg+xml" />
         </center>
-        </td>
+    </td>
+    <td>
+        <center>
+    		  <img height="350px" style="margin: 10px;" src="http://synsem.com/images/ems/ParallelContextsFJ.svg" type="image/svg+xml" />
+        </center>
+    </td>
     </tr>
 </table>
 
 
 ## Built-in Atomic Operations
 EMS operations may performed using any JSON data type, read-modify-write operations
-may use any combination of JSON data types, producing identical results to
+may use any combination of JSON data types.
 like operations on ordinary data.
 
-All basic and atomic read-modify-write operations are available
+Atomic read-modify-write operations are available
 in all concurrency modes, however collectives are not 
-currently available in user defined modes.
+available in user defined modes.
 
-- __Basic Operations__: 
-	Read, write, readers-writer lock, read full/empty, write empty/full
+- __Atomic Operations__: 
+	Read, write, readers-writer lock, read when full and atomically mark empty, write when empty and atomically mark full
 
 - __Primitives__:
 	Stacks, queues, transactions
 
-- __Atomic Read-Modify-Write__:
+- __Read-Modify-Write__:
 	Fetch-and-Add, Compare and Swap
 
 - __Collective Operations__:
 	All basic [OpenMP](https://en.wikipedia.org/wiki/OpenMP)
     collective operations are implemented in EMS:
-    dynamic, block, guided, and static loop scheduling, 
+    dynamic, block, guided, as are the full complement of static loop scheduling, 
     barriers, master and single execution regions
 
 ## Examples and Benchmarks
 
 ### Word Counting Using Atomic Operations
+[Word counting example](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+
 Map-Reduce is often demonstrated using word counting because each document can
 be processed in parallel, and the results of each document's dictionary reduced
 into a single dictionary.  This EMS implementation also
@@ -115,7 +129,6 @@ iterates over documents in parallel, but it maintains a single shared dictionary
 across processes, atomically incrementing the count of each word found.
 The final word counts are sorted and the most frequently appearing words
 are printed with their counts.
-
 
 <img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
 
@@ -128,6 +141,8 @@ AWS instances are also bandwidth limited to EBS storage, where our Gutenberg
 corpus is stored.
 
 ### Bandwidth Benchmarking
+[STREAMS Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/STREAMS)
+
 A benchmark similar to [STREAMS](https://www.cs.virginia.edu/stream/)
 gives us the maximum speed EMS double precision
 floating point operations can be performed on a
@@ -137,8 +152,10 @@ floating point operations can be performed on a
 
 
 ### Benchmarking of Transactions and Work Queues
-The micro-benchmarked raw transactional performance and 
-performance in the context of a workload are measured separately.
+[Transactions and Work Queues Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+
+Transactional performance is measured alone, and again with a separate
+process appending new processes as work is removed from the queue.
 The experiments were run using an Amazon EC2 instance:<br>
 <code>c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory</code>
 
@@ -163,7 +180,7 @@ only a portion of the total iteration space.
 
 <table width=100%>
 	<tr>
-    	<td>
+    	<td width="50%">
 	    <center>
 			<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_no_q.svg" />
             <br><b>Immediate Transactions:</b> Each process generates a transaction on integer data then immediately performs it.
@@ -181,7 +198,7 @@ only a portion of the total iteration space.
 	    </td>
     </tr>
 	<tr>
-    	<td>
+    	<td width="50%">
 	    <center>
 			<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_no_q_str.svg"/>
             <br><b>Immediate Transactions on Strings:</b> Each process generates a transaction appending to
@@ -205,7 +222,7 @@ only a portion of the total iteration space.
 
 
 
-## Synchronization as a Property of the Data, Not a Duty for Tasks
+## [Synchronization as a Property of the Data, Not a Duty for Tasks](#Synchronization-Property)
 
 EMS internally stores tags that are used for synchronization of
 user data, allowing synchronization to happen independently of
@@ -225,8 +242,8 @@ itself are updated atomically.
       <img style="width:350px; "
 	   src="http://synsem.com/EMS.js/memLayoutLogical.svg" type="image/svg+xml" />
       <em>    <br><br> 
-    EMS memory is an array of JSON primitive values
-        (Number, Boolean, String, or Undefined) accessed using atomic
+    EMS memory is an array of JSON values
+        (Number, Boolean, String, Undefined, or Object) accessed using atomic
         operators and/or transactional memory.  Safe parallel access
         is managed by passing through multiple gates: First mapping a
         key to an index, then accessing user data protected by EMS
@@ -290,14 +307,11 @@ dunlin> make help
 
 
 ### Install via npm
-EMS is available as a NPM Package.  EMS itself has no external dependencies,
-but does require compiling native C++ functions using <code>node-gyp</code>,
-which is also available as a NPM (<code>sudo npm install -g node-gyp</code>).
-
-The native C parts of EMS depend on other NPM packages to compile and load.
-Specifically, the Foreign Function Interface (ffi), C-to-V8 symbol renaming (bindings),
-and the native addon abstraction layer (nan) are also required to compile EMS.
-
+EMS is available as a NPM Package.  EMS depends on several other NPM packages
+to compile the native addon:
+the Foreign Function Interface (ffi), C-to-V8 symbol renaming (bindings),
+and the native addon abstraction layer (nan).
+                                                   
 ```sh
 npm install ems
 ```
@@ -311,22 +325,19 @@ cd ems
 npm install
 ```
 
-To use this EMS development build to run the examples or tests,
-set up a global npm link to the current build:
-
-```sh
-sudo npm link ../ems
-```
 
 ### Installing for Python
 Python users should download and install EMS git (see above).
 There is no PIP package, but not due lack of desire or effort.
-I concede defeat to the Python "documentation" and package tooling.
 A pull request is most welcome!
 
 
 ### Run Some Examples
-On a Mac and most Linux distributions EMS will "just work", but
+
+Click here for __[Detailed Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples)__.
+
+On a Mac and most Linux 
+distributions EMS will "just work", but
 some Linux distributions restrict access to shared memory.  The
 quick workaround is to run jobs as root, a long-term solution will
 vary with Linux distribution.
@@ -366,9 +377,15 @@ EMS 1.3 introduces a C API.
 
 EMS 1.4 Python API
 
-EMS 1.5 **[Planned]** Support for [persistent main system memory](http://pmem.io/).
+EMS 1.4.5 **[This Release]** Improved examples and documentation
 
-EMS 2.0 **[Planned]** New API with more tightly integrate with 
+EMS 1.6 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
+    low-level EMS diagnostic tools.
+
+EMS 1.7 **[Planned]** Support for NVDIMMs and other technologies that behave
+     as [persistent main system memory](http://pmem.io/).
+
+EMS 2.0 **[Planned]** New API which more tightly integrates with 
 ES6, Python, and other dynamically typed languages languages,
 making atomic operations on persistent memory more transparent.
 
@@ -389,3 +406,5 @@ designing an hardware accelerator for Python, Javascript, and other languages.
 He has over 20 years experience optimizing software for distributed, multi-core, and 
 hybrid computer architectures.
 He regularly responds to mogill@synsem.com.
+
+###### Copyright (C)2017 Jace A Mogill
