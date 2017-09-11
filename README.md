@@ -17,6 +17,8 @@ to address several challenges of parallel programming:
 + Provides dynamic load-balancing between processes
 + May substitute or complement other forms of parallelism
 
+## [Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples) Parallel web servers, word counting
+
 #### Table of Contents
 * [Parallel Execution Models Supported](#Types-of-Concurrency) Fork Join, Bulk Synchronous Parallel, User defined
 * [Atomic Operations](#Built-in-Atomic-Operations) Atomic Read-Modify-Write operations
@@ -35,7 +37,7 @@ can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
-<img src="http://synsem.com/images/ems_js_py.gifx" />
+<img src="http://synsem.com/images/ems_js_py.gif" />
 
 Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
 The animated GIF demonstrates the following steps:

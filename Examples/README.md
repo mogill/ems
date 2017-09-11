@@ -29,14 +29,14 @@ Experimental results are from the BSP version
 
 ## Parallelism Within a Single HTTP Request
 [Web Server Parallelism Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
-
+<img src="http://synsem.com/images/ems/parWebServer.svg" type="image/svg+xml">
 EMS is a memory model and has no daemon process to monitor a network interface
 for operations to execute.
 This example builds on a standard HTTP server to implement
 shared memory parallelism within a single web request.
 
 ## EMS as a Key Value Store
-[EMS Key-Value Store Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
+[EMS Key-Value Store Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/KeyValueStore)
 
 An EMS array is used as a Key-Value store with a 1-to-1 mapping of REST operations 
 to EMS memory operations.
