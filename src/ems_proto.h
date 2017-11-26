@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -29,35 +29,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-// Bitfields of a Tag Byte
-#define EMS_TYPE_NBITS_FE    2
-#define EMS_TYPE_NBITS_TYPE  3
-#define EMS_TYPE_NBITS_RW    3
-#define EMS_RW_NREADERS_MAX  ((1 << EMS_TYPE_NBITS_RW) - 1)
-typedef union {
-    struct {
-        unsigned char fe   : EMS_TYPE_NBITS_FE;
-        unsigned char type : EMS_TYPE_NBITS_TYPE;
-        unsigned char rw   : EMS_TYPE_NBITS_RW;
-    } tags;
-    unsigned char byte;
-} EMStag_t;
-
-
-// Type-punning is now a warning in GCC, but this syntax is still okay
-typedef union {
-    double d;
-    uint64_t u64;
-} ulong_double;
-
-
-// Internal EMS representation of a JSON value
-typedef struct {
-    size_t length;  // Defined only for JSON and strings
-    void *value;
-    unsigned char type;
-} EMSvalueType;
-
+#include "ems_types.h"
 
 // ---------------------------------------------------------------------------------
 //  Non-exposed API functions

@@ -67,7 +67,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                     oldTag.tags.type = EMS_TYPE_INTEGER;
                     break;
                 case EMS_TYPE_FLOAT: {    //  Bool + Float
-                    ulong_double alias;
+                    EMSulong_double alias;
                     alias.u64 = (uint64_t) value->value;
                     bufDouble[EMSdataData(idx)] =
                             (double) bufInt64[EMSdataData(idx)] + alias.d;
@@ -120,7 +120,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                 }
                     break;
                 case EMS_TYPE_FLOAT: {    // Int + float
-                    ulong_double alias;
+                    EMSulong_double alias;
                     alias.u64 = (uint64_t) value->value;
                     bufDouble[EMSdataData(idx)] =
                             (double) bufInt64[EMSdataData(idx)] + alias.d;
@@ -157,7 +157,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
         case EMS_TYPE_FLOAT: {
             double retDbl = bufDouble[EMSdataData(idx)];
             returnValue->type = EMS_TYPE_FLOAT;
-            ulong_double alias;
+            EMSulong_double alias;
             alias.d = retDbl;
             returnValue->value = (void *) alias.u64;
 
@@ -166,7 +166,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                     bufDouble[EMSdataData(idx)] += (double) ((int64_t) value->value);
                     break;
                 case EMS_TYPE_FLOAT: {   // Float + float
-                    ulong_double alias;
+                    EMSulong_double alias;
                     alias.u64 = (uint64_t) value->value;
                     bufDouble[EMSdataData(idx)] += alias.d;
                 }
@@ -217,7 +217,7 @@ bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *re
                             (long long int) value->value);
                     break;
                 case EMS_TYPE_FLOAT: {  // string + dbl
-                    ulong_double alias;
+                    EMSulong_double alias;
                     alias.u64 = (uint64_t) value->value;
                     len = oldStrLen + 1 + MAX_NUMBER2STR_LEN;
                     EMS_ALLOC(textOffset, len, bufChar, "EMSfaa(string+dbl): out of memory to store string\n", false);

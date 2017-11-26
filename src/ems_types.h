@@ -2,8 +2,7 @@
  |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
- |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2017, Jace A Mogill.  All rights reserved.                   |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -29,49 +28,39 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-'use strict';
-var ems = require('ems')(parseInt(process.argv[2]));
-var assert = require('assert');
-var maxlen = 20000000;
-var stats = ems.new({
-    filename: '/tmp/EMS_strlen',
-    dimensions: [10],
-    heapSize: (2 * maxlen) + 1 + 10,  // 1 = Null,  10 = length of key
-    useMap: true,          // Use a key-index mapping, not integer indexes
-    setFEtags: 'full',     // Initial full/empty state of array elements
-    doDataFill: true,      // Initialize data values
-    dataFill: 0            // Initial value of new keys
-});
+#ifndef EMSPROJ_EMS_TYPES_H
+#define EMSPROJ_EMS_TYPES_H
+// Bitfields of a Tag Byte
+#define EMS_TYPE_NBITS_FE    2
+#define EMS_TYPE_NBITS_TYPE  3
+#define EMS_TYPE_NBITS_RW    3
+#define EMS_RW_NREADERS_MAX  ((1 << EMS_TYPE_NBITS_RW) - 1)
+typedef union {
+    struct {
+        unsigned char fe   : EMS_TYPE_NBITS_FE;
+        unsigned char type : EMS_TYPE_NBITS_TYPE;
+        unsigned char rw   : EMS_TYPE_NBITS_RW;
+    } tags;
+    unsigned char byte;
+} EMStag_t;
 
-if (ems.myID === 0) { stats.writeXE('test_str', 123); }
-ems.barrier();
-
-function stringFill(x, n) {
-    var s = '';
-    for (;;) {
-        if (n & 1) s += x;
-        n >>= 1;
-        if (n) x += x;
-        else break;
-    }
-    return s;
-}
-
-for (var len=2;  len < maxlen;  len = Math.floor(len * 1.5) ) {
-    if (ems.myID === 0) { console.log("Len = " + len); }
-    var str = stringFill('x', len);
-    stats.writeEF('test_str', str);
-    var readback = stats.readFE('test_str');
-    assert(readback === str, 'Mismatched string.  Expected len ' + str.length + ' got ' + readback.length);
-    ems.barrier();
-}
+#define EMS_VALUE_TYPE_INITIALIZER {.length=0, .value=NULL, .type=EMS_TYPE_INVALID}
 
 
-for (var len=maxlen;  len >= 1;  len = Math.floor(len * 0.666) ) {
-    if (ems.myID === 0) { console.log("Len = " + len); }
-    var str = stringFill('y', len);
-    stats.writeEF('test_str', str);
-    var readback = stats.readFE('test_str');
-    assert(readback === str, 'Mismatched string.  Expected len ' + str.length + ' got ' + readback.length);
-    ems.barrier();
-}
+// Type-punning is now a warning in GCC, but this syntax is still okay
+typedef union {
+    double d;
+    uint64_t u64;
+} EMSulong_double;
+
+
+// Internal EMS representation of a JSON value
+typedef struct {
+    size_t length;  // Defined only for JSON and strings
+    void *value;
+    unsigned char type;
+} EMSvalueType;
+
+
+#endif
+//EMSPROJ_EMS_TYPES_H

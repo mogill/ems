@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.3   |
+ |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -37,6 +37,9 @@
 #include <v8.h>
 #include "nan.h"
 
+#define QUOTE_ARG(x) #x
+#define QUOTE(x) QUOTE_ARG(x)
+
 #define ADD_FUNC_TO_V8_OBJ(obj, func_name, func) \
     { \
         v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(func); \
@@ -59,77 +62,7 @@
 )
 
 
-#define NAN_OBJ_TO_EMS_VAL(funcname, info, localValue, argString, stringIsJSON) { \
-    localValue.type = NanObjToEMStype(info, stringIsJSON); \
-    switch (localValue.type) { \
-        case EMS_TYPE_BOOLEAN: \
-            localValue.value = (void *) info->ToBoolean()->Value(); \
-            break; \
-        case EMS_TYPE_INTEGER: \
-            localValue.value = (void *) info->ToInteger()->Value(); \
-            break; \
-        case EMS_TYPE_FLOAT: { \
-            ulong_double alias; \
-            alias.d = info->ToNumber()->Value(); \
-            localValue.value = (void *) alias.u64; \
-        } \
-            break; \
-        case EMS_TYPE_JSON: \
-        case EMS_TYPE_STRING: { \
-            argString = std::string(*Nan::Utf8String(info)); \
-            localValue.value = (void *) argString.c_str(); \
-            localValue.length = argString.length(); \
-        } \
-            break; \
-        case EMS_TYPE_UNDEFINED: \
-            localValue.value = (void *) 0xbeeff00d; \
-            break; \
-        default: \
-            Nan::ThrowTypeError(#funcname " ERROR: Invalid value type"); \
-            return; \
-    } \
-}
 
-
-#define EMS_TO_V8_RETURNVALUE(returnValue, info, do_free) { \
-    switch(returnValue.type) { \
-        case EMS_TYPE_BOOLEAN: { \
-            bool retBool = (bool) returnValue.value; \
-            info.GetReturnValue().Set(Nan::New(retBool)); \
-        } \
-            break; \
-        case EMS_TYPE_INTEGER: { \
-            int32_t retInt = ((int64_t) returnValue.value) & 0xffffffff;  /* TODO: Bug -- only 32 bits of 64? */ \
-            info.GetReturnValue().Set(Nan::New(retInt)); \
-        } \
-            break; \
-        case EMS_TYPE_FLOAT: { \
-            ulong_double alias; \
-            alias.u64 = (uint64_t) returnValue.value; \
-            info.GetReturnValue().Set(Nan::New(alias.d)); \
-        } \
-            break; \
-        case EMS_TYPE_JSON: { \
-            v8::Local<v8::Object> retObj = Nan::New<v8::Object>(/* Bogus Missing Arg Warning Here */); \
-            retObj->Set(Nan::New("data").ToLocalChecked(), \
-                        Nan::New((char *) returnValue.value).ToLocalChecked()); \
-            info.GetReturnValue().Set(retObj); \
-            if (do_free) free(returnValue.value);  /* Allocated in ems.cc (cas, faa, pop, dequeue ...) */ \
-        } \
-            break; \
-        case EMS_TYPE_STRING: { \
-            info.GetReturnValue().Set(Nan::New((char *) returnValue.value).ToLocalChecked()); \
-            if (do_free) free(returnValue.value);  /* Allocated in ems.cc (cas, faa, pop, dequeue...) */ \
-        } \
-            break; \
-        case EMS_TYPE_UNDEFINED: { \
-            info.GetReturnValue().Set(Nan::Undefined()); \
-        } \
-            break; \
-        default: \
-            Nan::ThrowTypeError("EMS ERROR: EMS_TO_V8_RETURNVALUE: Invalid type of data read from memory"); \
-    } \
-}
 
 //==================================================================
 //  Macro to declare and unwrap the EMS buffer, used to access the
@@ -138,72 +71,34 @@
 #define JS_PROP_TO_VALUE(obj, property) JS_ARG_TO_OBJ(obj)->Get(Nan::New(property).ToLocalChecked())
 #define JS_PROP_TO_INT(obj, property) (JS_PROP_TO_VALUE(obj, property)->ToInteger()->Value())
 
-#define NODE_MMAPID_DECL() \
+#define SOURCE_LOCATION __FILE__ ":" QUOTE(__LINE__)
+
+#define STACK_ALLOC_AND_CHECK_KEY_ARG                               \
+    NODE_MMAPID_DECL;                                               \
+    EMSvalueType key = EMS_VALUE_TYPE_INITIALIZER;                  \
+    if (info.Length() < 1) {                                        \
+        Nan::ThrowError(SOURCE_LOCATION ": missing key argument."); \
+        return;                                                     \
+    } else {                                                        \
+        NAN_OBJ_2_EMS_OBJ(info[0], key, false);                     \
+    }
+
+
+#define STACK_ALLOC_AND_CHECK_VALUE_ARG(argNum)         \
+    bool stringIsJSON = false;                                          \
+    EMSvalueType value = EMS_VALUE_TYPE_INITIALIZER;                    \
+    if (info.Length() == argNum + 2) {                                \
+        stringIsJSON = info[argNum + 1]->ToBoolean()->Value();        \
+    }                                                                   \
+    if (info.Length() < argNum + 1) {                                 \
+        Nan::ThrowError(SOURCE_LOCATION ": ERROR, wrong number of arguments for value"); \
+        return;                                                         \
+    } else {                                                            \
+        NAN_OBJ_2_EMS_OBJ(info[argNum], value, stringIsJSON); \
+    }
+
+#define NODE_MMAPID_DECL \
     const int mmapID = JS_PROP_TO_INT(info.This(), "mmapID")
-
-#define NODE_INFO_DECL(nodejs_funcname, retval, valueString, value, expectedNargs, infoArgN, stringIsJSON) \
-    std::string valueString; \
-    EMSvalueType value; \
-    if (infoArgN >= info.Length()) { \
-        Nan::ThrowError(#nodejs_funcname ": Called with wrong number of arguments."); \
-        return retval; \
-    } \
-    NAN_OBJ_TO_EMS_VAL(nodejs_funcname, info[infoArgN], value, valueString, stringIsJSON)
-
-#define NODE_WRITE(nodejs_funcname, ems_funcname) \
-    bool stringIsJSON = false; \
-    NODE_MMAPID_DECL(); \
-    if (info.Length() == 3) { \
-        stringIsJSON = info[2]->ToBoolean()->Value(); \
-    } else { \
-        if (info.Length() != 2) { \
-            Nan::ThrowError(#nodejs_funcname ": Called with wrong number of args."); \
-            return; \
-        } \
-    } \
-    \
-    NODE_INFO_DECL(nodejs_funcname, , keyString, key, 2, 0, false); \
-    NODE_INFO_DECL(nodejs_funcname, , valueString, value, 2, 1, stringIsJSON); \
-    \
-    bool returnValue = ems_funcname (mmapID, &key, &value); \
-    info.GetReturnValue().Set(Nan::New(returnValue));
-
-#define NODE_PUSH_ENQUEUE(nodejs_funcname, ems_funcname) \
-    bool stringIsJSON = false; \
-    NODE_MMAPID_DECL(); \
-    if (info.Length() == 2) { \
-        stringIsJSON = info[1]->ToBoolean()->Value(); \
-    } else { \
-        if (info.Length() != 1) { \
-            Nan::ThrowError(#nodejs_funcname ": Called with wrong number of args."); \
-            return; \
-        } \
-    } \
-    NODE_INFO_DECL(nodejs_funcname, , valueString, value, 1, 0, stringIsJSON); \
-    int returnValue = ems_funcname (mmapID, &value); \
-    info.GetReturnValue().Set(Nan::New(returnValue));
-
-#define NODE_VALUE_DECL(nodejs_funcname, retval) \
-    NODE_INFO_DECL(nodejs_funcname, retval, valueString, value, 1, 1, stringIsJSON)
-
-#define NODE_KEY_DECL(nodejs_funcname, retval) \
-    NODE_MMAPID_DECL(); \
-    std::string keyString; \
-    EMSvalueType key; \
-    if (info.Length() < 1) { \
-        Nan::ThrowError(#nodejs_funcname ": Called with wrong number of args."); \
-        return retval; \
-    } \
-    NAN_OBJ_TO_EMS_VAL(nodejs_funcname, info[0], key, keyString, false)
-
-#define NODE_READ(nodejs_funcname, ems_funcname, retval) \
-    NODE_KEY_DECL(nodejs_funcname, retval) \
-    bool errval = ems_funcname (mmapID, &key, &returnValue); \
-    if(errval == false) { \
-        Nan::ThrowError(#nodejs_funcname ": Unable to read (no return value) from EMS."); \
-        return retval; \
-    } \
-    EMS_TO_V8_RETURNVALUE(returnValue, info, false)  /* Bogus Missing argument warning */
 
 
 void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info);

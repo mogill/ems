@@ -50,8 +50,7 @@ for (tableN = 0; tableN < nTables; tableN++) {
         useExisting: false,
         filename: '/tmp/EMS_tm' + tableN,
         dataFill: 0,
-        doDataFill: true,
-        setFEtags: 'full'
+        doDataFill: true
     });
 }
 

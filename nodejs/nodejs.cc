@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
+ |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -31,18 +31,109 @@
  +-----------------------------------------------------------------------------*/
 #include "nodejs.h"
 #include "../src/ems.h"
+#include "../src/ems_types.h"
+
+/**
+ * Convert a NAN object to an EMS object stored on the stack
+ * @param nanValue Source NAN object
+ * @param emsValue Target EMS object
+ * @param stringIsJSON You know who
+ * @return True if successful converting
+ */
+#define NAN_OBJ_2_EMS_OBJ(nanValue, emsValue, stringIsJSON) {           \
+        emsValue.type = NanObjToEMStype(nanValue, stringIsJSON);        \
+        switch (emsValue.type) {                                        \
+        case EMS_TYPE_BOOLEAN:                                          \
+            emsValue.value = (void *) nanValue->ToBoolean()->Value();   \
+            break;                                                      \
+        case EMS_TYPE_INTEGER:                                          \
+            emsValue.value = (void *) nanValue->ToInteger()->Value();   \
+            break;                                                      \
+        case EMS_TYPE_FLOAT: {                                          \
+            EMSulong_double alias = {.d = nanValue->ToNumber()->Value()}; \
+            emsValue.value = (void *) alias.u64;                        \
+        }                                                               \
+            break;                                                      \
+        case EMS_TYPE_JSON:                                             \
+        case EMS_TYPE_STRING: {                                         \
+            emsValue.length = strlen(*Nan::Utf8String(nanValue)) + 1;  /* +1 for trailing NULL */ \
+            emsValue.value = alloca(emsValue.length);                   \
+            if (!emsValue.value) {                                      \
+                Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: Unable to allocate scratch memory for serialized value"); \
+                return;                                                 \
+            }                                                           \
+            memcpy(emsValue.value, *Nan::Utf8String(nanValue), emsValue.length); \
+        }                                                               \
+            break;                                                      \
+        case EMS_TYPE_UNDEFINED:                                        \
+            emsValue.value = (void *) 0xbeeff00d;                       \
+            break;                                                      \
+        default:                                                        \
+            Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: Invalid value type"); \
+            return;                                                     \
+        }                                                               \
+    }
+
+
+
+/**
+ * Convert an EMS object into a NAN object
+ * @param emsValue Source EMS object
+ * @param v8Value Target NAN object
+ * @return True if successful
+ */
+static bool inline
+ems2v8ReturnValue(EMSvalueType *emsValue,
+                  Nan::ReturnValue<v8::Value> v8Value) {
+    switch(emsValue->type) {
+        case EMS_TYPE_BOOLEAN: {
+            bool retBool = (bool) emsValue->value;
+            v8Value.Set(Nan::New(retBool));
+        }
+            break;
+        case EMS_TYPE_INTEGER: {
+            int32_t retInt = ((int64_t) emsValue->value) & 0xffffffff;  /* TODO: Bug -- only 32 bits of 64? */
+            v8Value.Set(Nan::New(retInt));
+        }
+            break;
+        case EMS_TYPE_FLOAT: {
+            EMSulong_double alias = {.u64 = (uint64_t) emsValue->value};
+            v8Value.Set(Nan::New(alias.d));
+        }
+            break;
+        case EMS_TYPE_JSON: {
+            v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
+            retObj->Set(Nan::New("data").ToLocalChecked(),
+                        Nan::New((char *) emsValue->value).ToLocalChecked());
+            v8Value.Set(retObj);
+        }
+            break;
+        case EMS_TYPE_STRING: {
+            v8Value.Set(Nan::New((char *) emsValue->value).ToLocalChecked());
+        }
+            break;
+        case EMS_TYPE_UNDEFINED: {
+            v8Value.Set(Nan::Undefined());
+        }
+            break;
+        default:
+            Nan::ThrowTypeError("ems2v8ReturnValue - ERROR: Invalid type of data read from memory");
+            return false;
+    }
+    return true;
+}
 
 
 void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
-    int timeout = INT32_MAX;
+    NODE_MMAPID_DECL;
+    int64_t timeout;
     if(info.Length() == 1) {
         timeout = info[0]->ToInteger()->Value();
     } else {
         Nan::ThrowError("NodeJScriticalEner: invalid or missing timeout duration");
         return;
     }
-    int timeRemaining = EMScriticalEnter(mmapID, timeout);
+    int timeRemaining = EMScriticalEnter(mmapID, (int) timeout);
     if (timeRemaining <= 0) {
         Nan::ThrowError("NodeJScriticalEnter: Unable to enter critical region before timeout");
     } else {
@@ -52,7 +143,7 @@ void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 void NodeJScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
+    NODE_MMAPID_DECL;
     bool success = EMScriticalExit(mmapID);
     if (!success) {
         Nan::ThrowError("NodeJScriticalExit: critical region mutex lost while locked?!");
@@ -63,8 +154,8 @@ void NodeJScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 void NodeJSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
-    int timeout = INT32_MAX;
+    NODE_MMAPID_DECL;
+    int timeout;
     if(info.Length() == 1) {
         timeout = info[0]->ToInteger()->Value();
     } else {
@@ -81,76 +172,86 @@ void NodeJSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 void NodeJSsingleTask(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
+    NODE_MMAPID_DECL;
     bool did_work = EMSsingleTask(mmapID);
     info.GetReturnValue().Set(Nan::New(did_work));
 }
 
 
 void NodeJScas(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSvalueType returnValue;
-    NODE_KEY_DECL(NodeJScas, );
-    NODE_INFO_DECL(NodeJScas, , oldValString, oldVal, 3, 1, false);
-    NODE_INFO_DECL(NodeJScas, , newValString, newVal, 3, 2, false);
-    bool success = EMScas(mmapID, &key, &oldVal, &newVal, &returnValue);
-    if (!success) {
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    EMSvalueType oldVal = EMS_VALUE_TYPE_INITIALIZER;
+    EMSvalueType newVal = EMS_VALUE_TYPE_INITIALIZER;
+    if (info.Length() != 3) {
+        Nan::ThrowError(SOURCE_LOCATION ": Called with wrong number of args.");
+        return;
+    }
+    NAN_OBJ_2_EMS_OBJ(info[1],  oldVal, false);
+    NAN_OBJ_2_EMS_OBJ(info[2],  newVal, false);
+    if (!EMScas(mmapID, &key, &oldVal, &newVal, &returnValue)) {
         Nan::ThrowError("NodeJScas: Failed to get a valid old value");
         return;
     }
-    EMS_TO_V8_RETURNVALUE(returnValue, info, true);
+    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
 }
 
 
 void NodeJSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    bool stringIsJSON = false;
-    EMSvalueType returnValue;
-    NODE_KEY_DECL(NodeJSfaa, );
-    NODE_VALUE_DECL(NodeJSfaa, );
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
     bool success = EMSfaa(mmapID, &key, &value, &returnValue);
     if (!success) {
         Nan::ThrowError("NodeJSfaa: Failed to get a valid old value");
         return;
     }
-    EMS_TO_V8_RETURNVALUE(returnValue, info, true);
+    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
 }
 
 
 void NodeJSpush(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_PUSH_ENQUEUE(NodeJSpush, EMSpush);
+    NODE_MMAPID_DECL;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(0);
+    int returnValue = EMSpush(mmapID, &value);
+    info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 
 void NodeJSpop(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSvalueType returnValue;
-    NODE_MMAPID_DECL();
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    NODE_MMAPID_DECL;
     bool success = EMSpop(mmapID, &returnValue);
     if (!success) {
         Nan::ThrowError("NodeJSpop: Failed to pop a value off the stack");
         return;
     }
-    EMS_TO_V8_RETURNVALUE(returnValue, info, true);
+    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
 }
 
 
 void NodeJSenqueue(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_PUSH_ENQUEUE(NodeJSenqueue, EMSenqueue);
+    NODE_MMAPID_DECL;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(0);
+    int returnValue = EMSenqueue(mmapID, &value);
+    info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 
 void NodeJSdequeue(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSvalueType returnValue;
-    NODE_MMAPID_DECL();
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    NODE_MMAPID_DECL;
     bool success = EMSdequeue(mmapID, &returnValue);
     if (!success) {
         Nan::ThrowError("NodeJSdequeue: Failed to dequeue a value");
         return;
     }
-    EMS_TO_V8_RETURNVALUE(returnValue, info, true);
+    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
 }
 
 
 void NodeJSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
+    NODE_MMAPID_DECL;
     if (info.Length() != 4) {
         Nan::ThrowError("NodeJSloopInit: Wrong number of args");
         return;
@@ -182,7 +283,7 @@ void NodeJSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 void NodeJSloopChunk(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
+    NODE_MMAPID_DECL;
     if (info.Length() != 0) {
         Nan::ThrowError("NodeJSloopChunk: Arguments provided, but none accepted");
         return;
@@ -199,31 +300,51 @@ void NodeJSloopChunk(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 //--------------------------------------------------------------
 void NodeJSread(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSvalueType returnValue;
-    NODE_READ(NodeJSread, EMSread, ); /* Bogus Missing argument warning */
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    if(!EMSread(mmapID, &key, &returnValue)) {
+        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    } else {
+        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    }
 }
 
 
 void NodeJSreadFE(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSvalueType returnValue;
-    NODE_READ(NodeJSreadFE, EMSreadFE, ); /* Bogus Missing argument warning */
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    if(!EMSreadFE(mmapID, &key, &returnValue)) {
+        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    } else {
+        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    }
 }
 
 
 void NodeJSreadFF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    EMSvalueType returnValue;
-    NODE_READ(NodeJSreadFF, EMSreadFF, ); /* Bogus Missing argument warning */
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    if(!EMSreadFF(mmapID, &key, &returnValue)) {
+        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    } else {
+        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    }
 }
 
 
 void NodeJSreadRW(const Nan::FunctionCallbackInfo<v8::Value>& info)  {
-    EMSvalueType returnValue;
-    NODE_READ(NodeJSreadRW, EMSreadRW, ); /* Bogus Missing argument warning */
+    EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    if(!EMSreadRW(mmapID, &key, &returnValue)) {
+        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    } else {
+        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    }
 }
 
 
 void NodeJSreleaseRW(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_KEY_DECL(NodeJSreleaseRW, );
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
     int nReadersActive = EMSreleaseRW(mmapID, &key);
     if (nReadersActive < 0) {
         Nan::ThrowError("NodeJSreleaseRW: Invalid index for key, or index key in bad state");
@@ -235,29 +356,41 @@ void NodeJSreleaseRW(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 // ====================================================
 
 void NodeJSwrite(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_WRITE(NodeJSwrite, EMSwrite);
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
+    bool returnValue = EMSwrite(mmapID, &key, &value);
+    info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 
 void NodeJSwriteEF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_WRITE(NodeJSwriteEF, EMSwriteEF);
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
+    bool returnValue = EMSwriteEF(mmapID, &key, &value);
+    info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 
 void NodeJSwriteXF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_WRITE(NodeJSwriteXF, EMSwriteXF);
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
+    bool returnValue = EMSwriteXF(mmapID, &key, &value);
+    info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 
 void NodeJSwriteXE(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_WRITE(NodeJSwriteXE, EMSwriteXE);
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
+    bool returnValue = EMSwriteXE(mmapID, &key, &value);
+    info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 
 void NodeJSsetTag(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_KEY_DECL(NodeJSsetTag, );
-    bool is_full = info[1]->ToBoolean()->Value();
-    bool success = EMSsetTag(mmapID, &key, is_full);
+    STACK_ALLOC_AND_CHECK_KEY_ARG;
+    STACK_ALLOC_AND_CHECK_VALUE_ARG(1); // Bool -- is full
+    bool success = EMSsetTag(mmapID, &key, (bool)value.value);
     if(success) {
         info.GetReturnValue().Set(Nan::New(true));
     } else {
@@ -267,7 +400,7 @@ void NodeJSsetTag(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 void NodeJSsync(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
+    NODE_MMAPID_DECL;
     fprintf(stderr, "NodeJSsync: WARNING: sync is not implemented\n");
     bool success = EMSsync(mmapID);
     info.GetReturnValue().Set(Nan::New(success));
@@ -275,18 +408,18 @@ void NodeJSsync(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
 
 void NodeJSindex2key(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
-    EMSvalueType key;
+    NODE_MMAPID_DECL;
+    EMSvalueType key = EMS_VALUE_TYPE_INITIALIZER;
     int idx = (int32_t)  info[0]->ToInteger()->Value();  // TODO: This is just 32bit, should be size_t
     if( !EMSindex2key(mmapID, idx, &key) ) {
-        fprintf(stderr, "NodeJSindex2key: Error converting index to key\n");
+        fprintf(stderr, "NodeJSindex2key: Error converting index (%d) to key\n", idx);
     }
-    EMS_TO_V8_RETURNVALUE(key, info, false);
+    ems2v8ReturnValue(&key, info.GetReturnValue());
 }
 
 
 void NodeJSdestroy(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    NODE_MMAPID_DECL();
+    NODE_MMAPID_DECL;
     bool do_unlink = info[0]->ToBoolean()->Value();
     bool success = EMSdestroy(mmapID, do_unlink);
     if (success) {
@@ -304,12 +437,11 @@ void NodeJSinitialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         Nan::ThrowError("NodeJSinitialize: Incorrect number of arguments");
         return;
     }
-    EMSvalueType fillData;
-    std::string  fillString;
+    EMSvalueType fillData = EMS_VALUE_TYPE_INITIALIZER;
 
     //  Parse all the arguments
     int64_t nElements  = info[0]->ToInteger()->Value();
-    int64_t heapSize   = info[1]->ToInteger()->Value();
+    size_t  heapSize   = (size_t) info[1]->ToInteger()->Value();
     bool useMap        = info[2]->ToBoolean()->Value();
     std::string filestring(*Nan::Utf8String(info[3]));
     const char *filename = filestring.c_str();
@@ -322,11 +454,21 @@ void NodeJSinitialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     bool setFEtags     = info[10]->ToBoolean()->Value();
     EMSmyID            = (int) info[11]->ToInteger()->Value();
     bool pinThreads    = info[12]->ToBoolean()->Value();
-    int64_t nThreads   = info[13]->ToInteger()->Value();
-    int64_t pctMLock   = info[14]->ToInteger()->Value();
+    int32_t nThreads   = (int32_t) info[13]->ToInteger()->Value();
+    int32_t pctMLock   = (int32_t) info[14]->ToInteger()->Value();
 
     if(doDataFill) {
-        NAN_OBJ_TO_EMS_VAL(NodeJSinitialize, info[8], fillData, fillString, fillIsJSON);
+        NAN_OBJ_2_EMS_OBJ(info[8], fillData, fillIsJSON);
+        if (doDataFill  &&  (fillData.type == EMS_TYPE_JSON  ||  fillData.type == EMS_TYPE_STRING)) {
+            // Copy the default values to the heap because nanObj2EMSval copies them to the stack
+            void *valueOnStack = fillData.value;
+            fillData.value = malloc(fillData.length + 1);
+            if (fillData.value == NULL) {
+                Nan::ThrowError("NodeJSinitialize: failed to allocate the default value's storage on the heap");
+                return;
+            }
+            memcpy(fillData.value, valueOnStack, fillData.length + 1);
+        }
     }
 
     int emsBufN = EMSinitialize(nElements,   // 0

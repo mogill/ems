@@ -1,6 +1,6 @@
 """
  +-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
+ |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2016-2017, Jace A Mogill.  All rights reserved.              |
@@ -209,7 +209,7 @@ def diag(text):
 def parallel(func, *kargs):
     """Co-Begin a FJ parallel region, executing the function 'func'"""
     global myID, libems, EMSmmapID, _regionN, pinThreads, domainName, inParallelContext, tasks, nThreads
-    print("EMSparallel: starting", len(tasks), tasks)
+    # print("EMSparallel: starting", len(tasks), tasks)
     inParallelContext = True
     taskN = 1
     for proc, parent_conn, child_conn in tasks:
@@ -533,7 +533,7 @@ def _new_EMSval(val):
         else:
             newval = ffi.new('char []', bytes(val, 'utf-8'))
         emsval[0].value = newval
-        emsval[0].length = len(newval)
+        emsval[0].length = len(newval) + 1
         emsval[0].type = TYPE_STRING
         global_weakkeydict[emsval] = (emsval[0].length, emsval[0].type, emsval[0].value, newval)
     elif type(val) == int:
@@ -541,7 +541,7 @@ def _new_EMSval(val):
         emsval[0].value = ffi.cast('void *', val)
     elif type(val) == float:
         emsval[0].type = TYPE_FLOAT
-        ud_tmp = ffi.new('ulong_double *')
+        ud_tmp = ffi.new('EMSulong_double *')
         ud_tmp[0].d = ffi.cast('double', val)
         emsval[0].value = ffi.cast('void *', ud_tmp[0].u64)
     elif type(val) == bool:
@@ -553,7 +553,7 @@ def _new_EMSval(val):
         else:
             newval = ffi.new('char []', bytes(json.dumps(val), 'utf-8'))
         emsval[0].value = newval
-        emsval[0].length = len(newval)
+        emsval[0].length = len(newval) + 1
         emsval[0].type = TYPE_JSON
         global_weakkeydict[emsval] = (emsval[0].length, emsval[0].type, emsval[0].value, newval)
     elif type(val) == dict:
@@ -562,7 +562,7 @@ def _new_EMSval(val):
         else:
             newval = ffi.new('char []', bytes(json.dumps(val), 'utf-8'))
         emsval[0].value = newval
-        emsval[0].length = len(newval)
+        emsval[0].length = len(newval) + 1
         emsval[0].type = TYPE_JSON
         global_weakkeydict[emsval] = (emsval[0].length, emsval[0].type, emsval[0].value, newval)
     elif val is None:
@@ -641,7 +641,7 @@ class EMSarray(object):
         elif emsval[0].type == TYPE_INTEGER:
             return int(ffi.cast('int64_t', emsval[0].value))
         elif emsval[0].type == TYPE_FLOAT:
-            ud_tmp = ffi.new('ulong_double *')
+            ud_tmp = ffi.new('EMSulong_double *')
             ud_tmp[0].u64 = ffi.cast('uint64_t', emsval[0].value)
             return ud_tmp[0].d
         elif emsval[0].type == TYPE_BOOLEAN:

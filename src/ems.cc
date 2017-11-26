@@ -129,7 +129,7 @@ int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped) {
                         }
                         break;
                     case EMS_TYPE_FLOAT: {
-                        ulong_double alias;
+                        EMSulong_double alias;
                         alias.u64 = (uint64_t) key->value;
                         if (alias.d == bufDouble[EMSmapData(idx)]) {
                             matched = true;
@@ -260,7 +260,7 @@ int64_t EMShashString(const char *key) {
 int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key) {
     char *emsBuf = emsBufs[mmapID];
     volatile int64_t  *bufInt64  = (int64_t *) emsBuf;
-    volatile char     *bufChar   = (char *) emsBuf;
+    volatile char     *bufChar   = emsBuf;
     volatile EMStag_t *bufTags   = (EMStag_t *) emsBuf;
     volatile double   *bufDouble = (double *) emsBuf;
     EMStag_t mapTags;
@@ -295,7 +295,7 @@ int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key) {
                         }
                         break;
                     case EMS_TYPE_FLOAT: {
-                        ulong_double alias;
+                        EMSulong_double alias;
                         alias.u64 = (uint64_t) key->value;
                         if (alias.d == bufDouble[EMSmapData(idx)]) {
                             matched = true;
@@ -323,7 +323,7 @@ int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key) {
                                 bufInt64[EMSmapData(idx)] = (int64_t) key->value;
                                 break;
                             case EMS_TYPE_FLOAT: {
-                                ulong_double alias;
+                                EMSulong_double alias;
                                 alias.u64 = (uint64_t) key->value;
                                 bufDouble[EMSmapData(idx)] = alias.d;
                             }
@@ -456,7 +456,7 @@ bool EMSreadUsingTags(const int mmapID,
                         return true;
                     }
                     case EMS_TYPE_FLOAT: {
-                        ulong_double alias;
+                        EMSulong_double alias;
                         alias.d = bufDouble[EMSdataData(idx)];
                         returnValue->value = (void *) alias.u64;
                         if (finalFE != EMS_TAG_ANY) bufTags[EMSdataTag(idx)].byte = newTag.byte;
@@ -629,7 +629,7 @@ bool EMSwriteUsingTags(int mmapID,
                         bufInt64[EMSdataData(idx)] = (int64_t) value->value;
                         break;
                     case EMS_TYPE_FLOAT: {
-                        ulong_double alias;
+                        EMSulong_double alias;
                         alias.u64 = (uint64_t) value->value;
                         bufDouble[EMSdataData(idx)] = alias.d;
                     }
@@ -779,7 +779,7 @@ bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key) {
             return true;
         }
         case EMS_TYPE_FLOAT: {
-            ulong_double alias;
+            EMSulong_double alias;
             alias.d = bufDouble[EMSmapData(idx)];
             key->value = (void *) alias.u64;
             return true;
@@ -859,20 +859,18 @@ int EMSinitialize(int64_t nElements,     // 0
     }
 
     size_t nMemBlocks = (heapSize / EMS_MEM_BLOCKSZ) + 1;
-    size_t nMemBlocksPow2 = emsNextPow2(nMemBlocks);
+    size_t nMemBlocksPow2 = emsNextPow2((int64_t) nMemBlocks);
     int32_t nMemLevels = __builtin_ctzl(nMemBlocksPow2);
-    size_t bottomOfMap = -1;
-    size_t bottomOfMalloc = -1;
-    size_t bottomOfHeap = -1;
+    size_t bottomOfMalloc;
     size_t filesize;
 
-    bottomOfMap = (size_t)EMSdataTagWord(nElements) + (size_t)EMSwordSize;  // Map begins 1 word AFTER the last tag word of data
+    size_t bottomOfMap = (size_t)EMSdataTagWord(nElements) + (size_t)EMSwordSize;  // Map begins 1 word AFTER the last tag word of data
     if (useMap) {
         bottomOfMalloc = bottomOfMap + bottomOfMap;
     } else {
         bottomOfMalloc = bottomOfMap;
     }
-    bottomOfHeap = bottomOfMalloc + sizeof(struct emsMem) + (nMemBlocksPow2 * 2 - 2);
+    size_t bottomOfHeap = bottomOfMalloc + sizeof(struct emsMem) + (nMemBlocksPow2 * 2 - 2);
 
     if (nElements <= 0) {
         filesize = EMS_CB_LOCKS + nThreads;   // EMS Control Block
@@ -880,7 +878,7 @@ int EMSinitialize(int64_t nElements,     // 0
     } else {
         filesize = bottomOfHeap + (nMemBlocksPow2 * EMS_MEM_BLOCKSZ);
     }
-    if (ftruncate(fd, filesize) != 0) {
+    if (ftruncate(fd, (off_t) filesize) != 0) {
         if (errno != EINVAL) {
             fprintf(stderr, "EMSinitialize: Error during initialization, unable to set memory size to %" PRIu64 " bytes\n",
                     (uint64_t) filesize);
@@ -904,7 +902,7 @@ int EMSinitialize(int64_t nElements,     // 0
 
     volatile int64_t *bufInt64 = (int64_t *) emsBuf;
     volatile double *bufDouble = (double *) emsBuf;
-    char *bufChar = (char *) emsBuf;
+    char *bufChar = emsBuf;
     volatile int *bufInt32 = (int32_t *) emsBuf;
     volatile EMStag_t *bufTags = (EMStag_t *) emsBuf;
 
@@ -970,7 +968,7 @@ int EMSinitialize(int64_t nElements,     // 0
                     bufInt64[EMSdataData(idx)] = (int64_t) fillValue->value;
                     break;
                 case EMS_TYPE_FLOAT: {
-                    ulong_double alias;
+                    EMSulong_double alias;
                     alias.u64 = (uint64_t) fillValue->value;
                     bufDouble[EMSdataData(idx)] = alias.d;
                 }

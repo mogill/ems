@@ -28,7 +28,7 @@ Experimental results are from the BSP version
 
 
 ## Parallelism Within a Single HTTP Request
-[Web Server Parallelism Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
+Click here for the [Web Server Parallelism Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
 <img src="http://synsem.com/images/ems/parWebServer.svg" type="image/svg+xml">
 EMS is a memory model and has no daemon process to monitor a network interface
 for operations to execute.
@@ -36,7 +36,7 @@ This example builds on a standard HTTP server to implement
 shared memory parallelism within a single web request.
 
 ## EMS as a Key Value Store
-[EMS Key-Value Store Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/KeyValueStore)
+Click here for the [EMS Key-Value Store Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/KeyValueStore)
 
 An EMS array is used as a Key-Value store with a 1-to-1 mapping of REST operations 
 to EMS memory operations.
@@ -67,6 +67,8 @@ node concurrent_Q_and_TM.js 4   # 1 process enqueues then processes work, 3 proc
 All processes are started, one enqueues transactions while the others dequeue 
 and perform the work.  When all the work has been enqueued, that process also
 begins dequeing and performing work.
+
+<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_from_q.svg" />
 
 ### `workQ_and_TM.js`
 ```bash

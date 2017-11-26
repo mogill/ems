@@ -173,6 +173,6 @@ ems.parForEach(0, nTables, function (tableN) {
 util.timerStop(startTime, nTables * arrLen, " elements checked      ", ems.myID);
 
 ems.master(function () {
-    assert(checkNops.readFF(0) == totalNops.readFF(0),
+    assert(checkNops.readFF(0) === totalNops.readFF(0),
         "Error in final sum = " + checkNops.readFF(0) + "   should be=" + totalNops.readFF(0));
 });

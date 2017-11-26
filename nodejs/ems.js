@@ -359,7 +359,7 @@ function EMScas(indexes, oldVal, newVal) {
 //  Serialize execution through this function
 function EMScritical(func, timeout) {
     if (typeof timeout === "undefined") {
-        timeout = 10000;  // TODO: Magic number
+        timeout = 500000;  // TODO: Magic number -- long enough for errors, not load imbalance
     }
     this.criticalEnter(timeout);
     var retObj = func();
@@ -400,9 +400,13 @@ function EMSsingle(func) {
 function EMSbarrier(timeout) {
     if (EMSglobal.inParallelContext) {
         if(typeof timeout === "undefined") {
-            timeout = 10000;  // TODO: Magic number
+            timeout = 500000;  // TODO: Magic number -- long enough for errors, not load imbalance
         }
         var remaining_time = EMS.barrier(timeout);
+        if (remaining_time < 0) {
+            console.log("EMSbarrier: ERROR -- Barrier timed out after", timeout, "iterations.");
+            // TODO: Probably should throw an error
+        }
         return remaining_time;
     }
     return timeout;

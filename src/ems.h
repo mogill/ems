@@ -187,7 +187,8 @@ extern char    emsBufFilenames[EMS_MAX_N_BUFS][MAX_FNAME_LEN];
   addr = emsMutexMem_alloc( EMS_MEM_MALLOCBOT(bufChar), \
                 (size_t) len, (char*) &bufInt64[EMScbData(EMS_ARR_MEM_MUTEX)] ); \
   if(addr < 0)  { \
-      fprintf(stderr, "EMS_ALLOC: ERROR -- Allocation of len(%zx) failed\n", len); \
+      fprintf(stderr, "%s:%d (%s)  ERROR: EMS memory allocation of len(%zx) failed: %s\n", \
+              __FILE__, __LINE__, __FUNCTION__, len, errmsg); \
       return retval; \
   }
 

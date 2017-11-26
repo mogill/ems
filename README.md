@@ -17,7 +17,7 @@ to address several challenges of parallel programming:
 + Provides dynamic load-balancing between processes
 + May substitute or complement other forms of parallelism
 
-## [Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples) Parallel web servers, word counting
+## [Examples: Parallel web servers, word counting](https://github.com/SyntheticSemantics/ems/tree/master/Examples) 
 
 #### Table of Contents
 * [Parallel Execution Models Supported](#Types-of-Concurrency) Fork Join, Bulk Synchronous Parallel, User defined
@@ -30,7 +30,7 @@ to address several challenges of parallel programming:
 
 #### EMS is targeted at tasks too large for one core or one process but too small for a scalable cluster
 
-A modern multicore server has 16-32 cores and nearly 1TB of memory,
+A modern multi-core server has 16-32 cores and nearly 1TB of memory,
 equivalent to an entire rack of systems from a few years ago.
 As a consequence, jobs formerly requiring a Map-Reduce cluster
 can now be performed entirely in shared memory on a single server
@@ -379,12 +379,16 @@ EMS 1.3 introduces a C API.
 
 EMS 1.4 Python API
 
-EMS 1.4.8 **[This Release]** Improved examples and documentation
+EMS 1.4.8 Improved examples and documentation
 
-EMS 1.5 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
+EMS 1.5 **[This Release]** Refactored JS-EMS object conversion temporary storage 
+
+EMS 1.6 **[Planned]** Key deletion that frees all resources.  Replace open hashing with chaining.
+
+EMS 1.6 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
     low-level EMS diagnostic tools.
 
-EMS 1.6 **[Planned]** Support for NVDIMMs and other technologies that behave
+EMS 1.7 **[Planned]** Support for NVDIMMs and other technologies that behave
      as [persistent main system memory](http://pmem.io/).
 
 EMS 2.0 **[Planned]** New API which more tightly integrates with 
@@ -402,11 +406,8 @@ BSD, other commercial and open source licenses are available.
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
-Jace A Mogill specializes in FPGA/Software Co-Design, recently
-embedding a FPGA emulation of an ASIC into Python and also 
-designing an hardware accelerator for Python, Javascript, and other languages.
+Jace A Mogill specializes in resource constrained computing at both the largest and smallest scales.  
 He has over 20 years experience optimizing software for distributed, multi-core, and 
-hybrid computer architectures.
-He regularly responds to mogill@synsem.com.
+FPGA/GPU/CPU hybrid computer architectures.
 
 ###### Copyright (C)2017 Jace A Mogill
