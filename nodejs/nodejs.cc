@@ -44,13 +44,13 @@
         emsValue.type = NanObjToEMStype(nanValue, stringIsJSON);        \
         switch (emsValue.type) {                                        \
         case EMS_TYPE_BOOLEAN:                                          \
-            emsValue.value = (void *) nanValue->ToBoolean()->Value();   \
+            emsValue.value = (void *) nanValue->ToBoolean(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value();   \
             break;                                                      \
         case EMS_TYPE_INTEGER:                                          \
-            emsValue.value = (void *) nanValue->ToInteger()->Value();   \
+            emsValue.value = (void *) nanValue->ToInteger(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value();   \
             break;                                                      \
         case EMS_TYPE_FLOAT: {                                          \
-            EMSulong_double alias = {.d = nanValue->ToNumber()->Value()}; \
+            EMSulong_double alias = {.d = nanValue->ToNumber(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value()}; \
             emsValue.value = (void *) alias.u64;                        \
         }                                                               \
             break;                                                      \
