@@ -5,6 +5,11 @@ os:
 
 dist: trusty
 
+branches:
+  only:
+  - gh-pages
+  - /.*/
+
 node_js:
   - "10.13"
   - "8.1"
