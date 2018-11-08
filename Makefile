@@ -64,15 +64,16 @@ test_py2: py2
 node: build/Release/ems.node
 
 build/Release/ems.node:
+	npm install
 	node-gyp rebuild
 
 py: py2 py3
 
 py3:
-	(cd Python; sudo rm -rf Python/build Python/ems.egg-info Python/dist; sudo python3 ./setup.py build --build-temp=./ install)
+	(cd Python; rm -rf Python/build Python/ems.egg-info Python/dist; python3 ./setup.py build --build-temp=./ install)
 
 py2:
-	(cd Python; sudo rm -rf Python/build Python/ems.egg-info Python/dist; sudo python ./setup.py build --build-temp=./ install)
+	(cd Python; rm -rf Python/build Python/ems.egg-info Python/dist; python ./setup.py build --build-temp=./ install)
 
 clean: clean_js clean_py3 clean_py2
 

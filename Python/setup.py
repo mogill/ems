@@ -31,10 +31,12 @@
  +-----------------------------------------------------------------------------+
 """
 from distutils.core import setup, Extension
+import os
 import sys
 
 # Path to C library source code
-src_path = '../src/'
+my_path = os.path.abspath(os.path.dirname(__file__))
+src_path = os.path.join(my_path, '../src/')
 
 # OS Specific link flags
 link_args = []

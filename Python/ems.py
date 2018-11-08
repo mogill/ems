@@ -49,16 +49,52 @@ sudo apt-get install python3-cffi
 
 
 ffi = FFI()
-cpp_out = subprocess.check_output(["cpp", "../src/ems_proto.h"]).decode("utf-8")
-prototypes = cpp_out.split("\n")
-headerLines = []
-for line in prototypes:
-    # Strip CPP directives and annotations
-    line = re.sub("^#.*$", "", line)
-    # Strip extern attribute
-    line = re.sub("extern \"C\" ", "", line)
-    if line is not "":
-        headerLines.append(line)
+# NOTE: below code does not work after packaging up with setuptools since headers not included - hack by including decls directly below
+# cpp_out = subprocess.check_output(["cpp", "../src/ems_proto.h"]).decode("utf-8")
+# prototypes = cpp_out.split("\n")
+# headerLines = []
+# for line in prototypes:
+#     # Strip CPP directives and annotations
+#     line = re.sub("^#.*$", "", line)
+#     # Strip extern attribute
+#     line = re.sub("extern \"C\" ", "", line)
+#     if line is not "":
+#         headerLines.append(line)
+headerLines = [
+    'typedef union { struct { unsigned char fe   : 2; unsigned char type : 3; unsigned char rw   : 3; } tags; unsigned char byte; } EMStag_t;',
+    'typedef union { double d; uint64_t u64; } EMSulong_double;',
+    'typedef struct { size_t length; void *value; unsigned char type; } EMSvalueType;',
+    'int64_t EMSwriteIndexMap(const int mmapID, EMSvalueType *key);',
+    'int64_t EMSkey2index(void *emsBuf, EMSvalueType *key, bool is_mapped);',
+    'int64_t EMShashString(const char *key);',
+    'int EMScriticalEnter(int mmapID, int timeout);',
+    'bool EMScriticalExit(int mmapID);',
+    'int EMSbarrier(int mmapID, int timeout);',
+    'bool EMSsingleTask(int mmapID);',
+    'bool EMScas(int mmapID, EMSvalueType *key, EMSvalueType *oldValue, EMSvalueType *newValue, EMSvalueType *returnValue);',
+    'bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *returnValue);',
+    'int EMSpush(int mmapID, EMSvalueType *value);',
+    'bool EMSpop(int mmapID, EMSvalueType *returnValue);',
+    'int EMSenqueue(int mmapID, EMSvalueType *value);',
+    'bool EMSdequeue(int mmapID, EMSvalueType *returnValue);',
+    'bool EMSloopInit(int mmapID, int32_t start, int32_t end, int32_t minChunk, int schedule_mode);',
+    'bool EMSloopChunk(int mmapID, int32_t *start, int32_t *end);',
+    'unsigned char EMStransitionFEtag(EMStag_t volatile *tag, EMStag_t volatile *mapTag, unsigned char oldFE, unsigned char newFE, unsigned char oldType);',
+    'bool EMSreadRW(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);',
+    'bool EMSreadFF(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);',
+    'bool EMSreadFE(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);',
+    'bool EMSread(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue);',
+    'int EMSreleaseRW(const int mmapID, EMSvalueType *key);',
+    'bool EMSwriteXF(int mmapID, EMSvalueType *key, EMSvalueType *value);',
+    'bool EMSwriteXE(int mmapID, EMSvalueType *key, EMSvalueType *value);',
+    'bool EMSwriteEF(int mmapID, EMSvalueType *key, EMSvalueType *value);',
+    'bool EMSwrite(int mmapID, EMSvalueType *key, EMSvalueType *value);',
+    'bool EMSsetTag(int mmapID, EMSvalueType *key, bool is_full);',
+    'bool EMSdestroy(int mmapID, bool do_unlink);',
+    'bool EMSindex2key(int mmapID, int64_t idx, EMSvalueType *key);',
+    'bool EMSsync(int mmapID);',
+    'int EMSinitialize(int64_t nElements, size_t heapSize, bool useMap,const char *filename, bool persist, bool useExisting, bool doDataFill, bool fillIsJSON, EMSvalueType *fillValue, bool doSetFEtags, bool setFEtagsFull, int EMSmyID, bool pinThreads, int32_t nThreads, int32_t pctMLock);'
+    ]
 
 # Delcare the CFFI Headers
 ffi.cdef('\n'.join(headerLines))
@@ -150,10 +186,11 @@ def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
     threadingType = threadingType
     domainName = contextname
     c_contextname = _new_EMSval(contextname)
+    c_contextname_char = ffi.cast('char *', c_contextname)
     c_None = _new_EMSval(None)
     # All arguments are defined -- now do the EMS initialization
     EMSmmapID = libems.EMSinitialize(0, 0, False,
-                                     c_contextname,
+                                     c_contextname_char,
                                      False, False,  #  4-5
                                      False, 0,  # 6-7
                                      c_None,  # 8
