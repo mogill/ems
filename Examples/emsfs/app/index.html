@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <script>         
+            require('./style.css')
+            // console.log(document.title)
+        </script>
+    </head>
+    <body>
+            <h1 id="title"></h1>
+            <div id="mount"></div>
+            <script>
+                    require('./index.js')
+                    var urlParams = new URLSearchParams(window.location.search);
+                    window['title'].innerHTML = urlParams.get('title')
+            </script>
+    </body>
+</html>

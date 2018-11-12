@@ -1,0 +1,27 @@
+{
+  "name": "emsfs",
+  "version": "0.0.0",
+  "description": "",
+  "keywords": [
+    "usespring",
+    "react-spring",
+    "react",
+    "animation",
+    "hooks"
+  ],
+  "homepage": "https://codesandbox.io/s/new",
+  "main": "main.js",
+  "scripts": {
+    "start": ". ./cli.sh; start main.js;",
+    "restart": ". ./cli.sh; restart main.js;"
+  },
+  "dependencies": {
+    "asar": "^0.14.5",
+    "lodash": "4.17.11",
+    "react": "16.7.0-alpha.0",
+    "react-dom": "16.7.0-alpha.0",
+    "react-scripts": "2.1.1",
+    "react-spring": "6.1.8"
+  },
+  "devDependencies": {}
+}
