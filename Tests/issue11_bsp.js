@@ -31,7 +31,7 @@
  +-----------------------------------------------------------------------------*/
 'use strict';
 var nProcs = 12;
-var ems = require('ems')(nProcs);
+var ems = require('..')(nProcs);
 var assert = require('assert');
 
 var tests = ems.new({

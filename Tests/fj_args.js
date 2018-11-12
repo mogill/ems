@@ -31,7 +31,7 @@
  +-----------------------------------------------------------------------------*/
 'use strict';
 var nProcs = parseInt(process.argv[2]);
-var ems = require('ems')(parseInt(nProcs), true, 'fj');
+var ems = require('..')(parseInt(nProcs), true, 'fj');
 var assert = require('assert');
 var global_str;
 var check_glob_str;

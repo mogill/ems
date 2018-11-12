@@ -1,7 +1,9 @@
 **/#*#
 **~
 build/
+dist/
 node_modules/
 .vagrant
 .local
 *.o
+**/EMSthreadStub.js

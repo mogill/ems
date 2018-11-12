@@ -29,7 +29,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 "use strict";
-var ems = require("ems")(1);
+var ems = require("../..")(1);
 var assert = require("assert");
 
 // Create a temporary EMS space to demonstrate read/write operations

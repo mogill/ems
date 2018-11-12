@@ -30,9 +30,10 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 "use strict";
+const {EMS_BINDINGS_FILE, EMS_MODULE_FILE} = process.env
+var EMS = require("bindings")(EMS_BINDINGS_FILE);
 var fs = require("fs");
 var child_process = require("child_process");
-var EMS = require("bindings")("ems.node");
 var EMSglobal;
 
 // The Proxy object is built in or defined by Reflect
@@ -696,7 +697,7 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
         var emsThreadStub =
             "// Automatically Generated EMS Slave Thread Script\n" +
             "// To edit this file, see ems.js:emsThreadStub()\n" +
-            "var ems = require(\"ems\")(parseInt(process.env.EMS_Ntasks));\n" +
+            "var ems = require('"+EMS_MODULE_FILE+"')(parseInt(process.env.EMS_Ntasks));\n" +
             "process.on(\"message\", function(msg) {\n" +
             "    eval(\"func = \" + msg.func);\n" +
             "    func.apply(null, msg.args);\n" +

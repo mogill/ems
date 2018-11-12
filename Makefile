@@ -29,7 +29,17 @@
 # |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
 # |                                                                             |
 # +-----------------------------------------------------------------------------*
-all: py3 node tests help_notice 
+
+SHELL := /bin/bash --init-file Make.sh -i
+
+all: py3 build_js help_notice test
+
+.PHONY: all \
+	build_js node electron \
+	test test_js test_electron test_py test_py3 test_py2 \
+	help help_notice \
+	clean clean_js clean_py3 clean_py2
+
 
 help:
 	@echo "         Extended Memory Semantics  --  Build Targets"
@@ -47,11 +57,15 @@ help:
 help_notice:
 	@echo "=== \"make help\" for list of targets"
 
-test: test_js test_py
+test: test_node test_py
 
+test_js: test_node test_electron
 
-test_js: node
-	npm test
+test_node:
+	test_node
+
+test_electron:
+	test_electron
 
 test_py: test_py2 test_py3
 
@@ -61,11 +75,18 @@ test_py3: py3
 test_py2: py2
 	(cd Tests; python ./py_api.py)
 
-node: build/Release/ems.node
+node: dist/nodejs/Release/ems.node
 
-build/Release/ems.node:
-	npm install
-	node-gyp rebuild
+electron: dist/electron/Release/ems.node
+
+build_js: dist/nodejs/Release/ems.node dist/electron/Release/ems.node
+
+dist/nodejs/Release/ems.node:
+	gyp_rebuild_node
+
+dist/electron/Release/ems.node:
+	gyp_rebuild_electron_if_needed
+
 
 py: py2 py3
 
@@ -78,7 +99,7 @@ py2:
 clean: clean_js clean_py3 clean_py2
 
 clean_js:
-	$(RM) -rf build
+	$(RM) -rf build && $(RM) -rf dist
 
 clean_py3:
 	$(RM) -rf Python/build Python/py3ems/build /usr/local/lib/python*/dist-packages/*ems* ~/Library/Python/*/lib/python/site-packages/*ems* ~/Library/Python/*/lib/python/site-packages/__pycache__/*ems* /Library/Frameworks/Python.framework/Versions/*/lib/python*/site-packages/*ems*

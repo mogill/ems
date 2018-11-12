@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-var ems = require('ems')(process.argv[2]);
+var ems = require('..')(process.argv[2]);
 var assert = require('assert');
 
 var iter, idx, memVal;

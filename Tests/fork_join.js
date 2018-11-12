@@ -29,7 +29,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]), true, 'fj');
+var ems = require('..')(parseInt(process.argv[2]), true, 'fj');
 ems.parallel(function () {
     //-------------------------------------------------------------------
     //  Timer functions

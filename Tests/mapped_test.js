@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-var ems = require('ems')(parseInt(process.argv[2]), false);
+var ems = require('..')(parseInt(process.argv[2]), false);
 var assert = require('assert');
 var arrayElem = ['abcd', 1234.567, true, 987, -1234.567, -987, -986, -988];
 var arrLen = arrayElem.length;

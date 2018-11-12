@@ -31,7 +31,7 @@
  +-----------------------------------------------------------------------------*/
 'use strict';
 var nProcs = 12;
-var ems = require('ems')(nProcs, false, 'fj');
+var ems = require('..')(nProcs, false, 'fj');
 var assert = require('assert');
 var tests;
 var gvar = 'GLOBvar';

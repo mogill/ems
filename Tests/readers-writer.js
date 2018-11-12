@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 var assert = require('assert');
-var ems = require('ems')(parseInt(process.argv[2]), false);
+var ems = require('..')(parseInt(process.argv[2]), false);
 var a = ems.new(1, 0, '/tmp/EMS_a');
 var arrLen = 10000;
 var nTimes;

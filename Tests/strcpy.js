@@ -30,7 +30,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 'use strict';
-var ems = require('ems')(parseInt(process.argv[2]));
+var ems = require('..')(parseInt(process.argv[2]));
 var assert = require('assert');
 var maxlen = 20000000;
 var stats = ems.new({

@@ -29,7 +29,7 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
-var ems = require('ems')(parseInt(process.argv[2]));
+var ems = require('..')(parseInt(process.argv[2]));
 var util = require('./testUtils');
 var arrLen = 1000000;
 var nTransactions = 4000000;
