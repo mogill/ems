@@ -10,8 +10,11 @@
             <div id="mount"></div>
             <script>
                     require('./index.js')
-                    var urlParams = new URLSearchParams(window.location.search);
+                    const urlParams = new URLSearchParams(window.location.search);
                     window['title'].innerHTML = urlParams.get('title')
+
+                    const shared_buffer = require('fs').shared.read('buf')
+                    console.log(`shared_buffer.toString ==> ${shared_buffer.toString('utf8')}`)
             </script>
     </body>
 </html>

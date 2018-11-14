@@ -207,10 +207,10 @@ function EMSreturnData(value) {
     if (typeof value === "object") {
         var retval;
         try {
-            console.log('@@@@@@@@@@@@@@@@')
-            console.log(typeof value.data, value)
-            console.log('@@@@@@@@@@@@@@@@')
-            if (value.data[0] === "[" && value.data.slice(-1) === "]") {
+            if (Buffer.isBuffer(value)) {
+                retval = value
+            }
+            else if (value.data[0] === "[" && value.data.slice(-1) === "]") {
                 retval = eval(value.data);
             } else {
                 retval = JSON.parse(value.data);
@@ -284,10 +284,6 @@ function EMSenqueue(value) {
 //  Apparently it is illegal to pass a native function as an argument
 function EMSwrite(indexes, value) {
     const linearIndex = EMSidx(indexes, this);
-    const isBuffer = Buffer.isBuffer(value)
-    if (isBuffer) {
-        console.log('EMSwrite','BUFFE!R', value)
-    }
     if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.write(linearIndex, JSON.stringify(value), true);
     } else {
@@ -297,10 +293,6 @@ function EMSwrite(indexes, value) {
 
 function EMSwriteEF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    const isBuffer = Buffer.isBuffer(value)
-    if (isBuffer) {
-        console.log('BUFFER', value)
-    }
     if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.writeEF(linearIndex, JSON.stringify(value), true);
     } else {
@@ -310,10 +302,6 @@ function EMSwriteEF(indexes, value) {
 
 function EMSwriteXF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    const isBuffer = Buffer.isBuffer(value)
-    if (isBuffer) {
-        console.log('BUFFER', value)
-    }
     if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.writeXF(linearIndex, JSON.stringify(value), true);
     } else {
@@ -322,11 +310,7 @@ function EMSwriteXF(indexes, value) {
 }
 
 function EMSwriteXE(indexes, value) {
-    var nativeIndex = EMSidx(indexes, this);
-    const isBuffer = Buffer.isBuffer(value)
-    if (isBuffer) {
-        console.log('BUFFER', value)
-    }
+    var nativeIndex = EMSidx(indexes, this);    
     if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.writeXE(nativeIndex, JSON.stringify(value), true);
     } else {
@@ -335,7 +319,6 @@ function EMSwriteXE(indexes, value) {
 }
 
 function EMSread(indexes) {
-    debugger
     return EMSreturnData(this.data.read(EMSidx(indexes, this)))
 }
 
