@@ -342,6 +342,18 @@ retry_on_undefined:
         case EMS_TYPE_FLOAT:
             returnValue->value =  (void *) bufInt64[EMSdataData(idx)];
             break;
+        case EMS_TYPE_BUFFER:
+            // char *data = EMSheapPtr(bufInt64[EMSdataData(idx)])
+            // memStrLen = strlen(data);
+            memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));
+            returnValue->value = malloc(memStrLen);  // freed in NodeJSfaa // returnValue->value = malloc(memStrLen + 1); +1 NULL padding // freed in NodeJSfaa
+            if(returnValue->value == NULL) {
+                fprintf(stderr, "EMScas: Unable to allocate space to return old buffer\n");
+                return false;
+            }
+            // memcpy(returnValue.value, data, memStrLen);
+            memcpy((char *) returnValue->value, EMSheapPtr(bufInt64[EMSdataData(idx)]), memStrLen);
+            break;
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING:
             memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));
@@ -384,6 +396,12 @@ retry_on_undefined:
                 if (returnValue->value == oldValue->value)
                     swapped = true;
                 break;
+            case EMS_TYPE_BUFFER:
+                // TODO: if (returnValue->length !== oldValue->length || ..
+                if (memcmp((const char *) returnValue->value, (const char *) oldValue->value, oldValue->length) == 0) {
+                    swapped = true;
+                }
+                break;
             case EMS_TYPE_JSON:
             case EMS_TYPE_STRING:
                 if (strcmp((const char *) returnValue->value, (const char *) oldValue->value) == 0) {
@@ -401,7 +419,7 @@ retry_on_undefined:
     newTag.tags.rw = 0;
     newTag.tags.type = memType;
     if (swapped) {
-        if (memType == EMS_TYPE_STRING  ||  memType == EMS_TYPE_JSON)
+        if (memType == EMS_TYPE_STRING  ||  memType == EMS_TYPE_JSON ||  memType == EMS_TYPE_BUFFER)
             EMS_FREE((size_t) bufInt64[EMSdataData(idx)]);
         newTag.tags.type = newValue->type;
         switch (newValue->type) {
@@ -412,6 +430,13 @@ retry_on_undefined:
             case EMS_TYPE_INTEGER:
             case EMS_TYPE_FLOAT:
                 bufInt64[EMSdataData(idx)] = (int64_t) newValue->value;
+                break;
+            case EMS_TYPE_BUFFER:
+                // EMS_ALLOC(textOffset, newValue->length + 1, // +1 NULL padding
+                EMS_ALLOC(textOffset, newValue->length,
+                          bufChar, "EMScas(string): out of memory to store buffer\n", false);
+                memcpy(EMSheapPtr(textOffset), (const char *) newValue->value, newValue->length);
+                bufInt64[EMSdataData(idx)] = textOffset;
                 break;
             case EMS_TYPE_JSON:
             case EMS_TYPE_STRING:

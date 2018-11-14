@@ -36,6 +36,7 @@
 #include <node.h>
 #include <v8.h>
 #include "nan.h"
+using namespace v8;
 
 #define QUOTE_ARG(x) #x
 #define QUOTE(x) QUOTE_ARG(x)
@@ -54,6 +55,7 @@
 (                                                               \
    arg->IsInt32()                     ? EMS_TYPE_INTEGER :      \
    arg->IsNumber()                    ? EMS_TYPE_FLOAT   :      \
+   arg->IsObject()                    ? EMS_TYPE_BUFFER  :      \
    (arg->IsString() && !stringIsJSON) ? EMS_TYPE_STRING  :      \
    (arg->IsString() &&  stringIsJSON) ? EMS_TYPE_JSON  :        \
    arg->IsBoolean()                   ? EMS_TYPE_BOOLEAN :      \

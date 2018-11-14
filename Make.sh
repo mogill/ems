@@ -13,13 +13,13 @@ function test_js () {
 	cd Tests
 	rm -f EMSthreadStub.js
 	for test in `ls *.js */*.js`; do
-		$exe $test $nthreads
-		err=$?
-		echo $test \": ERROR=\" $err
-		if [ $err -ne 0 ] ; then
-			exit 1
-		fi
+		$exe $test $nthreads && \
+		err=$? && \
+		echo $test \": ERROR=\" $err && \
+		[ $err -ne 0 ] && exit 1 || echo "" \
+
 	done
+
 }
 
 function test_node () {
@@ -40,6 +40,7 @@ function gyp_rebuild_node () {
 	mv -f build/* dist/nodejs
 	rm -rf build
 }
+
 
 function gyp_rebuild_electron_if_needed () {
 
@@ -65,10 +66,10 @@ function gyp_rebuild_electron_if_needed () {
 	# Electron's version. which can be found at node_modules/electron/package.json my version is 1.7.9
 	export npm_config_target=$electron_version
 
-	# For electron forks or nightlies, locate headers for Electron's node fork
-	# To compile native Node addons against a custom build of Electron that doesn't match a public release, instruct npm to use the version of Node you have bundled with your custom build.
-	[ -f "$electron_path"/Make.env.sh ] && \
-		source "$electron_path"/Make.env.sh && \
+	# For electron forks or nightlies, to find headers for Electron's node, add Make.sh with:
+	#       export node_headers_dir=PATH_TO_ELECTRON_SRC/src/out/Release/gen/node_headers
+	[ -f "$electron_path"/Make.sh ] && \
+			source "$electron_path"/Make.sh
 
 	# Explicitly redudance var exports & command-line flags due to flaky node-gyp surface area
 	cl_flags=""

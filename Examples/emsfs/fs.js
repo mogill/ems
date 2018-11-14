@@ -28,6 +28,10 @@ const shared = ems.new({
     useMap: true,
 })
 
+fs.shared = shared
+
+shared.write('buf', Buffer.from('xxxxx'))
+
 // ensure browserWindows do not clear shared mem file
 process.env.EMSFS_INIT = 'false'
 

@@ -72,6 +72,7 @@
 #define EMS_TYPE_INTEGER      ((unsigned char)4)
 #define EMS_TYPE_UNDEFINED    ((unsigned char)5)
 #define EMS_TYPE_JSON         ((unsigned char)6)  // Catch-all for JSON arrays and Objects
+#define EMS_TYPE_BUFFER       ((unsigned char)7)  // Catch-all for JSON arrays and Objects
 
 
 

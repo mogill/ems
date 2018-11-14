@@ -63,6 +63,12 @@ int EMSpush(int mmapID, EMSvalueType *value) {  // TODO: Eventually promote retu
         case EMS_TYPE_FLOAT:
             bufInt64[EMSdataData(idx)] = (int64_t) value->value;
             break;
+        case EMS_TYPE_BUFFER: {
+            int64_t byteOffset;
+            EMS_ALLOC(byteOffset, strlen((const char *) value->value), bufChar, "EMSpush: out of memory to store buffer\n", -1); // + 1 NULL padding
+            bufInt64[EMSdataData(idx)] = byteOffset;
+            memcpy(EMSheapPtr(byteOffset), (const char *) value->value, value->length);
+        }
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
             int64_t textOffset;
@@ -124,6 +130,19 @@ bool EMSpop(int mmapID, EMSvalueType *returnValue) {
             bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
             return true;
         }
+        case EMS_TYPE_BUFFER: {
+            size_t memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));  // TODO: Use size of allocation, not strlen
+            returnValue->value = malloc(memStrLen);  // + 1 NULL padding // freed in NodeJSfaa
+            if(returnValue->value == NULL) {
+                fprintf(stderr, "EMSpop: Unable to allocate space to return stack top string\n");
+                return false;
+            }
+            memcpy((char *) returnValue->value, EMSheapPtr(bufInt64[EMSdataData(idx)]), memStrLen);
+            EMS_FREE(bufInt64[EMSdataData(idx)]);
+            bufTags[EMSdataTag(idx)].tags.fe = EMS_TAG_EMPTY;
+            bufTags[EMScbTag(EMS_ARR_STACKTOP)].tags.fe = EMS_TAG_FULL;
+            return true;
+        }
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
             size_t memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));  // TODO: Use size of allocation, not strlen
@@ -180,6 +199,14 @@ int EMSenqueue(int mmapID, EMSvalueType *value) {  // TODO: Eventually promote r
         case EMS_TYPE_FLOAT:
             bufInt64[EMSdataData(idx)] = (int64_t) value->value;
             break;
+        case EMS_TYPE_BUFFER: {
+            int64_t byteOffset;
+            // TODO: size_t byteLength = value->length or something...
+            size_t byteLength = strlen((const char *) value->value);
+            EMS_ALLOC(byteOffset, byteLength, bufChar, "EMSenqueue: out of memory to store buffer\n", -1); // +1 NULL padding
+            bufInt64[EMSdataData(idx)] = byteOffset;
+            memcpy(EMSheapPtr(byteOffset), (const char *) value->value, byteLength);
+        }
         case EMS_TYPE_JSON:
         case EMS_TYPE_STRING: {
             int64_t textOffset;
@@ -239,6 +266,20 @@ bool EMSdequeue(int mmapID, EMSvalueType *returnValue) {
             returnValue->value = (void *) bufInt64[EMSdataData(idx)];
             bufTags[EMSdataTag(idx)].byte = dataTag.byte;
             bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
+            return true;
+        }
+        case EMS_TYPE_BUFFER: {
+            bufTags[EMSdataTag(idx)].byte = dataTag.byte;
+            bufTags[EMScbTag(EMS_ARR_Q_BOTTOM)].tags.fe = EMS_TAG_FULL;
+            size_t memStrLen = strlen(EMSheapPtr(bufInt64[EMSdataData(idx)]));  // TODO: Use size of allocation, not strlen
+            // returnValue->value = malloc(memStrLen + 1); +1 NULL padding  // freed in NodeJSfaa
+            returnValue->value = malloc(memStrLen);  // freed in NodeJSfaa
+            if(returnValue->value == NULL) {
+                fprintf(stderr, "EMSdequeue: Unable to allocate space to return queue head string\n");
+                return false;
+            }
+            memcpy((char *) returnValue->value, EMSheapPtr(bufInt64[EMSdataData(idx)]), memStrLen);
+            EMS_FREE(bufInt64[EMSdataData(idx)]);
             return true;
         }
         case EMS_TYPE_JSON:

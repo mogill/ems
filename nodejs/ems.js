@@ -207,6 +207,9 @@ function EMSreturnData(value) {
     if (typeof value === "object") {
         var retval;
         try {
+            console.log('@@@@@@@@@@@@@@@@')
+            console.log(typeof value.data, value)
+            console.log('@@@@@@@@@@@@@@@@')
             if (value.data[0] === "[" && value.data.slice(-1) === "]") {
                 retval = eval(value.data);
             } else {
@@ -249,6 +252,7 @@ function EMSindex2key(index) {
 //  Wrappers around Stacks and Queues
 function EMSpush(value) {
     if (typeof value === "object") {
+        console.log('XXXXXXXXXXXXX')
         return this.data.push(JSON.stringify(value), true);
     } else {
         return this.data.push(value);
@@ -265,6 +269,7 @@ function EMSdequeue() {
 
 function EMSenqueue(value) {
     if (typeof value === "object") {
+        console.log('XXXXXXXXXXXXX')
         return this.data.enqueue(JSON.stringify(value), true);   // Retuns only integers
     } else {
         return this.data.enqueue(value);   // Retuns only integers
@@ -278,42 +283,59 @@ function EMSenqueue(value) {
 //  into EMS linear addresses
 //  Apparently it is illegal to pass a native function as an argument
 function EMSwrite(indexes, value) {
-    var linearIndex = EMSidx(indexes, this);
-    if (typeof value === "object") {
-        this.data.write(linearIndex, JSON.stringify(value), true);  
+    const linearIndex = EMSidx(indexes, this);
+    const isBuffer = Buffer.isBuffer(value)
+    if (isBuffer) {
+        console.log('EMSwrite','BUFFE!R', value)
+    }
+    if (typeof value === "object" && !Buffer.isBuffer(value)) {
+        this.data.write(linearIndex, JSON.stringify(value), true);
     } else {
-        this.data.write(linearIndex, value);
+        this.data.write(linearIndex, value, false);
     }
 }
 
 function EMSwriteEF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value === "object") {
+    const isBuffer = Buffer.isBuffer(value)
+    if (isBuffer) {
+        console.log('BUFFER', value)
+    }
+    if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.writeEF(linearIndex, JSON.stringify(value), true);
     } else {
-        this.data.writeEF(linearIndex, value);
+        this.data.writeEF(linearIndex, value, false);
     }
 }
 
 function EMSwriteXF(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
-    if (typeof value === "object") {
+    const isBuffer = Buffer.isBuffer(value)
+    if (isBuffer) {
+        console.log('BUFFER', value)
+    }
+    if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.writeXF(linearIndex, JSON.stringify(value), true);
     } else {
-        this.data.writeXF(linearIndex, value);
+        this.data.writeXF(linearIndex, value, false);
     }
 }
 
 function EMSwriteXE(indexes, value) {
     var nativeIndex = EMSidx(indexes, this);
-    if (typeof value === "object") {
+    const isBuffer = Buffer.isBuffer(value)
+    if (isBuffer) {
+        console.log('BUFFER', value)
+    }
+    if (typeof value === "object" && !Buffer.isBuffer(value)) {
         this.data.writeXE(nativeIndex, JSON.stringify(value), true);
     } else {
-        this.data.writeXE(nativeIndex, value);
+        this.data.writeXE(nativeIndex, value, false);
     }
 }
 
 function EMSread(indexes) {
+    debugger
     return EMSreturnData(this.data.read(EMSidx(indexes, this)))
 }
 
@@ -497,8 +519,16 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
             if(arg0.doDataFill) {
                 emsDescriptor.doDataFill = arg0.doDataFill;
                 if (typeof arg0.dataFill === "object") {
-                    emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
-                    fillIsJSON = true;
+                    console.log('JSON.stringify(arg0.dataFill);',JSON.stringify(arg0.dataFill))
+                    const isBuffer = Buffer.isBuffer(arg0.dataFill)
+                    if (isBuffer) {
+                        emsDescriptor.dataFill = arg0.dataFill;
+                        fillIsJSON = false;
+                    }
+                    else {
+                        emsDescriptor.dataFill = JSON.stringify(arg0.dataFill);
+                        fillIsJSON = true;
+                    }
                 } else {
                     emsDescriptor.dataFill = arg0.dataFill;
                 }

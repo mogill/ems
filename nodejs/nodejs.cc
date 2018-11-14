@@ -40,6 +40,49 @@
  * @param stringIsJSON You know who
  * @return True if successful converting
  */
+
+// A
+// emsValue.length = strlen(*Nan::Utf8String(nanValue))  /* TODO: D4 */      \
+//             emsValue.value = alloca(emsValue.length);                   \
+//              if (!emsValue.value) {                                     \
+//                 Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: Unable to allocate scratch memory for serialized value"); \
+//                 return;                                                 \
+//             }                                                           \
+
+// unsigned char* buffer = (unsigned char*) node::Buffer::Data( nanValue->ToObject(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value() );
+// memcpy(emsValue.value, buffer, emsValue.length);
+
+// C
+
+    // Local<Object> buffer = nanValue -> ToObject();                  \
+	// if(!node::Buffer::HasInstance(buffer)) {                        \
+    //     Nan::ThrowTypeError("illegal source: not a valid buffer."); \
+	// }                                                               \
+    // char* bufferData = node::Buffer::Data(buffer);                  \
+    // size_t byteLength = node::Buffer::Length(buffer);               \
+    // memcpy(emsValue.value, bufferData, byteLength);                 \
+    // delete []data;
+
+// C
+
+    // Local<Object> buffer = nanValue -> ToObject();
+	// if(!node::Buffer::HasInstance(buffer)) {
+    //     Nan::ThrowTypeError("illegal source: not a valid buffer.");
+	// }
+    // char* bufferData = node::Buffer::Data(buffer);
+    // size_t byteLength = node::Buffer::Length(buffer);
+    // memcpy(emsValue.value, bufferData, byteLength);
+
+	// else if (info[i] -> IsArrayBuffer()) {
+	// 	node::ArrayBuffer* ab = node::Arraynode::Buffer::New(info[i]);
+    //     sourceData = static_cast<char*>(ab -> Data());
+    //     sourceEnd = sourceLength = ab -> ByteLength();
+	// }
+
+// D
+
+// memcpy(emsValue.value, *Nan::Utf8String(nanValue), emsValue.length); \
+
 #define NAN_OBJ_2_EMS_OBJ(nanValue, emsValue, stringIsJSON) {           \
         emsValue.type = NanObjToEMStype(nanValue, stringIsJSON);        \
         switch (emsValue.type) {                                        \
@@ -52,6 +95,23 @@
         case EMS_TYPE_FLOAT: {                                          \
             EMSulong_double alias = {.d = nanValue->ToNumber(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value()}; \
             emsValue.value = (void *) alias.u64;                        \
+        }                                                               \
+            break;                                                      \
+        case EMS_TYPE_BUFFER: {                                         \
+            v8::Local<v8::Object> buffer = nanValue -> ToObject();          \
+            /*Nan::MaybeLocal<v8::Object> buffer = nanValue -> ToObject(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked();                  */ \
+            if (!node::Buffer::HasInstance(buffer)) {                        \
+                Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: EMS_TYPE_BUFFER: Invalid buffer"); \
+                return;                                                 \
+            }                                                               \
+            size_t byteLength = node::Buffer::Length(buffer);               \
+            emsValue.length = byteLength;                                   \
+            emsValue.value = alloca(byteLength);                            \
+            if (!emsValue.value) {                                     \
+                Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: EMS_TYPE_BUFFER: Unable to allocate scratch memory for serialized value"); \
+                return;                                                 \
+            }                                                           \
+            memcpy(emsValue.value, node::Buffer::Data(buffer), byteLength); \
         }                                                               \
             break;                                                      \
         case EMS_TYPE_JSON:                                             \
@@ -75,6 +135,10 @@
     }
 
 
+static void inline
+buffer_delete_callback(char* data, void* hint) {
+    free(data);
+}
 
 /**
  * Convert an EMS object into a NAN object
@@ -101,6 +165,13 @@ ems2v8ReturnValue(EMSvalueType *emsValue,
             v8Value.Set(Nan::New(alias.d));
         }
             break;
+        case EMS_TYPE_BUFFER: { /* TODO: */
+            char *data = (char *) emsValue->value;
+            size_t length = emsValue->length;
+            Nan::MaybeLocal<v8::Object> buffer = Nan::CopyBuffer(data, length); /* implicit memcpy */
+            v8Value.Set(buffer.ToLocalChecked());
+            // delete []data; /* !MEM_LEAK */
+        }
         case EMS_TYPE_JSON: {
             v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
             retObj->Set(Nan::New("data").ToLocalChecked(),
@@ -459,7 +530,19 @@ void NodeJSinitialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     if(doDataFill) {
         NAN_OBJ_2_EMS_OBJ(info[8], fillData, fillIsJSON);
-        if (doDataFill  &&  (fillData.type == EMS_TYPE_JSON  ||  fillData.type == EMS_TYPE_STRING)) {
+        // if (doDataFill  &&  (fillData.type == EMS_TYPE_BUFFER)) {
+        if (fillData.type == EMS_TYPE_BUFFER) {
+            // Copy the default values to the heap because nanObj2EMSval copies them to the stack
+            void *valueOnStack = fillData.value;
+            fillData.value = malloc(fillData.length);
+            if (fillData.value == NULL) {
+                Nan::ThrowError("NodeJSinitialize: failed to allocate the buffer default value's storage on the heap");
+                return;
+            }
+            memcpy(fillData.value, valueOnStack, fillData.length);
+        }
+        // else if (doDataFill  &&  (fillData.type == EMS_TYPE_JSON  ||  fillData.type == EMS_TYPE_STRING)) {
+        else if (fillData.type == EMS_TYPE_JSON  ||  fillData.type == EMS_TYPE_STRING) {
             // Copy the default values to the heap because nanObj2EMSval copies them to the stack
             void *valueOnStack = fillData.value;
             fillData.value = malloc(fillData.length + 1);
