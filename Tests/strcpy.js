@@ -58,7 +58,7 @@ function stringFill(x, n) {
 }
 
 for (var len=2;  len < maxlen;  len = Math.floor(len * 1.5) ) {
-    if (ems.myID === 0) { console.log("Len = " + len); }
+    // if (ems.myID === 0) { console.log("Len = " + len); }
     var str = stringFill('x', len);
     stats.writeEF('test_str', str);
     var readback = stats.readFE('test_str');
@@ -68,7 +68,7 @@ for (var len=2;  len < maxlen;  len = Math.floor(len * 1.5) ) {
 
 
 for (var len=maxlen;  len >= 1;  len = Math.floor(len * 0.666) ) {
-    if (ems.myID === 0) { console.log("Len = " + len); }
+    // if (ems.myID === 0) { console.log("Len = " + len); }
     var str = stringFill('y', len);
     stats.writeEF('test_str', str);
     var readback = stats.readFE('test_str');
