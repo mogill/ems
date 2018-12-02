@@ -1,10 +1,25 @@
 OSX | Linux | Node 0.10-10.x, Python2/3:
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
+
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
 [![NPM](https://nodei.co/npm-dl/ems.png?months=1&height=3)](https://www.npmjs.com/package/ems)
 
 ### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) | [EMS Website](http://syntheticsemantics.com/EMS.js)
+
+
+# EMS WILL STOP WORKING BECAUSE NAN IS OBSOLETE
+
+ __EMS MUST BE UPDATED TO USE THE N-API NATIVE INTERFACE
+ OTHERWISE IT WILL STOP WORKING WITH FUTURE VERSIONS OF NODE.JS__
+
+ Node.js has deprecated [Native Abstractions for Node (NAN)](https://github.com/nodejs/nan)
+ in favor of
+ [Node API (N-API)](https://nodejs.org/api/en-api.html), their latest portability layer.
+ This port will involve non-trivial work to reconcile N-API's type system with EMS' type system.
+
+ EMS.js needs a volunteer and/or financial sponsor to keep it up to date with current and future Node.js revisions.
+
 
 # Extended Memory Semantics (EMS)
 __EMS makes possible persistent shared memory parallelism between Node.js, Python, and C/C++__.
