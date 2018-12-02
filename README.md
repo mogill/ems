@@ -1,4 +1,4 @@
-OSX | Linux | Node 0.10-10.x, Python2/3:
+OSX | Linux | Node 4.1-10.x, Python2/3:
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
 
