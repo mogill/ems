@@ -31,6 +31,7 @@
  +-----------------------------------------------------------------------------+
 """
 from distutils.core import setup, Extension
+import os
 import sys
 
 # Path to C library source code

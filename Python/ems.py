@@ -151,9 +151,10 @@ def initialize(nThreadsArg, pinThreadsArg=False, threadingType='bsp',
     domainName = contextname
     c_contextname = _new_EMSval(contextname)
     c_None = _new_EMSval(None)
+    c_contextname_char = ffi.cast('char *', c_contextname)
     # All arguments are defined -- now do the EMS initialization
     EMSmmapID = libems.EMSinitialize(0, 0, False,
-                                     c_contextname,
+                                     c_contextname_char,
                                      False, False,  #  4-5
                                      False, 0,  # 6-7
                                      c_None,  # 8

@@ -65,6 +65,7 @@ node: build/Release/ems.node
 
 build/Release/ems.node:
 	node-gyp rebuild
+	(cd node_modules;  /bin/rm -f ems; ln -s ../ ./ems)
 
 py: py2 py3
 
