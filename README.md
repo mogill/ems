@@ -52,7 +52,7 @@ can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
-<img src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/Images_js_py.gif" />
+<img src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/Images_js_py.gif" />
 
 Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
 The animated GIF demonstrates the following steps:
@@ -91,19 +91,19 @@ EMS implements several different parallel execution models:
 		</td>
         <td width="50%">
         <center>
-    		  <img height="350px" style="margin: 10px;" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/typesOfParallelism.svg" type="image/svg+xml"  />
+    		  <img height="350px" style="margin: 10px;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/typesOfParallelism.svg" type="image/svg+xml"  />
             </center>
             </td>
     </tr>
     <tr>
     <td width="50%">
         <center>
-    		  <img height="350px" style="margin: 10px;" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/ParallelContextsBSP.svg" type="image/svg+xml" />
+    		  <img height="350px" style="margin: 10px;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/ParallelContextsBSP.svg" type="image/svg+xml" />
         </center>
     </td>
     <td>
         <center>
-    		  <img height="350px" style="margin: 10px;" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/ParallelContextsFJ.svg" type="image/svg+xml" />
+    		  <img height="350px" style="margin: 10px;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/ParallelContextsFJ.svg" type="image/svg+xml" />
         </center>
     </td>
     </tr>
@@ -147,7 +147,7 @@ across processes, atomically incrementing the count of each word found.
 The final word counts are sorted and the most frequently appearing words
 are printed with their counts.
 
-<img height="300px" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/wordcount.svg" />
+<img height="300px" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/wordcount.svg" />
 
 The performance of this program was measured using an Amazon EC2 instance:<br>
 `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`
@@ -165,7 +165,7 @@ gives us the maximum speed EMS double precision
 floating point operations can be performed on a
 `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
 
-<img src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/streams.svg" type="image/svg+xml" height="300px">
+<img src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/streams.svg" type="image/svg+xml" height="300px">
 
 
 ### Benchmarking of Transactions and Work Queues
@@ -199,13 +199,13 @@ only a portion of the total iteration space.
 	<tr>
     	<td width="50%">
 	    <center>
-			<img style="vertical-align:text-top;" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/tm_no_q.svg" />
+			<img style="vertical-align:text-top;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/tm_no_q.svg" />
             <br><b>Immediate Transactions:</b> Each process generates a transaction on integer data then immediately performs it.
     	</center>
 	    </td>
     	<td width="50%">
 	    <center>
-			<img style="vertical-align:text-top;" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/tm_from_q.svg" />
+			<img style="vertical-align:text-top;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/tm_from_q.svg" />
             <br><b>Transactions from a Queue:</b> One of the processes generates the individual transactions and appends
 				them to a work queue the other threads get work from.  
                 <B>Note:</b> As the number of processes increases, the process generating the transactions
@@ -217,7 +217,7 @@ only a portion of the total iteration space.
 	<tr>
     	<td width="50%">
 	    <center>
-			<img style="vertical-align:text-top;" src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/tm_no_q_str.svg"/>
+			<img style="vertical-align:text-top;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/tm_no_q_str.svg"/>
             <br><b>Immediate Transactions on Strings:</b> Each process generates a transaction appending to
 			a string, and then immediately performs the transaction.
     	</center>
@@ -257,7 +257,7 @@ itself are updated atomically.
       <td>
     <center>
       <img style="width:350px; "
-	   src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/memLayoutLogical.svg" type="image/svg+xml" />
+	   src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/memLayoutLogical.svg" type="image/svg+xml" />
       <em>    <br><br> 
     EMS memory is an array of JSON values
         (Number, Boolean, String, Undefined, or Object) accessed using atomic
@@ -271,7 +271,7 @@ itself are updated atomically.
     <td width="50%">
       <center>
   <img style="height:270px; "
-   src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/fsmSimple.svg" type="image/svg+xml" />
+   src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/fsmSimple.svg" type="image/svg+xml" />
     <em>    <br><br> EMS Data Tag Transitions & Atomic operations:
     F=Full, E=Empty, X=Don't Care, RW=Readers-Writer lock (# of current readers)
     CAS=Compare-and-Swap, FAA=Fetch-and-Add</em>
@@ -290,7 +290,7 @@ contact the author at ems@rotang.com
   
 <br>
 <center>
-  <img src="https://github.com/SyntheticSemantics/ems/tree/master/Docs/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
+  <img src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
 </center>
 
 
