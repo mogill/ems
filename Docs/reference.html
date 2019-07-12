@@ -1,1838 +1,1633 @@
 <html>
-<!-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.0   |
- |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
- +-----------------------------------------------------------------------------+
- |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2016, Jace A Mogill.  All rights reserved.              |
- |                                                                             |
- | Redistribution and use in source and binary forms, with or without          |
- | modification, are permitted provided that the following conditions are met: |
- |    * Redistributions of source code must retain the above copyright         |
- |      notice, this list of conditions and the following disclaimer.          |
- |    * Redistributions in binary form must reproduce the above copyright      |
- |      notice, this list of conditions and the following disclaimer in the    |
- |      documentation and/or other materials provided with the distribution.   |
- |    * Neither the name of the Synthetic Semantics nor the names of its       |
- |      contributors may be used to endorse or promote products derived        |
- |      from this software without specific prior written permission.          |
- |                                                                             |
- |    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS      |
- |    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT        |
- |    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR    |
- |    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SYNTHETIC         |
- |    SEMANTICS LLC BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,   |
- |    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,      |
- |    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR       |
- |    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF   |
- |    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     |
- |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
- |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
- |                                                                             |
- +----------------------------------------------------------------------------->
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <!-----------------------------------------------------------------------------+
+     |  Extended Memory Semantics (EMS)                            Version 0.2.0   |
+     |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
+     +-----------------------------------------------------------------------------+
+     |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
+     |                                                                             |
+     | Redistribution and use in source and binary forms, with or without          |
+     | modification, are permitted provided that the following conditions are met: |
+     |    * Redistributions of source code must retain the above copyright         |
+     |      notice, this list of conditions and the following disclaimer.          |
+     |    * Redistributions in binary form must reproduce the above copyright      |
+     |      notice, this list of conditions and the following disclaimer in the    |
+     |      documentation and/or other materials provided with the distribution.   |
+     |    * Neither the name of the Synthetic Semantics nor the names of its       |
+     |      contributors may be used to endorse or promote products derived        |
+     |      from this software without specific prior written permission.          |
+     |                                                                             |
+     |    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS      |
+     |    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT        |
+     |    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR    |
+     |    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SYNTHETIC         |
+     |    SEMANTICS LLC BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,   |
+     |    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,      |
+     |    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR       |
+     |    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF   |
+     |    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     |
+     |    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
+     |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
+     |                                                                             |
+     +----------------------------------------------------------------------------->
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="stylesheet" type="text/css" href="./docs.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <title>Extended Memory Semantics -- API Reference</title>
-</head>
+  </head>
 
-<body>
-<div style="font-family:Gotthard; font-size: 40px; vertical-align:middle; margin-left: 1%">
-    <a href="http://synsem.com">
-        <img src="./synsem_logo_black.svg" type="image/svg+xml" height="50px" style="vertical-align:middle;"/>
-        <span style="vertical-align:middle;">Synthetic Semantics</span>
-    </a>
-</div>
-<div style="padding-left:3%; font-size:1.7em;">
-    <a href="index.html"> Overview of EMS </a>
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="reference.html"> API Documentation </a>
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="https://www.npmjs.org/package/ems"> Node.js NPM </a>
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="https://github.com/SyntheticSemantics/ems"> Download at GitHub </a>
-</div>
+  <body>
+    <script>
+      if(useGA) {
+      var _gaq = _gaq || [];
+      var pluginUrl = '//www.google-analytics.com/plugins/ga/inpage_linkid.js';
+      _gaq.push(['_require', 'inpage_linkid', pluginUrl]);
+      _gaq.push(['_setAccount', 'UA-43905673-1']) // SYNSEM   
+      _gaq.push(['_trackPageview']);
+      
+      (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+      }
+    </script>
+    
 
 
-<h1>
-    Extended Memory Semantics
-</h1>
-<p>
-    EMS stores tags internally that are used for synchronization of user data,
-    allowing synchronization to happen independently of the number or kind of processes accessing
-    the data.
-    The EMS intrinsics like stacks, queues, and transactional
-    memory are built on read, write, and read-modify-write operations that
-    enforce atomic access to JSON objects and values.
-<table width="90%">
-    <tr>
-        <td>
-            <center>
-                <figure>
-                    <img src="./memLayoutLogical.svg" type="image/svg+xml" height="160px"/>
+    <div style="font-family:Gotthard; font-size: 40px; vertical-align:middle; margin-left: 1%">
+      <a href="http://synsem.com">
+	<img src="./synsem_logo_black.svg" type="image/svg+xml" height="50px" style="vertical-align:middle;" />
+	<span style="vertical-align:middle;"> Synthetic Semantics</span>
+      </a>
+    </div>
+    <div style="padding-left:3%; font-size:1.7em;">
+      <a href="index.html"> Overview of EMS </a>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="reference.html"> API Documentation </a>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="https://www.npmjs.org/package/ems"> Node.js NPM </a>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="https://github.com/SyntheticSemantics/ems"> Download at GitHub </a>
+    </div>
+
+
+    <h1>
+      Extended Memory Semantics
+    </h1>
+    <p> 
+      EMS internally stores tags that are used for synchronization of user data,
+      allowing synchronization to happen independently of the number or kind of processes accessing
+      the data.
+      The EMS primitives enforce atomic access using automatic state transitions,
+      and higher level intrinsics like stacks, queues, and transactional
+      memory are built on the EMS primitives.
+
+
+      <center>
+	<table width="90%" >
+	  <tr>
+	    <td>
+	      <center>
+		<figure>
+		  <img src="./memLayoutLogical.svg" type="image/svg+xml" height="160px" />
 		  <span class="figcaption">
-		    <br>EMS memory is an array or key-value store of JSON values
+		    <br>EMS memory is an array of JSON values 
 		    accessed using atomic operators and/or transactional memory.
-		    Safe parallel access is managed automatically.
+		    Safe parallel access is managed by passing through multiple gates:
+		    First mapping a key to an index, then 
+		    accessing user data protected by EMS tags, and completing the whole
+		    operation atomically.
 		  </span>
-                </figure>
-            </center>
-        </td>
-        <td width="50%">
-            <center>
-                <figure>
-                    <img src="./fsmSimple.svg" type="image/svg+xml" height="200px"/>
+		</figure>
+	      </center>
+	    </td>
+	    <td width="50%">
+	      <center>
+		<figure>
+		  <img src="./fsmSimple.svg" type="image/svg+xml" height="200px" />
 		  <span class="figcaption">
 		    <br>
 		    EMS Data Tag Transitions & Atomic operations:
 		    F=Full, E=Empty, X=Don't Care, RW=Readers-Writer lock (# of current readers)
 		    CAS=Compare-and-Swap, FAA=Fetch-and-Add
-              </figcaption>
+		  </figcaption>
 		</span>
-            </center>
-        </td>
-    </tr>
-</table>
-</center>
-</p>
+	      </center>
+	    </td>
+	  </tr>
+	</table>
+      </center>
+    </p>
 
-<h3>
-    EMS Collective Operations and Configuration
-</h3>
-<P>
-    The API is structurally identical between languages, in many cases the exact
-    same syntax works for both Python2/3 and Node.js.
-    Unlike Python and Node.js,
-    C provides several different kinds of shared memory parallelism, including
-    OpenMP on which the BSP execution is based, the C API does not include functions
-    to initiate or control parallelism.
-    <br>    <br>
-    The C interface uses a structure to describe dynamically typed values defined in <code>ems.h</code>:
-    <br>    <br>
-    <code>#define EMS_TYPE_INVALID      ((unsigned char)0) <br>
-#define EMS_TYPE_BOOLEAN      ((unsigned char)1) <br>
-#define EMS_TYPE_STRING       ((unsigned char)2) <br>
-#define EMS_TYPE_FLOAT        ((unsigned char)3) <br>
-#define EMS_TYPE_INTEGER      ((unsigned char)4) <br>
-#define EMS_TYPE_UNDEFINED    ((unsigned char)5) <br>
-#define EMS_TYPE_JSON         ((unsigned char)6)  <br> <br>
-typedef struct { <br>
-&nbsp;&nbsp;&nbsp;&nbsp; size_t length;  // Defined only for JSON and strings <br>
-&nbsp;&nbsp;&nbsp;&nbsp; void *value; // Scalar value or pointer to buffer/string<br>
-&nbsp;&nbsp;&nbsp;&nbsp; unsigned char type; // One of the above EMS_TYPE_ values<br>
-} EMSvalueType; <br>   </code>
-</P>
+    <h3>
+      EMS Class & Array Methods
+    </h3>
+    <P>
+      Operations which inspect or affect the global EMS state are performed
+      using class methods of
+      the EMS object returned by the <code>require</code> statement.
+      Operations that modify the data and tags are performed using methods
+      belonging to EMS array to be operated on.
+    </P>
 
-<h5>
-    Importing or Requiring EMS
-</h5>
+    <h5>
+      Module Require
+    </h5>
 
-<table class="apiBlock">
-    <tr class="apiSynopsis">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Initialize the EMS module, starting
-            all the other threads. Thread identity and processor affinity
-            is assigned when the thread is created.  Node/Python only, C parallelism is user managed.
-            <BR><BR></td>
-    </tr>
+    <table class="apiBlock" >
+      <tr class="apiFunc" >
+	<td class="Label"> REQUIRE </td>
+	<td colspan=3 class="Proto"  style="padding-bottom: 20px;">  require('ems') ( nThreads [, threadAffinity [, parallelType [, contextName ] ] ] )</td>
+      </tr>
 
-    <tr class="apiFunc">
-        <td class="Label">Node.js</td>
-        <td colspan=3 class="Proto" style="padding-bottom: 20px;">require('ems') ( nThreads [, threadAffinity [,
-            parallelType [, contextName ] ] ] )
-        </td>
-    </tr>
-    <tr class="apiFunc">
-        <td class="Label">Python</td>
-        <td colspan=3 class="Proto" style="padding-bottom: 20px;">import ems<br>
-            ems.initialize( nThreads [, threadAffinity [, parallelType [, contextName ] ] ] )
-        </td>
-    </tr>
-    <tr class="apiFunc">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto" style="padding-bottom: 20px;">#include "ems.h"  // Parallelism in C is always user managed
-        </td>
-    </tr>
+      <tr class="apiSynopsis">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Initialize the EMS module, starting
+	  all the other threads.  Thread identity and processor affinity
+	  is assigned when the thread is created.
+	  <BR><BR> </td>
+      </tr>
 
-    <tr class="apiArgs">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> nThreads</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc"> Total number of threads the job should use.
-        </td>
-    </tr>
+      <tr class="apiArgs">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> nThreads</td>
+	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argDesc" > Total number of threads the job should use.
+	</td>
+      </tr>
 
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName"> threadAffinity</td>
-        <td class="argType"> &lt;Boolean&gt; </td>
-        <td class="argDesc"> (Optional, Default = <code>false</code>, Affects only Linux.)
-            Set the scheduling affinity of each thread to it's own
-            core, assigning over-subscribed threads in a round-robin
-            fashion.
-        </td>
-    </tr>
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName"> threadAffinity </td>
+	<td class="argType"> &lt;Boolean&gt; </td>
+	<td class="argDesc"> (Optional, Default = <code>false</code>, Affects only Linux.)
+          Set the scheduling affinity of each thread to it's own
+	  core, assigning over-subscribed threads in a round-robin
+	  fashion.
+	</td>
+      </tr>
 
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName"> parallelType</td>
-        <td class="argType"> &lt;String&gt; </td>
-        <td class="argDesc"> (Optional, Default=<code>bsp</code>)
-            One of <code>bsp</code>, <code>fj</code>, or <code>user</code>. Execution model:
-            <code>bsp</code> will use EMS' built-in Bulk Synchronous Parallel execution,
-            <code>fj</code> uses EMS' built-in Fork-join execution
-			<TODO>(Python not supported in v1.4)</TODO>,
-            and <code>user</code> creates no parallelism.
-        </td>
-    </tr>
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName"> parallelType </td>
+	<td class="argType"> &lt;String&gt; </td>
+	<td class="argDesc"> (Optional, Default=<code>bsp</code>)
+	  One of <code>bsp</code>, <code>fj</code>, or <code>user</code>.  Execution model:
+	  <code>bsp</code> will use EMS' built-in Bulk Synchronous Parallel execution,
+	  <code>fj</code> uses EMS' built-in Fork-join execution
+	  <code>user</code> creates no parallelism
+	</td>
+      </tr>
 
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName"> contextName</td>
-        <td class="argType"> &lt;String&gt; </td>
-        <td class="argDesc"> (Optional, Default=<code>anonymous</code>)
-            Unique name of parallel context being initialized, required to distinguish
-            between multiple EMS parallel programs running simultaneously on the
-            same system.
-        </td>
-    </tr>
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName"> contextName </td>
+	<td class="argType"> &lt;String&gt; </td>
+	<td class="argDesc"> (Optional, Default=<code>anonymous</code>)
+	  Unique name of parallel context being initialized, required to distinguish
+	  between multiple EMS parallel programs running simultaneously on the
+	  same system.
+	</td>
+      </tr>
 
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2">json = {
-           nThreads : Number, // Number of threads executing
-           myID : Number // This thread's ID 0..nThreads-1
-       }
-        </td>
-    </tr>
+    </table>  
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" >ems = {
+  nThreads : Number,  //  Number of threads executing
+  myID     : Number   //  This thread's ID 0..nThreads-1
+}</td>
+      </tr>
 
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label">Node.js EXAMPLES</td>
-        <td class="Example">ems = require('ems')(process.argv[2])</td>
-        <td class="Desc"> Use the first command line argument as the number of nodes:
-            <br> <code>node foo.js 4</code> executes using 4 threads.
-        </td>
-    </tr>
-    <tr class="Examples">
-        <td class="Label"></td>
-        <td class="Example">ems = require('ems')()</td>
-        <td class="Desc"> Run on one node</td>
-    </tr>
-    <tr class="Examples">
-        <td class="Label"></td>
-        <td class="Example">ems = require('ems')(process.argv[2], false, true)
-        </td>
-        <td class="Desc"> Use first command line argument as number of nodes, do not set
-            affinity of the threads to a specific CPU, execute using fork-join parallelism.
-        </td>
-    </tr>
-    <tr class="Examples">
-        <td class="Label">Python EXAMPLES</td>
-        <td class="Example">import EMS
-ems = EMS.initialize(4, contextName = "/tmp/EMS_897")
-        </td>
-        <td class="Desc"> Four processes operating in a private context persisting on <code>/tmp</code>
-        </td>
-    </tr>
-</table>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems = require('ems')(process.argv[2])    </td>
+	<td class="Desc">  Use the first command line argument as the number of nodes:
+	  <br> <code>node foo.js 4</code>     executes using 4 threads.</td>
+      </tr>
+      <tr class="Examples">
+	<td class="Label"> </td>
+	<td class="Example">ems = require('ems')()</td>
+	<td class="Desc" > Run on one node </td>
+      </tr>
+      <tr class="Examples">
+	<td class="Label"> </td>
+	<td class="Example">ems = require('ems')(process.argv[2],
+          false, true) </td>
+	<td class="Desc" > Use first command line argument as number of nodes, do not set
+	  affinity of the threads to a specific CPU, execute using fork-join parallelism. </td>
+      </tr>
+    </table>
 
-<!-- ----------------------------------------------------------------------------- -->
-<!-- ----------------------------------------------------------------------------- -->
-<h5> Create a new EMS Array </h5>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Attach to an existing or create a new EMS array.
-            Creation of new (do not use existing) EMS memory regions implies a barrier,
-            whereas using an existing EMS file will block until the file exists.
-            <BR><BR></td>
-    </tr>
+    <!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
+    <h5> Create a new EMS Array </h5>
+    <table class="apiBlock" >
+      <tr class="apiFunc">
+	<td class="Label"> CLASS METHOD </td>
+	<td colspan=3 class="Proto">  ems.new( [ nElements [, heapSize [, fileName] ] ] ) </td>
+      </tr>
+      <tr class="apiFunc">
+	<td class="Label" style="padding-bottom: 20px;">  &nbsp;</td>
+	<td colspan=3 class="Proto">  ems.new( emsArrayDescriptor ) </td>
+      </tr>
 
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Attach to an existing or create a new EMS array. 
+	  Creation of new (do not use existing) EMS memory regions implies a barrier,
+	  whereas using an existing EMS file will block until the file exists.
+	  <BR><BR> </td>
+      </tr>
 
-    <tr class="apiFunc">
-        <td class="Label">Node.js</td>
-        <td colspan=3 class="Proto"> ems.new( [ nElements [, heapSize [, fileName] ] ] )</td>
-    </tr>
-    <tr class="apiFunc">
-        <td class="Label" style="padding-bottom: 20px;">  &nbsp;</td>
-        <td colspan=3 class="Proto"> ems.new( emsArrayDescriptor )</td>
-    </tr>
-
-
-    <tr class="apiFunc">
-        <td class="Label">Python</td>
-        <td colspan=3 class="Proto"> ems.new( [ nElements [, heapSize [, fileName] ] ] )</td>
-    </tr>
-    <tr class="apiFunc">
-        <td class="Label" style="padding-bottom: 20px;">  &nbsp;</td>
-        <td colspan=3 class="Proto"> ems.new( emsArrayDescriptor )</td>
-    </tr>
-
-
-    <tr class="apiFunc">
-        <td class="Label" style="padding-bottom: 20px;">C</td>
-        <td colspan=3 class="Proto">int EMSinitialize(int64_t nElements,
-            int64_t heapSize,
-            bool useMap,
-            <BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            const char *filename,
-            bool persist,
-            bool useExisting,
-            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            bool doDataFill,
-            bool fillIsJSON,
-            EMSvalueType *fillValue,
-            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            bool doSetFEtags,
-            bool setFEtags,
-            int EMSmyID,
-            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            bool pinThreads,
-            int64_t nThreads,
-            int64_t pctMLock);
-        </td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> nElements</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc"> (Optional, Default is 1) Maximum number of elements in the EMS array or map.</td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"></td>
-        <td class="argType"> &lt;Array&gt;</td>
-        <td class="argDesc"> An array of dimensions of a multi-dimensional array.
-            A 100×30×50 cube is described by <code>[100, 30, 50]</code>.
-        </td>
-    </tr>
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName"> heapSize</td>
-        <td class="argType"> &lt;Number&gt; </td>
-        <td class="argDesc">
-            (Optional, Default is 0)
-            Maximum number of bytes reserved for strings,
-            arrays, maps, and object elements in this array.
-            The actual amount of memory allocated for use is
-            rounded up to the nearest power of 2
-            <TODO>(until a better memory allocator is implemented)</TODO>
-            .
-            Additional memory is allocated for bookkeeping.
-            Memory block size is defined in <code>ems_alloc.h: EMS_MEM_BLOCKSZ</code>
-            <TODO>but should be configurable at create time</TODO>
-            .
-        </td>
-    </tr>
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName"> fileName</td>
-        <td class="argType"> &lt;String&gt; </td>
-        <td class="argDesc">
-            (Optional, Default is anonymous) Fully qualified file name
-            of the file to use as a persistent backing store for the EMS array,
-            tags, and bookkeeping information.
-        </td>
-    </tr>
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName">emsArrayDescriptor</td>
-        <td class="argType"> &lt;Object&gt; </td>
-        <td class="argDesc">
-            As an alternative to scalar argument(s),
-            A complete EMS array descriptor may be passed as the only argument.<br>
-            <code style="white-space: pre;">emsArrayDescriptor = {
-    dimensions : 100,    // Required: Max # elements in EMS array
-                         // Integer for 1-D, or array of dims [x, y, z]
-    heapSize : 100000,   // Optional, default=0: Space, in bytes, for
-                         // strings, maps, and objects. Rounded up to nearest power of two
-    mlock : 0,           // Optional, default=0: % of EMS memory to lock into RAM
-    ES6proxies: false,   // Optional, default=False: Enable implied read/write in JS
-    useMap : true,       // Optional, default=false: Map keys to indexes
-    useExisting : true,  // Optional, default=false:
-                         // Preserve data if an file already exists
-    persist : true,      // Optional, default=true:
-                         // Preserve the file after threads exit
-    doDataFill : false,  // Optional, default=false: Initialize memory
-    dataFill : undefined,// Optional, If this property is defined,
-                         // the EMS memory is filled with this value
-    doSetFEtags: false,  // Optional, If true, tags are set to setFEtags.
-    setFEtags : 'full',  // Optional, 'full' or 'empty', ignored if doSetFEtags==false
-    filename : '/path/to/file' // Optional, default=anonymous:
-                               // Path to the persistent file of this array
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> nElements </td>
+	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argDesc" > (Optional, Default is 1) Maximum number of elements in the EMS array or map. </td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName">  </td>
+	<td class="argType"> &lt;Array&gt;</td>
+	<td class="argDesc" > An array of dimensions of a multi-dimensional array. 
+	  A 100×30×50 cube is described by <code>[100, 30, 50]</code>. </td>
+      </tr>
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName"> heapSize </td>
+	<td class="argType"> &lt;Number&gt; </td>
+	<td class="argDesc"> 
+	  (Optional, Default is 0) 
+	  Maximum number of bytes reserved for strings,
+	  arrays, maps, and object elements in this array. 
+	  The actual amount of memory allocated for use is 
+	  rounded up to the nearest power of 2
+	  <TODO>(until a better memory allocator is implemented)</TODO>.
+	  Additional memory is allocated for bookkeeping.
+	  Memory block size is defined in <code>ems_alloc.h: EMS_MEM_BLOCKSZ</code>
+	  <TODO>but should be configurable at create time</TODO>.
+	</td>
+      </tr>
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName"> fileName </td>
+	<td class="argType"> &lt;String&gt; </td>
+	<td class="argDesc"> 
+	  (Optional, Default is anonymous) Fully qualified file name
+	  of the file to use as a persistent backing store for the EMS array,
+	  tags, and bookkeeping information.
+	</td>
+      </tr>
+      <tr class="apiArgs" >
+	<td class="Label"> </td>
+	<td class="argName">emsArrayDescriptor</td>
+	<td class="argType"> &lt;Object&gt; </td>
+	<td class="argDesc"> 
+	  (Alternative to two scalar argument) A complete EMS Array
+	  descriptor may be passed as the only argument instead of
+	  scalar arguments.<code style="white-space: pre;">
+emsArrayDescriptor = {
+    dimensions  : 100,        // Required: Max # elements in EMS array
+                              // Integer for 1-D, or array of dims [x, y, z]
+    heapSize    : 100000,     // Optional, default=0: Space, in bytes, for 
+    // strings, maps, and objects.  Rounded up to nearest power of two
+    mlock       : 0,          // Optional, default=0%: % of EMS memory to lock into RAM
+    useMap      : true,       // Optional, default=false: Map keys to indexes
+    useExisting : true,       // Optional, default=false: 
+                              // Preserve data if an file already exists
+    persist     : true,       // Optional, default=true: 
+                              // Preserve the file after threads exit
+    doDataFill  : false,      // Optional, default=false: Initialize memory
+    dataFill    : undefined,  // Optional, If this property is defined, 
+                              // the EMS memory is filled with this value
+    setFEtags   : 'full',     // Optional, If defined, set 'full' or 'empty'
+    filename    : '/path/to/file'  // Optional, default=anonymous:  
+                                   // Path to the persistent file of this array
 }</code>
-            <br>
-            <TODO>NOTE: ES6 Proxy support varies with version of Node.js,
-                (it may not be supported, require a polyfill and/or
-                command line option, or work with nothing at all)
-                and may impose a performance penalty.</TODO>
-        </td>
-    </tr>
+	</td>
+      </tr>
 
 
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2"><code>&lt;EMS Array | Number&gt;</code>
-            Node & Python return the EMS array, C returns an integer handle to the EMS array.
-        </td>
-    </tr>
+    </table>  
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" >&lt;EMS Array&gt;</td>
+      </tr>
 
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label">Node.js EXAMPLES</td>
-        <td class="Example">var foo = ems.new(nItems)</td>
-        <td class="Desc"> Create a new non-persistent shared memory EMS
-            array with no heap space. Scalar data (Number, Boolean, Undefined)
-            may be stored in this array, but not strings, arrays, or objects.
-        </td>
-    </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">var foo = ems.new(nItems) </td>
+	<td class="Desc"> Create a new non-persistent shared memory EMS
+	  array with no heap space.  Scalar data (Number, Boolean, Undefined)
+	  may be stored in this array, but not strings, arrays, or objects.
+	</td>
+      </tr>
 
-    <tr class="Examples">
-        <td class="Label"></td>
-        <td class="Example">var foo = ems.new(nItems, size,
-            '/tmp/EMS_foo')
-        </td>
-        <td class="Desc"> Create a file-backed EMS shared memory
-            space with the filename <code>/tmp/EMS_foo</code>. In addition to the
-            scalar storage,
-            space for strings totaling
-            <code>size</code> bytes is also reserved for strings, arrays, objects, and maps.
-        </td>
-    </tr>
-    <tr class="Examples">
-        <td class="Label">Python EXAMPLES</td>
-        <td class="Example">x = ems.new({
-              'dimensions': [1000],
-              'heapSize': 20000,
-              'useMap': True,
-              'useExisting': False,
-              'filename': '/tmp/test.ems',
-              'doSetFEtags': True,
-              'setFEtags': 'empty'
-            })</td>
-        <td class="Desc"> Create a new non-persistent shared memory EMS
-            array with 1000 elements, uses mapped keys, and sets all data to Empty.
-        </td>
-    </tr>
-</table>
-
-<!-- ----------------------------------------------------------------------------- -->
-
-<h5> Parallel Region (Fork-Join execution only) </h5>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px; vertical-align:text-top;"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> When using fork-join execution, the master
-            thread enters a parallel region by executing <code>func</code>
-            once from each process. The master process first starts all the
-            other processes running the function asynchronously, then executes the function
-            itself synchronously. All processes join (perform a <code>barrier</code>)
-            after completion of the work function.
-            The results of the function are discarded. Global variables on each node
-            are persistent between parallel regions.
-            <br><br>
-        </td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top;">Node.js</td>
-        <td colspan=3 class="Proto"> ems.parallel( [args, ...] func )</td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top;">Python</td>
-        <td colspan=3 class="Proto"> <TODO>Not implemented in v1.4</TODO></td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px; vertical-align:text-top;">C</td>
-        <td colspan=3> Parallelism to be implemented by application</td>
-    </tr>
-
-    <tr class="apiArgs">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> args</td>
-        <td class="argType"> &lt;Any&gt;</td>
-        <td class="argDesc"> Zero or more arguments to be passed to the function.
-        </td>
-    </tr>
-    <tr class="apiArgs">
-        <td class="Label"></td>
-        <td class="argName"> func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc"> Function to be executed once on every thread. The
-            optional arguments are used when calling the function. Return value is ignored.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label">Node.js EXAMPLES</td>
-        <td class="Example">ems.parallel( doWork )</td>
-        <td class="Desc"> The function <code>doWork</code> is executed by every thread.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">ems.parallel( foo, "Smith", 123, doWork )</td>
-        <td class="Desc"> The function call <code>doWork(foo, "Smith", 123)</code>
-            is performed once by each process.
-        </td>
-    </tr>
-    <!--
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"><TODO>Python EXAMPLES</TODO></td>
-        <td class="Example">Not Implemented in v1.4</td>
-        <td class="Desc">Creating a function closure in Python is more
-        difficult than Javascript, making transparent function dispatch
-        more difficult.</td>
-    </tr>
-    -->
-</table>
+      <tr class="Examples">
+	<td class="Label"> </td>
+	<td class="Example">var foo = ems.new(nItems, size,
+          '/tmp/EMS_foo') </td>
+	<td class="Desc" > Create a file-backed EMS shared memory
+	  space with the filename <code>/tmp/EMS_foo</code>.  In addition to the 
+	  scalar storage, 
+	  space for strings totaling
+	  <code>size</code> bytes is also reserved for strings, arrays, objects, and maps.</td>
+      </tr>
+      <tr class="Examples">
+	<td class="Label"> </td>
+	<td class="Example">var x = ems.new(nItems, size) </td>
+	<td class="Desc" > Create a new non-persistent shared memory EMS
+	  array that has space for strings totaling <code>size</code> bytes </td>
+      </tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
 
-<h5> Parallel Loops </h5>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Parallel loop execution, distributing
-            the iterations among all the threads. The function is invoked
-            with one argument, the current iteration number. Iterations are
-            divided among the threads according to the
-            <code>scheduling</code> method specified.
-            Parallel for loops <em>must not</em> be nested.
-            <TODO>The system should check for this and fall back on serial execution.</todo>
-            A barrier is implied at
-            the end. <BR><BR>
-        </td>
-    </tr>
+    <!-- ----------------------------------------------------------------------------- -->
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js</td>
-        <td colspan=3 class="Proto"> ems.parForEach( first, last, function [, scheduling [, minChunk] ] )</td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" >Python</td>
-        <td colspan=3 class="Proto"> ems.parForEach( first, last, function [, scheduling [, minChunk] ] )</td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;">C</td>
-        <td colspan=3>Parallelism provided by C program</td>
-    </tr>
+    <h5> Parallel Region (Fork-Join execution only) </h5>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px; vertical-align:text-top;"> CLASS METHOD </td>
+	<td colspan=3 class="Proto"> ems.parallel( [args, ...] func ) </td>
+      </tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> first</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc"> Index to start iterating</td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> last</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc"> Index to stop iterating (non-inclusive).</td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc"> Loop body, only input argument is current loop index:
-            <br><code>function foo(idx) {...}</code></td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> scheduling</td>
-        <td class="argType"> &lt;String&gt;</td>
-        <td class="argDesc">
-            <em>If option is omitted, defaults to <code>guided</code> with a minimum chunk size of 1 iteration.</em>
-            <br>
-            <code>guided [minChunk]</code>: Decreasing amounts of work are assigned to each task until
-            <code>minChunk</code> iterations per thread is reached. Load balancing occurs when new chunks are assigned
-            to threads.<br>
-            <code>static</code>: Equal number of iterations are given to each thread, no dynamic load balancing is
-            performed.<br>
-            <code>dynamic</code>: All threads share one index which is atomically
-            incremented by 1 after each iteration. Provides ideal load balancing at the
-            cost of high per-iteration overhead.<br>
-        </td>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> minChunk</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc">(Optional, only used when <code>scheduling='guided'</code>, default=<code>1</code>) Minimum
-            number of iterations assigned to a single thread.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label">Node.js EXAMPLES</td>
-        <td class="Example">ems.parForEach(0, nItems-1, func)</td>
-        <td class="Desc">Execute the <code>func</code> function <code>nItems-1</code> times with indexes
-            <code>0..nItems-1</code>, inclusive.
-        </td>
-    </tr>
-
-    <tr class="Examples">
-        <td class="Label"></td>
-        <td class="Example">ems.parForEach(10000, 20000, func,
-            'guided', 200)
-        </td>
-        <td class="Desc"> Distribute iterations numbered 10,000-20,000 (inclusive) using the <code>guided</code>
-            method with a minimum chunk size of 200 iterations
-        </td>
-    </tr>
-
-    <tr class="Examples">
-        <td class="Label">Python EXAMPLES</td>
-        <td class="Example">ems.parForEach(0, 999,
-            func, 'static')
-        </td>
-        <td class="Desc"> Execute <code>func()</code> 1,000 times with indexes
-            0..999 inclusive. Distribute the iterations evenly across
-            threads in contiguous blocks.
-        </td>
-    </tr>
-</table>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> When using fork-join execution, the master
+		thread enters a parallel region by executing <code>func</code>
+		once from each process.  The master process first starts all the
+		other processes running the function asynchronously, then executes the function
+		itself synchronously.  All processes join (perform a <code>barrier</code>)
+		after completion of the work function.
+		The results of the function are discarded.  Global variables on each node
+		are persistent between parallel regions.
+	</td>
+      </tr>
+		<tr class="apiArgs">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName"> args </td>
+			<td class="argType"> &lt;Any&gt;</td>
+			<td class="argDesc"> Zero or more arguments to be passed to the function.
+			</td>
+		</tr>
+		<tr class="apiArgs">
+			<td class="Label"> </td>
+			<td class="argName"> func </td>
+			<td class="argType"> &lt;Function&gt;</td>
+			<td class="argDesc" > Function to be executed once on every thread.  The
+				optional arguments are used when calling the function.  Return value is ignored.
+			</td>
+		</tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+		<tr class="Examples" style="vertical-align:text-top;">
+			<td class="Label"> EXAMPLES </td>
+			<td class="Example">ems.parallel( doWork )</td>
+			<td class="Desc"> The function <code>doWork</code> is executed by every thread.  </td>
+		</tr>
+		<tr class="Examples" style="vertical-align:text-top;">
+			<td class="Label"> </td>
+			<td class="Example">ems.parallel( foo, "Smith", 123, doWork )</td>
+			<td class="Desc"> The function call <code>doWork(foo, "Smith", 123)</code>
+				is performed once by each process.</td>
+		</tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
-
-<h5> Barrier Synchronization </h5>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="padding-bottom: 20px; vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> All the threads must reach the same
-            barrier before proceeding. Failure to call a barrier from every
-            process will result in deadlock.
-            If called outside a parallel region, a barrier has no effect.
-            <br><br>
-        </td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js</td>
-        <td colspan=3 class="Proto"> ems.barrier([timeout])</td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top;">Python</td>
-        <td colspan=3 class="Proto"> ems.barrier([timeout])</td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px; vertical-align:text-top;">C</td>
-        <td colspan=3 class="Proto">int EMSbarrier(int mmapID, int timeout)</td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px; vertical-align:text-top;">ARGUMENTS</td>
-        <td class="argName">timeout</td>
-        <td class="argType">&lt;Number&gt;</td>
-        <td class="argDesc">Number of microseconds to wait at a barrier before failing.
-            Defaults to 10000μs.
-        </td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label">RETURNS</td>
-        <td class="argName"></td>
-        <td class="argType">&lt;Number&gt;</td>
-        <td class="argDesc">Amount of time remaining before timeout.
-            If less than or equal to 0, the barrier has failed.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">ems.barrier()</td>
-        <td class="Desc"> All threads reach the barrier before proceeding.</td>
-    </tr>
-
-    <tr class="Examples">
-      <td class="Label"> </td>
-      <td class="Example">// Shared data is unitialized
-if(ems.myID == 0) {
-    // One processes initializes shared data
-    shared.writeXF('foo', -43.21);
-    ems.barrier();
-} else {
-    ems.barrier();
-    // Other processes wait for initialization to complete
-}
-// All processes can now safely access the initialized data
-      </td>
-      <td class="Desc" > Initialize some shared data and then allow all threads to access it </td>
-    </tr>
-
-</table>
+    <!-- ----------------------------------------------------------------------------- -->
 
 
-<!-- ----------------------------------------------------------------------------- -->
+    <h5> Parallel Loops </h5>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+	<td colspan=3 class="Proto"> ems.parForEach( first, last, function [, scheduling [, minChunk] ] ) </td>
+      </tr>
 
-<h5> Critical Region </h5>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Perform function <code>func()</code>
-            mutually exclusive of other threads. Serializes execution through
-            all critical regions.
-            <TODO> Named regions would be more like OpenMP</todo>
-            <br><br></td>
-    </tr>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Parallel loop execution, distributing
+	  the iterations among all the threads.  The function is invoked
+	  with one argument, the current iteration number.  Iterations are
+	  divided among the threads according to the 
+	  <code>scheduling</code> method specified.
+	  Parallel for loops <em>must not</em> be nested.
+	  <TODO>The system should check for this and fall back on serial execution.</todo>
+	  A barrier is implied at
+	  the end. <BR><BR>
+	</td>
+      </tr>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js</td>
-        <td colspan=3 class="Proto">ems.critical( func [, timeout] )</td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Python</td>
-        <td colspan=3 class="Proto">ems.critical( func [, timeout] )</td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto">int EMScriticalEnter(int mmapID, int timeout)</td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" ></td>
-        <td colspan=3 style="padding-bottom: 20px;" class="Proto">bool EMScriticalExit(int mmapID)</td>
-    </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> first </td>
+	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argDesc" > Index to start iterating </td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName"> last </td>
+	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argDesc" > Index to stop iterating (non-inclusive).</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName"> func </td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" > Loop body, only input argument is current loop index:
+	  <br><code>function foo(idx) {...}</code></td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName"> scheduling </td>
+	<td class="argType"> &lt;String&gt;</td>
+	<td class="argDesc" > 
+	  <code>guided [minChunk]</code>:  Decreasing amounts of work are assigned to each task until <code>minChunk</code> iterations per thread is reached.  Load balancing occurs when new chunks are assigned to threads.<br>
+	  <code>static</code>:   Equal number of iterations are given to each thread, no dynamic load balancing is performed.<br>
+	  <code>dynamic</code>: All threads share one index which is atomically
+	  incremented by 1 after each iteration.  Provides ideal load balancing at the
+	  cost of high per-iteration overhead.<br>
+	</td>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName"> minChunk </td>
+	<td class="argType"> &lt;Number&gt;</td>
+	<td class="argDesc" >(Optional, only used when <code>scheduling='guided'</code>, default=<code>1</code>) Minimum number of iterations assigned to a single thread.
+	</td>
+      </tr>
+    </table>  
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems.parForEach(0, nItems-1, func)</td>
+	<td class="Desc">Execute the <code>func</code> function <code>nItems-1</code> times with indexes 
+	  <code>0..nItems-1</code>, inclusive. </td>
+      </tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc"> Function to perform sequentially.</td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName">timeout</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc">Number of microseconds to wait before timing out.
-            Defaults to 10000μs.</td>
-    </tr>
+      <tr class="Examples">
+	<td class="Label"> </td>
+	<td class="Example">ems.parForEach(10000, 20000, func,
+          'guided', 200)</td>
+	<td class="Desc" > Distribute iterations numbered 10,000-20,000 (inclusive) using the <code>guided</code>
+	  method with a minimum chunk size of 200 iterations </td>
+      </tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label">RETURNS</td>
-        <td class="argName"></td>
-        <td class="argType">&lt;Boolean&gt;</td>
-        <td class="argDesc">True if critical region executed safely, otherwise False for timeout or other error.</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">ems.critical( function() {
-    // Use a shared resource exclusively
-} )
-        </td>
-        <td class="Desc"> A shared resource is accessed sequentially, but in no particular order.</td>
-    </tr>
-</table>
-
-
-<!-- ----------------------------------------------------------------------------- -->
-
-<h5> Execute on Master Thread Only </h5>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Perform function <code>func()</code>
-            only on thread 0, implies a barrier. <br><br></td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js</td>
-        <td colspan=3 class="Proto">ems.master( func )</td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Python</td>
-        <td colspan=3 class="Proto">ems.master( func )</td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;">C</td>
-        <td colspan=3>Parallelism provided by C program</td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc"> Function to be performed only by task 0.  Implied barrier after the
-        function is called.</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">ems.master( function() {
-            console.log("Only task 0")
-            } )
-        </td>
-        <td class="Desc">Console logging performed only by task 0</td>
-    </tr>
-</table>
+      <tr class="Examples">
+	<td class="Label"> </td>
+	<td class="Example">ems.parForEach(0, 999,
+          func, 'static')</td>
+	<td class="Desc" > Execute <code>func()</code> 1,000 times with indexes
+	  0..999 inclusive.  Distribute the iterations evenly across
+	  threads in contiguous blocks. </td>
+      </tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
 
-<h5> Execute once on any thread </h5>
+    <!-- ----------------------------------------------------------------------------- -->
 
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Perform function <code>func()</code>
-            only once by the first thread to reach the statement.
-            Implies a barrier. <br><br></td>
-    </tr>
+    <h5> Barrier Synchronization </h5>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px; vertical-align:text-top;"> CLASS METHOD </td>
+	<td colspan=3 class="Proto">  ems.barrier() </td>
+      </tr>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js</td>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> All the threads must reach the same
+		barrier before proceeding.  Failure to call a barrier from every
+		process will result in deadlock.
+		If called outside a parallel region, a barrier has no effect.
+	</td>
+      </tr>
+    </table>  
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems.barrier()</td>
+	<td class="Desc"> All threads reach the barrier before proceeding. </td>
+      </tr>
+      <!--
+	  <tr class="Examples">
+	    <td class="Label"> </td>
+	    <td class="Example">if(ems.myID == 0) {
+	      // One thread does global initialization
+	      ems.barrier()
+	      } else {
+	      ems.barrier()
+	      // Other threads wait for initialization to complete
+	      }</td>
+	    <td class="Desc" > Initialize some shared data and then allow all threads to access it </td>
+	  </tr>
+	  -->
+    </table>
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+    <h5> Critical Region </h5>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+	<td colspan=3 class="Proto">ems.critical( func )</td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Perform function <code>func()</code>
+	  mutually exclusive of other threads.  Serializes execution through
+	  all critical regions.
+	  <TODO> Named regions would be more like OpenMP </todo>
+	  <br><br></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" > Function to perform sequentially.   </td>
+      </tr>
+    </table>  
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems.critical( function() {
+   // Use a shared resources
+} )</td>
+	<td class="Desc">  A shared resource is accessed sequentially, but in no particular order.</td>
+      </tr>
+    </table>
+
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+    <h5> Execute on Master Thread Only </h5>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+	<td colspan=3 class="Proto">ems.master( func )</td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Perform function <code>func()</code>
+	  only on thread 0, implies a barrier. <br><br> </td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" > Function to perform only by task 0.   </td>
+      </tr>
+    </table>  
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems.master( function() {
+  console.log("Only task 0")
+} )</td>
+	<td class="Desc">Console logging performed only by task 0</td>
+      </tr>
+    </table>
+
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+    <h5> Execute once on any thread </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
         <td colspan=3 class="Proto">ems.single( func )</td>
-    </tr>
+      </tr>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Python</td>
-        <td colspan=3 class="Proto">ems.single( func )</td>
-    </tr>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Perform function <code>func()</code>
+	  only once by the first thread to reach the statement. 
+	  Implies a barrier. <br><br> </td>
+      </tr>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;">C</td>
-        <td colspan=3>Parallelism provided by C program</td>
-    </tr>
-
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc"> Function to be performed once.</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">ems.single( function() {
-            console.log("Only first task")
-            } )
-        </td>
-        <td class="Desc">Console logging is performed only once.</td>
-    </tr>
-</table>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" > Function to be performed once.   </td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems.single( function() {
+  console.log("Only first task")
+} )</td>
+	<td class="Desc">Console logging is performed only once.</td>
+      </tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
 
 
-<h5> Print Diagnostic Message </h5>
 
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Print a diagnostic message to the console with a prefix indicating the task ID. <br><br>
-        </td>
-    </tr>
+    <!-- ----------------------------------------------------------------------------- -->
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js</td>
+
+    <h5> Print Diagnostic Message </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
         <td colspan=3 class="Proto">ems.diag( message )</td>
-    </tr>
+      </tr>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;">Python</td>
-        <td colspan=3 class="Proto">ems.diag( message )</td>
-    </tr>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Print a diagnostic message to the console with a prefix indicating the task ID. <br><br> </td>
+      </tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">message</td>
-        <td class="argType"> &lt;String&gt;</td>
-        <td class="argDesc"> Text of message to print to the console</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">ems.diag( "Hello, world!" )
-        </td>
-        <td class="Desc"><code>EMS 3: Hello, world!</code> appears on console</td>
-    </tr>
-</table>
-
-
-<!-- ----------------------------------------------------------------------------- -->
-<!-- ----------------------------------------------------------------------------- -->
-<!-- ----------------------------------------------------------------------------- -->
-<!-- ----------------------------------------------------------------------------- -->
-<!-- ----------------------------------------------------------------------------- -->
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">message</td>
+	<td class="argType"> &lt;String&gt;</td>
+	<td class="argDesc" > Text of message to print to the console  </td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">ems.diag( "Hello, world!" )   
+	</td>
+	<td class="Desc"><code>EMS 3: Hello, world!</code> appears on console</td>
+      </tr>
+    </table>
 
 
-<h3>
-    EMS Array Methods
-</h3>
-
-<h5> Intrinsic Atomic Operations (AMOs) </h5>
-
-<h6> Read EMS Memory </h6>
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> The <code>read</code> family of EMS
-            memory operations return the data stored in an EMS array element.
-            The value may be any JSON object or intrinsic value.
-            <br>
-            Python and Javascript support the ability to make EMS data access
-            transparent to different degrees, allowing expressions like
-            <code>emsArray.foo = 123;  </code>
-            <br>
-            <dl>
-                <dt><code>read</code></dt>
-                <dd> Immediately and unconditionally returns the
-                    stored value, ignoring the tag state.
-                    Reading uninitialized mapped indexes
-                    will return <code>undefined</code> regardless of the default value.
-                    In contrast to that, intent to modify operations
-                    (<code>readFE, readEF, cas, or faa</code>)
-                    all return the default value specified when the array was declared.
-                </dd>
-                <dt><code>readFE</code></dt>
-                <dd> Blocks until the data element is full, then
-                    atomically reads the value and marks it empty.
-                </dd>
-
-                <dt><code>readFF</code></dt>
-                <dd>
-                    Blocks until the data element is full, then
-                    atomically reads leaving it full. This allows safe read access
-                    of data which may be updated
-                    simultaneously. <code>readFF</code> ensures mutual exclusion,
-                    and will block if the data is already under a Readers-Writer
-                    lock.
-                </dd>
-
-                <dt><code>readRW, releaseRW</code></dt>
-                <dd>
-                    Blocks until the data element is full or
-                    already under a Readers-Writer lock, then increments the
-                    Readers-Writer reference count. The
-                    function <code>emsArray.releaseRW()</code> decrements the reference
-                    count, restoring the state to <code>Full</code> if no readers remain.
-                </dd>
-            </dl>
-        </td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js and Python</td>
-        <td colspan=3 class="Proto">emsArray.read(key), emsArray[key].read, x = emsArray.foo<br>
-            emsArray.readFE(key), emsArray[key].readFE() <br>
-            emsArray.readFF(key), emsArray[key].readFF() <br>
-            emsArray.readRW(key), emsArray[key].readRW() <br>
-            emsArray.releaseRW(key), emsArray[key].releaseRW() <br>
-        </td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto">bool EMSreadRW(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue); <br>
-            bool EMSreadFF(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue); <br>
-            bool EMSreadFE(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue); <br>
-            bool EMSread(const int mmapID, EMSvalueType *key, EMSvalueType *returnValue); <br>
-            int EMSreleaseRW(const int mmapID, EMSvalueType *key);
-        </td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">key</td>
-        <td class="argType"> &lt;Number | String&gt;</td>
-        <td class="argDesc"> key in the EMS array of data to read</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2"> read__ : &lt; Number | Boolean | String | Undefined | Array | Object &gt;</td>
-    </tr>
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"></td>
-        <td class="Type"> releaseRW : &lt;Number&gt;</td>
-        <td class="Desc"> Number of pending readers sharing the lock.</td>
-    </tr>
-
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">n = histogram.read(3)
-        </td>
-        <td class="Desc">Read the value in bin 3 of the histogram.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">idx = 'foo'
-word = dictionary.read(idx)
-word = dictionary[idx].read()
-word = dictionary.foo </td>
-        <td class="Desc">Three functionally equivalent ways to read dictionary word at
-            <code>key='foo'</code> in the EMS array called  <code>dictionary</code>.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">x = arr.readFE(idx)</td>
-        <td class="Desc">Block until the element at index <code>i</code>
-            is full, atomically read the value and mark it empty.
-        </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">x = arr.readFF(idx)</td>
-        <td class="Desc"> Block until the element at index <code>i</code> is full,
-            atomically read the value and leave it full.
-        </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">x = arr.readRW(idx)
-// Do work using x while it cannot be modified
-arr.releaseRW(idx)</td>
-        <td class="Desc"> Acquire a shared-exclusive readers-writer lock.</td>
-    </tr>
-</table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
 
 
-<h5> Write EMS Memory </h5>
-
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Write a JSON value or object to an EMS array.
-            <br>
-            <dl>
-                <dt><code>write</code></dt>
-                <dd> Immediately and unconditionally
-                    writes the value to memory. This operation does not honor or
-                    modify the full/empty tag status.
-                </dd>
-
-                <dt><code>writeXE</code></dt>
-                <dd> Unconditionally and atomically writes the value to the data element and marks the element empty.
-                </dd>
-
-                <dt><code>writeXF</code></dt>
-                <dd> Unconditionally and atomically writes the value to the data element and marks the element full.
-                </dd>
-
-                <dt><code>writeEF</code></dt>
-                <dd> Blocks until the element is empty, and then atomically writes the value and marks the element
-                    full.
-                </dd>
-            </dl>
-        </td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js and Python</td>
-        <td colspan=3 class="Proto">emsArray.write(index, value), emsArray[index].write(value), emsArray.foo = x <br>
-            emsArray.writeXE(index, value), emsArray[index].writeXE(value) <br>
-            emsArray.writeXF(index, value), emsArray[index].writeXF(value) <br>
-            emsArray.writeEF(index, value), emsArray[index].writeEF(value) <br>
-        </td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto">bool EMSwriteXF(int mmapID, EMSvalueType *key, EMSvalueType *value); <br>
-            bool EMSwriteXE(int mmapID, EMSvalueType *key, EMSvalueType *value); <br>
-            bool EMSwriteEF(int mmapID, EMSvalueType *key, EMSvalueType *value); <br>
-            bool EMSwrite(int mmapID, EMSvalueType *key, EMSvalueType *value);
-        </td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">index</td>
-        <td class="argType"> &lt;Number | String | Bool&gt;</td>
-        <td class="argDesc"> Index in the EMS array of data to read</td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName">value</td>
-        <td class="argType"> &lt;Any&gt;</td>
-        <td class="argDesc"> Primitive value to store in the array at element numbered index.</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">idx = 'foo'
-histogram.write(idx, 0)
-histogram[idx].write(0)
-histogram.foo = 0</td>
-        <td class="Desc">Initialize the value of <code>histogram['foo']</code> to 0,
-            ignoring full/empty status.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">arr.writeXE(i, undefined)</td>
-        <td class="Desc">Purge the memory at index <code>i</code> of the EMS array <code>arr</code>.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">arr.writeXF(j, 'Mr. Jones')</td>
-        <td class="Desc">Unconditionally write the
-            string <code>'Mr. Jones'</code>to the EMS array <code>arr</code>
-            at index <code>j</code> and atomically mark the element full. </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">arr.writeEF(2, v)</td>
-        <td class="Desc">Block until the element at index 2
-            of <code>arr</code> is empty, atomically write the
-            value <code>v</code> and mark the memory full. </td>
-    </tr>
-</table>
+    <!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
 
 
-<!-- ----------------------------------------------------------------------------- -->
+    <h3>
+      EMS Array Methods
+    </h3>
+
+    <h5> Intrinsic Atomic Operations (AMOs) </h5>
+
+    <h6> Read EMS Memory  </h6>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.read( index )</td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.readFE( index )</td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.readFF( index ) <BR></td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.readRW( index ), emsArray.releaseRW( index ) <BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> The <code>read</code> family of EMS
+	  memory operations return the data stored in an EMS array element.
+	  The value may be any JSON type.
+	  <br>
+	  <dl>
+	    <dt> <code>read</code> </dt>
+	    <dd> Immediately and unconditionally returns the
+			stored value, ignoring the tag state.
+			<TODO> Reading uninitialized mapped indexes
+				will return <code>undefined</code> regardless of the default value
+				that would be returned with <code>read__, cas, faa</code>.
+			</TODO>
+	    </dd>
+	    <dt> <code>readFE</code> </dt>
+	    <dd> Blocks until the data element is full, then
+	      atomically reads the value and marks it empty.
+	    </dd>
+
+	    <dt> <code>readFF</code> </dt>
+	    <dd>
+	      Blocks until the data element is full, then
+	      atomically reads leaving it full.  This allows safe read access
+	      of data which may be updated
+	      simultaneously.  <code>readFF</code> ensures mutual exclusion,
+	      and will block if the data is already under a Readers-Writer
+	      lock.
+	    </dd>
+
+	    <dt> <code>readRW, releaseRW</code> </dt>
+	    <dd>
+	      Blocks until the data element is full or
+	      already under a Readers-Writer lock, then increments the
+	      Readers-Writer reference count.  The
+	      function <code>emsArray.releaseRW()</code> decrements the reference
+	      count, restoring the state to <code>Full</code> if no readers remain.  
+	    </dd>  
+	  </dl>
+	</td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">index</td>
+	<td class="argType"> &lt;Number | String&gt;</td>
+	<td class="argDesc" > Index in the EMS array of data to read</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" > read__ : &lt; Number | Boolean | String | Undefined | Array | Object &gt;</td>
+      </tr>
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> </td>
+	<td class="Type"  > releaseRW : &lt;Number&gt;</td>
+	<td class="Desc"> Number of pending readers sharing the lock.</td>
+      </tr>
+
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">var n = histogram.read(3) </td>
+	<td class="Desc">Read the value in bin 3 of the histogram.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">var word = dictionary.read(idx) </td>
+	<td class="Desc">Read dictionary word at index/key <code>idx</code> in the dictionary array.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">var x = arr.readFE(idx) </td>
+	<td class="Desc">Block until the element at index <code>i</code> 
+	  is full, atomically read the value and mark it empty. </td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">var x = arr.readFF(idx) </td>
+	<td class="Desc"> Block until the element at index <code>i</code> is full, 
+	  atomically read the value and leave it full.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">var x = arr.readRW(idx) </td>
+	<td class="Desc"> Acquire a shared-exclusive readers-writer lock.</td>
+      </tr>
+    </table>
 
 
-<h5> Atomic Fetch and Add </h5>
-
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js and Python</td>
-        <td colspan=3 class="Proto">emsArray.faa( index, value ), emsArray[index].faa(value)  </td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto">bool EMSfaa(int mmapID, EMSvalueType *key, EMSvalueType *value, EMSvalueType *returnValue); <BR><BR></td>
-    </tr>
-
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3>
-            Atomically read the element (scalar or string, not array or object),
-            add the value, and write the new value
-            back to memory. Return the original contents of the memory.
-            <BR><BR></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">index</td>
-        <td class="argType"> &lt;Number | String&gt;</td>
-        <td class="argDesc">Index of the element in the EMS array <code>emsArray</code>
-            to atomically add to.
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName">value</td>
-        <td class="argType"> &lt; Number | Boolean | String | Undefined &gt;</td>
-        <td class="argDesc">Value to add to the EMS memory.</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type">&lt; Number | Boolean | String |<br> Undefined &gt;</td>
-        <td class="Desc"> The stored results are the same type as if
-            <code>a + b</code> were performed.
-        </td>
-    </tr>
-
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">oldVal = statistics.faa( timerIdx, elapsed )
-oldVal = statistics[timerIdx].faa(elapsed)</td>
-        <td class="Desc">Return the value in memory before the add operation.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">currentSum = arr.faa( index, value ) + value</td>
-        <td class="Desc">The current value after the atomic operation has occurred.</td>
-    </tr>
-</table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
 
 
-<h5> Atomic Compare and Swap </h5>
+    <h5> Write EMS Memory </h5>
 
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3>
-            Atomically read the JSON primitive element (scalar or string, not object or array)
-            stored at the array's index,
-            compare the original value to <code>oldValue</code>, and if they are equivalent
-            store the new value.
-            The CAS operation succeeded
-            if the value returned is equivalent
-            to <code>oldValue</code>.
-            CAS will block until the EMS memory is marked full. CAS is the
-            equivalent of atomically performing:<br>
-            <code>if (arr[idx] == oldValue) then arr[idx] = newValue</code>
-            <BR><BR></td>
-    </tr>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.write( index, value )
+	</td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.writeXE( index, value )</td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.writeXF( index, value )</td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.writeEF( index, value ) <BR><br></td>
+      </tr>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js and Python</td>
-        <td colspan=3 class="Proto">emsArray.cas( index, oldValue, newValue )<br>
-            emsArray[index].cas(oldValue, newValue)
-            <BR><BR></td>
-    </tr>
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto">bool EMScas(int mmapID, EMSvalueType *key, EMSvalueType *oldValue, EMSvalueType *newValue, EMSvalueType *returnValue); <BR><BR></td>
-    </tr>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Write a value to an element of an EMS array.
+	  <br>
+	  <dl>
+            <dt> <code>write</code> </dt> 
+	    <dd> Immediately and unconditionally
+	      writes the value to memory.  This operation does not honor or
+	      modify the full/empty tag status.
+	    </dd>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> index</td>
-        <td class="argType"> &lt;Integer | String&gt;</td>
-        <td class="argDesc"> Index into the EMS array to update.
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> oldValue</td>
-        <td class="argType"> &lt;Number | Boolean | String | Undefined&gt;</td>
-        <td class="argDesc"> Value to compare to the value stored in memory.
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> newValue</td>
-        <td class="argType"> &lt;Any &gt;</td>
-        <td class="argDesc"> Value to store if the value in memory is <code>oldValue</code>
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type">&lt; Number | Boolean | String | Undefined &gt;</td>
-        <td class="Desc"> The value in memory when the compare was performed.</td>
-    </tr>
+            <dt> <code>writeXE</code> </dt> 
+	    <dd> Unconditionally and atomically writes the value to the data element and marks the element empty.</dd>
 
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">acquiredLock = arr.cas(index,
-            UNLOCKED, LOCKED) == UNLOCKED
-        </td>
-        <td class="Desc">Evaluates as <code>true</code> if the lock stored
-            at <code>arr[index]</code> was acquired.
-        </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">oldWord = users[1234].cas('Cooking', 'Eating')
-        </td>
-        <td class="Desc">Attempt to atomically update user 1234's record from the string
-            <code>'Cooking'</code> to the string <code>'Eating'</code></td>
-    </tr>
-</table>
+            <dt> <code>writeXF</code> </dt> 
+	    <dd> Unconditionally and atomically writes the value to the data element and marks the element full.</dd>
 
+            <dt> <code>writeEF</code> </dt> 
+	    <dd> Blocks until the element is empty, and then atomically writes the value and marks the element full.</dd>
+	  </dl>
+	</td>
+      </tr>
 
-<!-- ----------------------------------------------------------------------------- -->
-<!-- ----------------------------------------------------------------------------- -->
-
-
-<!-- ----------------------------------------------------------------------------- -->
-<h3> Composed Array Operations </h3>
-<P>
-    Composed operations use EMS intrinsics to perform
-    deadlock free atomic operations
-    involving multiple EMS elements. The composed operations use the tags
-    and require data to be full or empty as appropriate for the semantics of the operation.
-</P>
-
-<h5> Transactional Processing of Multiple Elements </h5>
-
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label">SYNOPSIS</td>
-        <td class="Desc" colspan=3>
-            Lock (by transitioning tags from Full to Empty)
-            one or more EMS elements in a deadlock
-            free way. When multiple locks must be acquired, this function
-            guarantees at least one thread will always make progress. The
-            optional third element indicates the element is read-only and will
-            not be modified by the task while the lock is held. Read-only
-            data is locked using a Readers-Writer lock, permitting additional concurrency.
-            <BR>
-            Performing transactions within transactions can result in deadlock
-            if the thread tries to recursively lock an element.
-            <BR><BR></td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js and Python</td>
-        <td colspan=3 class="Proto">ems.tmStart( tmElements )<br>
-            ems.tmEnd( tmHandle, doCommit )<BR><BR></td>
-    </tr>
-
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">C</td>
-        <td colspan=3 class="Proto"><TODO>C transactions are not presently implemented</TODO><BR><BR></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName"> tmElements</td>
-        <td class="argType"> &lt;Array&gt;</td>
-        <td class="argDesc"> Array identifying which EMS array
-            elements should be locked. Each array element is itself an array
-            naming the EMS array and index/key of the data
-            and an optional Read-Only hint:
-            <code>[ emsArray, index <em>(, isReadOnly)</em> ]</code>
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> tmHandle</td>
-        <td class="argType"> &lt;Object&gt;</td>
-        <td class="argDesc"> Returned from <code>tmStart()</code>,
-            contains state information needed to abort or commit the transaction.
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName"> doCommit</td>
-        <td class="argType"> &lt;Boolean&gt;</td>
-        <td class="argDesc"> Commits the transaction if <code>true</code>,
-            or aborts and rolls back the transaction if <code>false</code> or <code>undefined</code>.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type">ems.tmStart() : &lt; tmHandle &gt;</td>
-        <td class="Desc">Transaction Handle used later to commit or abort.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">tm = ems.tmStart( [ [users, 'bill', true],
-            [comments, 'george'] ] )
-        </td>
-        <td class="Desc">Lock element 'bill' in the <code>users</code>
-            EMS array with a read-only intent, and also lock record 'george' in
-            the <code>comments</code> EMS array.
-        </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">tm = ems.tmStart( [ [arrA, idxA0],
-            [arrA, idxA1] ] )
-        </td>
-        <td class="Desc">Lock indexes <code>idxA0</code> and <code>idxA1</code> in array <code>arrA</code>
-            for update to both values.
-        </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">tm = ems.tmStart([ [arrA, idxA0],
-            [arrA, idxA1, true],
-            [arrB, idxB0, true] ])
-        </td>
-        <td class="Desc">Acquire and free locks on the elements in <code>lockList</code>.
-            Element <code>arrA[idxA0]</code> may be modified, but elements
-            <code>arrA[idxA1]</code> and <code>arrB[idxB0]</code> are read-only.
-        </td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">ems.tmEnd( tm, true )
-        </td>
-        <td class="Desc">Commit the transaction
-        </td>
-    </tr>
-</table>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">index</td>
+	<td class="argType"> &lt;Number | String&gt;</td>
+	<td class="argDesc" > Index in the EMS array of data to read</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="argName">value</td>
+	<td class="argType"> &lt;Any&gt;</td>
+	<td class="argDesc" > Primitive value to store in the array at element numbered index.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">histogram.write(idx, 0) </td>
+	<td class="Desc" >Initialize the value of <code>histogram[idx]</code> to 0.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">dictionary.write(idx, "Hello") </td>
+	<td class="Desc">Add the string <code>"Hello"</code> to the EMS
+	  array <code>dictionary</code> at index <code>idx</code>.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">arr.writeXE(i, undefined) </td>
+	<td class="Desc">Purge the memory at index <code>i</code> of the EMS array <code>arr</code>.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">arr.writeXF(j, 'Mr. Jones') </td>
+	<td class="Desc">Unconditionally write the
+	  string <code>'Mr. Jones'</code>to the EMS array <code>arr</code>
+	  at index <code>j</code> and atomically mark the element full.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">arr.writeEF(2, v) </td>
+	<td class="Desc">Block until the element at index 2
+	  of <code>arr</code> is empty, atomically write the
+	  value <code>v</code> and mark the memory full.</td>
+      </tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
+
+    <!-- ----------------------------------------------------------------------------- -->
 
 
-<h5> Stacks & Queues </h5>
 
-<table class="apiBlock">
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Append or remove data from a LIFO or
-            FIFO. If the queue or stack is empty, the <code>pop</code>
-            or <code>dequeue</code> operation returns
-            <code>Undefined</code>, which is indistinguishable from an <code>Undefined</code>
-            that was explicitly pushed onto the stack.
-            <BR><BR></td>
-    </tr>
+    <h5> Atomic Fetch and Add </h5>
 
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label">Node.js and Python</td>
-        <td colspan=3 class="Proto">emsArray.push( value )<br>
-            emsArray.enqueue( value )<BR>
-            emsArray.pop( )<BR>
-            emsArray.dequeue( )<BR><BR></td>
-    </tr>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.faa( index, value )<BR><BR></td>
+      </tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">value</td>
-        <td class="argType"> &lt;Any&gt;</td>
-        <td class="argDesc">
-            Value to add to the queue or stack.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan=2>emsArray.pop(), emsArray.dequeue() : &lt; Any &gt;</td>
-    </tr>
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"></td>
-        <td class="Type">emsArray.push() : &lt; Number &gt;
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> 
+	  Atomically read the array's JSON primitive element (scalar or string, not array or object),
+	  add the value, and write the new value
+	  back to memory.  Return the original contents of the memory.
+	  <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">index</td>
+	<td class="argType"> &lt;Integer | String&gt;</td>
+	<td class="argDesc" >Index of the element in the EMS array <code>emsArray</code>
+	  to atomically add to.</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName">value</td>
+	<td class="argType"> &lt; Number | Boolean | String | Undefined &gt;</td>
+	<td class="argDesc" >Value to add to the EMS memory.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type"  >&lt; Number | Boolean | String |<br> Undefined &gt;</td>
+	<td class="Desc"> The results are the same type as if 
+	  <code>a + b</code> were performed. </td>
+      </tr>
+
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">oldVal = 
+  statistics.faa( timerIdx, elapsed )
+</td>
+	<td class="Desc">Return the value in memory before the add operation.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="Example">currentSum =
+  arr.faa( index, value ) + value
+</td>
+	<td class="Desc">Return the current value after the atomic operation has occurred.</td>
+      </tr>
+    </table>
+
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+
+    <h5> Atomic Compare and Swap </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.cas( index, oldValue, newValue )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3>
+	  Atomically read the JSON primitive element (scalar or string, not object or array)
+	  stored at the array's index, 
+	  compare the original value to <code>oldValue</code>, and if they are equivalent
+	  store the new value.  
+	  The CAS operation succeeded
+	  if the value returned is equivalent 
+	  to <code>oldValue</code>.
+	  CAS will block until the EMS memory is marked full.  CAS is the
+	  equivalent of atomically performing:<br>
+	  <code>if( arr[idx] == oldValue ) then arr[idx] = newValue</code>
+	  <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> index </td>
+	<td class="argType"> &lt;Integer | String&gt;</td>
+	<td class="argDesc" >   Index into the EMS array to update.
+	</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="argName"> oldValue </td>
+	<td class="argType"> &lt;Number | Boolean | String | Undefined&gt;</td>
+	<td class="argDesc" > Value to compare to the value stored in memory.
+	</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="argName"> newValue </td>
+	<td class="argType"> &lt;Any &gt;</td>
+	<td class="argDesc" > Value to store if the value in memory is <code>oldValue</code>
+	</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type">&lt; Number | Boolean | String | Undefined  &gt;</td>
+	<td class="Desc"> The value in memory when the compare was performed. </td>
+      </tr>
+
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">acquiredLock = arr.cas(index, 
+	  UNLOCKED, LOCKED) == UNLOCKED </td>
+	<td class="Desc">Evaluates as <code>true</code> if the lock stored
+	  at <code>arr[index]</code> was acquired.
+	</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="Example">oldWord = users.cas(1234,
+          'Cooking', 'Eating')</td>
+	<td class="Desc">Attempt to atomically update user 1234's record from the string 
+	  <code>'Cooking'</code> to the string <code>'Eating'</code></td>
+      </tr>
+    </table>
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+    <h3> Composed Array Operations </h3>
+    <P>
+      Composed operations use EMS intrinsics to perform 
+      deadlock free atomic operations
+      involving multiple EMS elements.  The composed operations use the tags
+      and require data to be full or empty as appropriate for the semantics of the operation.
+    </P>
+
+    <h5> Transactional Processing of Multiple Elements </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> CLASS METHOD </td>
+	<td colspan=3 class="Proto">ems.tmStart( tmElements )</td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td colspan=3 class="Proto">ems.tmEnd( tmHandle, doCommit )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3>
+	  Lock (by transitioning tags from Full to Empty)
+	  one or more EMS elements in a deadlock
+	  free way.  When multiple locks must be acquired, this function
+	  guarantees at least one thread will always make progress.  The
+	  optional third element indicates the element is read-only and will 
+	  not be modified by the task while the lock is held.  Read-only
+	  data is locked using a Readers-Writer lock, permitting additional concurrency.
+	  <BR>
+	  Performing transactions within transactions can result in deadlock
+	  if the thread tries to recursively lock an element.
+	  <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName"> tmElements </td>
+	<td class="argType"> &lt;Array&gt;</td>
+	<td class="argDesc" >  Array identifying which EMS array 
+	  elements should be locked.  Each array element is itself an array 
+	  naming the EMS array and index/key of the data 
+	  and an optional Read-Only hint:
+	  <code>[ emsArray, index <em>(, isReadOnly)</em> ]</code>
+	</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="argName"> tmHandle </td>
+	<td class="argType"> &lt;Object&gt;</td>
+	<td class="argDesc" > Returned from <code>tmStart()</code>,
+	  contains state information needed to abort or commit the transaction.
+	</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="argName"> doCommit </td>
+	<td class="argType"> &lt;Boolean&gt;</td>
+	<td class="argDesc" >  Commits the transaction if <code>true</code>,
+	  or aborts and rolls back the transaction if <code>false</code> or <code>undefined</code>.
+	</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type"  >ems.tmStart() : &lt; tmHandle &gt;</td>
+	<td class="Desc">Transaction Handle used later to commit or abort.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">tm = ems.tmStart( [ [users, 293, true],
+                  [comments, 8922] ] ) </td>
+	<td class="Desc">Lock element 293 in the <code>users</code>
+	  EMS array with a read-only intent, and also lock record 8922 in
+	  the <code>comments</code> EMS array.
+	</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">tm = ems.tmStart( [ [arrA, idxA0],
+          [arrA, idxA1] ] ) </td>
+	<td class="Desc">Lock indexes <code>idxA0</code> and <code>idxA1</code> in array <code>arrA</code>
+	  for update to both values.
+	</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">tm = ems.tmStart([ [arrA, idxA0],
+          [arrA, idxA1, true],
+          [arrB, idxB0, true] ])    </td>
+	<td class="Desc">Acquire and free locks on the elements in <code>lockList</code>.
+	  Element <code>arrA[idxA0]</code> may be modified, but elements 
+	  <code>arrA[idxA1]</code> and <code>arrB[idxB0]</code> are read-only.
+	</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">ems.tmEnd( tm, true )
+	</td>
+	<td class="Desc">Commit the transaction
+	</td>
+      </tr>
+    </table>
+
+
+
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+
+    <h5> Stacks & Queues </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.push( value )<BR></td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.pop( )<BR></td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.enqueue( value )<BR></td>
+      </tr>
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td colspan=3 class="Proto">emsArray.dequeue( )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Append or remove data from a LIFO or
+	  FIFO.  If the queue or stack is empty, the <code>pop</code>
+	  or <code>dequeue</code> operation returns
+	  <code>Undefined</code>, which is indistinguishable from an <code>Undefined</code>
+	  that was explicitly pushed onto the stack.
+	  <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">value</td>
+	<td class="argType"> &lt;Any&gt;</td>
+	<td class="argDesc" >
+	  Value to add to the queue or stack.
+	</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan=2>emsArray.pop(), emsArray.dequeue() : &lt; Any &gt;</td>
+      </tr>
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top">  </td>
+	<td class="Type">emsArray.push()  : &lt; Number &gt;
 emsArray.enqueue() : &lt; Number &gt;</td>
-        <td class="Desc">The number of elements presently on the stack or queue</td>
-    </tr>
+	<td class="Desc">The number of elements presently on the stack or queue</td>
+      </tr>
 
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">comments.push( "Hello, world" )</td>
-        <td class="Desc">Append the string to the EMS array <code>comments</code></td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">mostRecent = comments.pop()</td>
-        <td class="Desc">Atomically return the value
-            at the top of the stack.
-        </td>
-    </tr>
-</table>
-
-
-<!-- ----------------------------------------------------------------------------- -->
-
-<h5> Look up a key used to map a value </h5>
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;"> CLASS METHOD</td>
-        <td colspan=3 class="Proto">emsArray.index2key( index )</td>
-    </tr>
-
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3>
-            Convert an index into an EMS array to the key used to map
-            a value to that hashed index. This function can be used
-            to iterate over all the elements of a mapped array.
-            <br><br></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">index</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc">
-            Index of the element in the EMS array to get the key for
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type">&lt; Any &gt;</td>
-        <td class="Desc">The key used to map the value which hashed to this index.</td>
-    </tr>
-</table>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">comments.push( "Hello, world" ) </td>
+	<td class="Desc">Append the string to the EMS array <code>comments</code></td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">mostRecent = comments.pop() </td>
+	<td class="Desc">Atomically return the value
+	  at the top of the stack.</td>
+      </tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
 
-<h5> Freeing EMS Arrays </h5>
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;"> CLASS METHOD</td>
-        <td colspan=3 class="Proto">emsArray.destroy( remove_file )</td>
-    </tr>
+	<!-- ----------------------------------------------------------------------------- -->
 
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3>
-            Release the persistent and non-persistent resources associated with an EMS array,
-            alternatively persisting the data if <code>remove_file</code> is <code>false</code>.
-            Implies a barrier.
-            <br><br></td>
-    </tr>
+	<h5> Look up a key used to map a value </h5>
+	<table class="apiBlock" >
+		<tr class="apiFunc" style="vertical-align:text-top;">
+			<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+			<td colspan=3 class="Proto">emsArray.index2key( index )</td>
+		</tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">remove_file</td>
-        <td class="argType"> &lt;Boolean&gt;</td>
-        <td class="argDesc">
-            If true, remove the file, else allow the EMS file to persist.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type"></td>
-        <td class="Desc">None.</td>
-    </tr>
-</table>
+		<tr class="apiSynopsis"  style="vertical-align:text-top;">
+			<td class="Label"> SYNOPSIS </td>
+			<td class="Desc" colspan=3>
+				Convert an index into an EMS array to the key used to map
+				a value to that hashed index.  This function can be used
+				to iterate over all the elements of a mapped array.
+				<br><br> </td>
+		</tr>
 
-
-<!-- ----------------------------------------------------------------------------- -->
-
-<h5> Synchronize EMS Memory to Persistent Storage </h5>
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label" style="padding-bottom: 20px;"> CLASS METHOD</td>
-        <td colspan=3 class="Proto">emsArray.sync( [ index [, nElements] ] )</td>
-    </tr>
-
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3>
-            Synchronize the EMS memory with persistent storage.
-            <br><br></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">index</td>
-        <td class="argType"> &lt;String | Number&gt;</td>
-        <td class="argDesc">
-            (Optional, default = entire EMS array)
-            Index of the element in the EMS array to synchronize to disk
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName">nElements</td>
-        <td class="argType"> &lt;Number&gt;</td>
-        <td class="argDesc">
-            (Optional, only defined if <code>index</code> is also defined,
-            default = 1)
-            Number of sequential indexes, starting with <code>index</code>,
-            that should be synchronized to disk
-        </td>
-    </tr>
-
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type">&lt; Boolean &gt;</td>
-        <td class="Desc">True if memory was successfully synchronized to disk,
-            otherwise false.
-        </td>
-    </tr>
-
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">users.sync( userID )</td>
-        <td class="Desc">The user's record is committed to disk before the function returns.</td>
-    </tr>
-</table>
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName">index</td>
+			<td class="argType"> &lt;Number&gt;</td>
+			<td class="argDesc" >
+				Index of the element in the EMS array to get the key for </td>
+		</tr>
+	</table>
+	<br>
+	<table class="apiBlock" >
+		<tr class="apiRetVal" style="vertical-align:text-top;">
+			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+			<td class="Type">&lt; Any &gt;</td>
+			<td class="Desc">The key used to map the value which hashed to this index.</td>
+		</tr>
+	</table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
+	<!-- ----------------------------------------------------------------------------- -->
+
+	<h5> Freeing EMS Arrays </h5>
+	<table class="apiBlock" >
+		<tr class="apiFunc" style="vertical-align:text-top;">
+			<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+			<td colspan=3 class="Proto">emsArray.destroy( remove_file )</td>
+		</tr>
+
+		<tr class="apiSynopsis"  style="vertical-align:text-top;">
+			<td class="Label"> SYNOPSIS </td>
+			<td class="Desc" colspan=3>
+				Release the persistent and non-persistent resources associated with an EMS array,
+				alternatively persisting the data if <code>remove_file</code> is <code>false</code>.
+				Implies a barrier.
+				<br><br> </td>
+		</tr>
+
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName">remove_file</td>
+			<td class="argType"> &lt;Boolean&gt;</td>
+			<td class="argDesc" >
+				If true, remove the file, else allow the EMS file to persist.</td>
+		</tr>
+	</table>
+	<br>
+	<table class="apiBlock" >
+		<tr class="apiRetVal" style="vertical-align:text-top;">
+			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+			<td class="Type"></td>
+			<td class="Desc">None.</td>
+		</tr>
+	</table>
 
 
-<h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO Reduce </h5>
+	<!-- ----------------------------------------------------------------------------- -->
 
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label"> ARRAY METHOD</td>
-        <td colspan=3 class="Proto">emsArray.reduce( func )<BR><BR></td>
-    </tr>
+	<h5> Synchronize EMS Memory to Persistent Storage </h5>
+	<table class="apiBlock" >
+		<tr class="apiFunc" style="vertical-align:text-top;">
+			<td class="Label" style="padding-bottom: 20px;"> CLASS METHOD </td>
+			<td colspan=3 class="Proto">emsArray.sync( [ index [, nElements] ] )</td>
+		</tr>
 
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Perform a parallel reduction on the elements of an EMS array. <BR><BR></td>
-    </tr>
+		<tr class="apiSynopsis"  style="vertical-align:text-top;">
+			<td class="Label"> SYNOPSIS </td>
+			<td class="Desc" colspan=3>
+				Synchronize the EMS memory with persistent storage.
+				<br><br> </td>
+		</tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc"> Function to combine this element with the
-            partial reduction. Function arguments are <code>func(element,
-                sum)</code>, and the function returns a new <code>sum</code>.
-            The arguments and results may be of any type.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2">&lt; Any &gt;</td>
-    </tr>
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"> ARGUMENTS </td>
+			<td class="argName">index</td>
+			<td class="argType"> &lt;String | Number&gt;</td>
+			<td class="argDesc" >
+				(Optional, default = entire EMS array)
+				Index of the element in the EMS array to synchronize to disk </td>
+		</tr>
+		<tr class="apiArgs"  style="vertical-align:text-top;">
+			<td class="Label"></td>
+			<td class="argName">nElements</td>
+			<td class="argType"> &lt;Number&gt;</td>
+			<td class="argDesc" >
+				(Optional, only defined if  <code>index</code> is also defined,
+				default = 1)
+				Number of sequential indexes, starting with <code>index</code>,
+				that should be synchronized to disk </td>
+		</tr>
 
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">sum = distances.reduce(
-            function( val, sum ) {
-            return(sum+val) } )
-        </td>
-        <td class="Desc">Perform the arithmetic sum on the values in the array.</td>
-    </tr>
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="Example">max = distances.reduce(
-            function( val, currMax ) {
-            return(val > currMax ?
-            tmp : currMax) } )
-        </td>
-        <td class="Desc">Find the maximum value in the distance array.</td>
-    </tr>
-</table>
+	</table>
+	<br>
+	<table class="apiBlock" >
+		<tr class="apiRetVal" style="vertical-align:text-top;">
+			<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+			<td class="Type">&lt; Boolean &gt;</td>
+			<td class="Desc">True if memory was successfully synchronized to disk,
+				otherwise false.</td>
+		</tr>
 
-
-<!-- ----------------------------------------------------------------------------- -->
-
-
-<h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Permute </h5>
-
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label"> ARRAY METHOD</td>
-        <td colspan=3 class="Proto">emsArray.permute( order )<BR><BR></td>
-    </tr>
-
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Reorder the array indexes to the
-            ordering specified in the
-            array <code>order</code>. If <code>order</code> contains the same
-            index more than once, the output for those indexes is
-            undefined. <BR><BR></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">order</td>
-        <td class="argType"> &lt;Array&gt;</td>
-        <td class="argDesc"> Integer permutation array.</td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">arr.permute( order )</td>
-        <td class="Desc">Reorder the array <code>arr</code>
-            to the new element ordering.
-        </td>
-    </tr>
-</table>
+		<tr class="Examples" style="vertical-align:text-top;">
+			<td class="Label"> EXAMPLES </td>
+			<td class="Example">users.sync( userID )</td>
+			<td class="Desc">The user's record is committed to disk before the function returns.</td>
+		</tr>
+	</table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
+	<!-- ----------------------------------------------------------------------------- -->
 
 
-<h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Scan </h5>
+    <h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO Reduce  </h5>
 
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label"> ARRAY METHOD</td>
-        <td colspan=3 class="Proto">emsArray.scan( func )<BR><BR></td>
-    </tr>
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.reduce( func )<BR><BR></td>
+      </tr>
 
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Perform a parallel prefix operation on
-            the EMS array elements:<br>
-            <code>a[i] = func(a[i], a[i-1])</code> <BR><BR></td>
-    </tr>
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Perform a parallel reduction on the elements of an EMS array. <BR><BR></td>
+      </tr>
 
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc">Function to combine this element and the
-            previous element. Function arguments are<br>
-            <code>func(thisElement, previousElement)</code>,
-            and returns a new partial result.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2">&lt; Array &gt;</td>
-    </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" > Function to combine this element with the
+	  partial reduction.  Function arguments are <code>func(element,
+	    sum)</code>, and the function returns a new <code>sum</code>.
+	  The arguments and results may be of any type.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" >&lt; Any &gt;</td>
+      </tr>
 
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">partialSums = subtotals.scan(
-            function(val, sum ) { return(sum+val) } )
-        </td>
-        <td class="Desc">Return a EMS array with the partial sums in each element.</td>
-    </tr>
-</table>
-
-
-<!-- ----------------------------------------------------------------------------- -->
-
-
-<h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Map </h5>
-
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label"> ARRAY METHOD</td>
-        <td colspan=3 class="Proto">emsArray.map( func [, name] )<BR><BR></td>
-    </tr>
-
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Produce a new EMS array of the same length
-            by invoking <code>func()</code>
-            for each element in the array to produce the corresponding element
-            in the new EMS array.
-            <BR><BR></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc">Function to perform on each array element. The function is invoked with one argument, the
-            EMS primitive element, and returns a new primitive element.
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName">Persistent filename</td>
-        <td class="argType"> &lt;String&gt;</td>
-        <td class="argDesc">(Optional, default is non-persistent)
-            If the new mapping should have a persistent backing on a filesystem,
-            this assigns the fully qualified filename.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2">&lt; Number | Boolean | String | Undefined &gt;</td>
-    </tr>
-
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">sizescm = sizesInches.map(
-            function(inches) {
-            return(inches * 2.54) } )
-        </td>
-        <td class="Desc">Scales each element in the array <code>values</code> from inches to cm, producing a new EMS
-            array with scaled values.
-        </td>
-    </tr>
-</table>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">sum = distances.reduce(
+  function( val, sum ) {
+     return(sum+val) } ) </td>
+	<td class="Desc">Perform the arithmetic sum on the values in the array.</td>
+      </tr>
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> </td>
+	<td class="Example">max = distances.reduce(
+  function( val, currMax ) {
+    return(val > currMax ? 
+           tmp : currMax) } ) </td>
+	<td class="Desc">Find the maximum value in the distance array.</td>
+      </tr>
+    </table>
 
 
-<!-- ----------------------------------------------------------------------------- -->
 
 
-<h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Filter </h5>
 
-<table class="apiBlock">
-    <tr class="apiFunc" style="vertical-align:text-top;">
-        <td class="Label"> ARRAY METHOD</td>
-        <td colspan=3 class="Proto">emsArray.filter( func [, name] )<BR><BR></td>
-    </tr>
-
-    <tr class="apiSynopsis" style="vertical-align:text-top;">
-        <td class="Label"> SYNOPSIS</td>
-        <td class="Desc" colspan=3> Produce a new EMS array containing only the elements
-            which evaluate as true when passed as the argument to <code>func(element)</code>.
-            The elements of the new array may appear in any order.
-            <BR><BR></td>
-    </tr>
-
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"> ARGUMENTS</td>
-        <td class="argName">func</td>
-        <td class="argType"> &lt;Function&gt;</td>
-        <td class="argDesc">Function to perform on each array element. The function is invoked with one argument, the
-            EMS primitive element, and returns a boolean indicating if the element should be included in the new array.
-        </td>
-    </tr>
-    <tr class="apiArgs" style="vertical-align:text-top;">
-        <td class="Label"></td>
-        <td class="argName">name</td>
-        <td class="argType"> &lt;String&gt;</td>
-        <td class="argDesc">(Optional, default is non-persistent)
-            If the new mapping requires persistent backing on a filesystem,
-            the fully qualified filename is defined.
-        </td>
-    </tr>
-</table>
-<br>
-<table class="apiBlock">
-    <tr class="apiRetVal" style="vertical-align:text-top;">
-        <td class="Label" style="vertical-align:text-top"> RETURNS</td>
-        <td class="Type" colspan="2">&lt; EMS Array &gt;</td>
-    </tr>
-
-    <tr class="Examples" style="vertical-align:text-top;">
-        <td class="Label"> EXAMPLES</td>
-        <td class="Example">bigParts = allParts.filter(
-            function(part) {
-            return(part.size > 100) } )
-        </td>
-        <td class="Desc">The new EMS array returned contains only parts whose size is greater than 100.</td>
-    </tr>
-</table>
+    <!-- ----------------------------------------------------------------------------- -->
 
 
-<hr>
-<div style="font-size:.85em;">
-    This browsing experience is Copyright ©2014,
+
+    <h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Permute </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.permute( order )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Reorder the array indexes to the
+	  ordering specified in the
+	  array <code>order</code>. If <code>order</code> contains the same
+	  index more than once, the output for those indexes is
+	  undefined. <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">order</td>
+	<td class="argType"> &lt;Array&gt;</td>
+	<td class="argDesc" > Integer permutation array.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">arr.permute( order ) </td>
+	<td class="Desc">Reorder the array <code>arr</code>
+	  to the new element ordering.</td>
+      </tr>
+    </table>
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+
+    <h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Scan </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.scan( func )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Perform a parallel prefix operation on
+	  the EMS array elements:<br>
+	  <code>a[i] = func(a[i], a[i-1])</code> <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" >Function to combine this element and the
+	  previous element.  Function arguments are<br> 
+	  <code>func(thisElement, previousElement)</code>, 
+	  and returns a new partial result.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" >&lt; Array &gt;</td>
+      </tr>
+
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">partialSums = subtotals.scan(
+  function(val, sum ) { return(sum+val) } ) </td>
+	<td class="Desc">Return a EMS array with the partial sums in each element.</td>
+      </tr>
+    </table>
+
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+
+    <h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Map </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.map( func [, name] )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Produce a new EMS array of the same length
+	  by invoking <code>func()</code>
+	  for each element in the array to produce the corresponding element
+	  in the new EMS array.
+	  <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" >Function to perform on each array element.  The function is invoked with one argument, the EMS primitive element, and returns a new primitive element.</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="argName">Persistent filename</td>
+	<td class="argType"> &lt;String&gt;</td>
+	<td class="argDesc" >(Optional, default is non-persistent) 
+	  If the new mapping should have a persistent backing on a filesystem, 
+	  this assigns the fully qualified filename.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" >&lt; Number | Boolean | String | Undefined &gt;</td>
+      </tr>
+
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">sizescm = sizesInches.map( 
+  function(inches) {
+  return(inches * 2.54) } )</td>
+	<td class="Desc">Scales each element in the array <code>values</code> from inches to cm, producing a new EMS array with scaled values.</td>
+      </tr>
+    </table>
+
+
+
+    <!-- ----------------------------------------------------------------------------- -->
+
+
+
+    <h5 style='background-color:rgba(100, 0, 0, 0.3);'> TODO: Filter </h5>
+
+    <table class="apiBlock" >
+      <tr class="apiFunc" style="vertical-align:text-top;">
+	<td class="Label"> ARRAY METHOD </td>
+	<td colspan=3 class="Proto">emsArray.filter( func [, name] )<BR><BR></td>
+      </tr>
+
+      <tr class="apiSynopsis"  style="vertical-align:text-top;">
+	<td class="Label"> SYNOPSIS </td>
+	<td class="Desc" colspan=3> Produce a new EMS array containing only the elements
+	  which evaluate as true when passed as the argument to <code>func(element)</code>.
+	  The elements of the new array may appear in any order.
+	  <BR><BR></td>
+      </tr>
+
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label"> ARGUMENTS </td>
+	<td class="argName">func</td>
+	<td class="argType"> &lt;Function&gt;</td>
+	<td class="argDesc" >Function to perform on each array element.  The function is invoked with one argument, the EMS primitive element, and returns a boolean indicating if the element should be included in the new array.</td>
+      </tr>
+      <tr class="apiArgs"  style="vertical-align:text-top;">
+	<td class="Label">  </td>
+	<td class="argName">name</td>
+	<td class="argType"> &lt;String&gt;</td>
+	<td class="argDesc" >(Optional, default is non-persistent) 
+	  If the new mapping requires persistent backing on a filesystem, 
+	  the fully qualified filename is defined.</td>
+      </tr>
+    </table>
+    <br>
+    <table class="apiBlock" >
+      <tr class="apiRetVal" style="vertical-align:text-top;">
+	<td class="Label" style="vertical-align:text-top"> RETURNS </td>
+	<td class="Type" colspan="2" >&lt; EMS Array &gt;</td>
+      </tr>
+
+      <tr class="Examples" style="vertical-align:text-top;">
+	<td class="Label"> EXAMPLES </td>
+	<td class="Example">bigParts = allParts.filter(
+  function(part) {
+     return(part.size > 100) } ) </td>
+	<td class="Desc">The new EMS array returned contains only parts whose size is greater than 100.</td>
+      </tr>
+    </table>
+
+
+
+    <hr>
+    <div style="font-size:.85em;">
+      This browsing experience is Copyright ©2014, 
       <span style="font-family:Gotthard;">
 	<a href="http://synsem.com">
 	  <img src="./synsem_logo_black.svg" type="image/svg+xml" height="20px" style="vertical-align:middle;">
 	  Synthetic Semantics</a>
-      </span>
-    and ©2015-2016 Jace A Mogill.
-</div>
+      </span>.
+      Proudly designed and built in Cascadia. 
+      <img src="./Flag_of_Cascadia.svg" type="image/svg+xml" height="20px" style="vertical-align:middle;">
+    </div>
 
 
-</body>
+
+  </body>
 </html>
