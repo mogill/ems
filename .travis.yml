@@ -19,7 +19,7 @@ node_js:
   - "4.1"
 
 before_script:
-  - npm link ../ems
+  - sudo npm link ../ems
   - sudo -H apt-get install python-pip
   - sudo -H apt-get install python3-pip
   - sudo -H apt-get install libffi-dev
