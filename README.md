@@ -5,7 +5,7 @@ OSX | Linux | Node 4.1-10.x, Python2/3:
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
 [![NPM](https://nodei.co/npm-dl/ems.png?months=1&height=3)](https://www.npmjs.com/package/ems)
 
-### [API Documentation](http://syntheticsemantics.com/EMS.js/reference.html) | [EMS Website](http://syntheticsemantics.com/EMS.js)
+### [API Documentation](Docs/reference.html) | [EMS Website](Docs/index.html)
 
 
 # EMS WILL STOP WORKING BECAUSE NAN IS OBSOLETE
@@ -32,7 +32,7 @@ to address several challenges of parallel programming:
 + Provides dynamic load-balancing between processes
 + May substitute or complement other forms of parallelism
 
-## [Examples: Parallel web servers, word counting](https://github.com/SyntheticSemantics/ems/tree/master/Examples) 
+## [Examples: Parallel web servers, word counting](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
 
 #### Table of Contents
 * [Parallel Execution Models Supported](#Types-of-Concurrency) Fork Join, Bulk Synchronous Parallel, User defined
@@ -52,7 +52,7 @@ can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
-<img src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/Images_js_py.gif" />
+<img src="Docs/Images_js_py.gif" />
 
 Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
 The animated GIF demonstrates the following steps:
@@ -91,19 +91,19 @@ EMS implements several different parallel execution models:
 		</td>
         <td width="50%">
         <center>
-    		  <img height="350px" style="margin: 10px;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/typesOfParallelism.svg" type="image/svg+xml"  />
+    		  <img height="350px" style="margin: 10px;" src="Docs/typesOfParallelism.svg" type="image/svg+xml"  />
             </center>
             </td>
     </tr>
     <tr>
     <td width="50%">
         <center>
-    		  <img height="350px" style="margin: 10px;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/ParallelContextsBSP.svg" type="image/svg+xml" />
+    		  <img height="350px" style="margin: 10px;" src="Docs/ParallelContextsBSP.svg" type="image/svg+xml" />
         </center>
     </td>
     <td>
         <center>
-    		  <img height="350px" style="margin: 10px;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/ParallelContextsFJ.svg" type="image/svg+xml" />
+    		  <img height="350px" style="margin: 10px;" src="Docs/ParallelContextsFJ.svg" type="image/svg+xml" />
         </center>
     </td>
     </tr>
@@ -116,10 +116,10 @@ may use any combination of JSON data types.
 like operations on ordinary data.
 
 Atomic read-modify-write operations are available
-in all concurrency modes, however collectives are not 
+in all concurrency modes, however collectives are not
 available in user defined modes.
 
-- __Atomic Operations__: 
+- __Atomic Operations__:
 	Read, write, readers-writer lock, read when full and atomically mark empty, write when empty and atomically mark full
 
 - __Primitives__:
@@ -131,7 +131,7 @@ available in user defined modes.
 - __Collective Operations__:
 	All basic [OpenMP](https://en.wikipedia.org/wiki/OpenMP)
     collective operations are implemented in EMS:
-    dynamic, block, guided, as are the full complement of static loop scheduling, 
+    dynamic, block, guided, as are the full complement of static loop scheduling,
     barriers, master and single execution regions
 
 ## Examples and Benchmarks
@@ -147,7 +147,7 @@ across processes, atomically incrementing the count of each word found.
 The final word counts are sorted and the most frequently appearing words
 are printed with their counts.
 
-<img height="300px" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/wordcount.svg" />
+<img height="300px" src="Docs/wordcount.svg" />
 
 The performance of this program was measured using an Amazon EC2 instance:<br>
 `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`
@@ -165,7 +165,7 @@ gives us the maximum speed EMS double precision
 floating point operations can be performed on a
 `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
 
-<img src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/streams.svg" type="image/svg+xml" height="300px">
+<img src="Docs/streams.svg" type="image/svg+xml" height="300px">
 
 
 ### Benchmarking of Transactions and Work Queues
@@ -199,15 +199,15 @@ only a portion of the total iteration space.
 	<tr>
     	<td width="50%">
 	    <center>
-			<img style="vertical-align:text-top;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/tm_no_q.svg" />
+			<img style="vertical-align:text-top;" src="Docs/tm_no_q.svg" />
             <br><b>Immediate Transactions:</b> Each process generates a transaction on integer data then immediately performs it.
     	</center>
 	    </td>
     	<td width="50%">
 	    <center>
-			<img style="vertical-align:text-top;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/tm_from_q.svg" />
+			<img style="vertical-align:text-top;" src="Docs/tm_from_q.svg" />
             <br><b>Transactions from a Queue:</b> One of the processes generates the individual transactions and appends
-				them to a work queue the other threads get work from.  
+				them to a work queue the other threads get work from.
                 <B>Note:</b> As the number of processes increases, the process generating the transactions
 		    	and appending them to the work queue is starved out by processes performing transactions,
                 naturally maximizing the data access rate.
@@ -217,7 +217,7 @@ only a portion of the total iteration space.
 	<tr>
     	<td width="50%">
 	    <center>
-			<img style="vertical-align:text-top;" src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/tm_no_q_str.svg"/>
+			<img style="vertical-align:text-top;" src="Docs/tm_no_q_str.svg"/>
             <br><b>Immediate Transactions on Strings:</b> Each process generates a transaction appending to
 			a string, and then immediately performs the transaction.
     	</center>
@@ -257,8 +257,8 @@ itself are updated atomically.
       <td>
     <center>
       <img style="width:350px; "
-	   src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/memLayoutLogical.svg" type="image/svg+xml" />
-      <em>    <br><br> 
+	   src="Docs/memLayoutLogical.svg" type="image/svg+xml" />
+      <em>    <br><br>
     EMS memory is an array of JSON values
         (Number, Boolean, String, Undefined, or Object) accessed using atomic
         operators and/or transactional memory.  Safe parallel access
@@ -271,7 +271,7 @@ itself are updated atomically.
     <td width="50%">
       <center>
   <img style="height:270px; "
-   src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/fsmSimple.svg" type="image/svg+xml" />
+   src="Docs/fsmSimple.svg" type="image/svg+xml" />
     <em>    <br><br> EMS Data Tag Transitions & Atomic operations:
     F=Full, E=Empty, X=Don't Care, RW=Readers-Writer lock (# of current readers)
     CAS=Compare-and-Swap, FAA=Fetch-and-Add</em>
@@ -287,16 +287,16 @@ For a more complete description of the principles of operation,
 contact the author at ems@rotang.com
 
 [ Complete API reference ](https://github.com/SyntheticSemantics/ems/tree/master/Docs/reference.html)
-  
+
 <br>
 <center>
-  <img src="https://raw.githubusercontent.com/SyntheticSemantics/ems/tree/master/Docs/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
+  <img src="Docs/blockDiagram.svg" type="image/svg+xml" height="300px" style="vertical-align:text-top;"/>
 </center>
 
 
 ## Installation
 
-Because all systems are already multicore, 
+Because all systems are already multicore,
 parallel programs require no additional equipment, system permissions,
 or application services, making it easy to get started.
 The reduced complexity of
@@ -328,7 +328,7 @@ EMS is available as a NPM Package.  EMS depends on several other NPM packages
 to compile the native addon:
 the Foreign Function Interface (ffi), C-to-V8 symbol renaming (bindings),
 and the native addon abstraction layer (nan).
-                                                   
+
 ```sh
 npm install ems
 ```
@@ -353,7 +353,7 @@ A pull request is most welcome!
 
 Click here for __[Detailed Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples)__.
 
-On a Mac and most Linux 
+On a Mac and most Linux
 distributions EMS will "just work", but
 some Linux distributions restrict access to shared memory.  The
 quick workaround is to run jobs as root, a long-term solution will
@@ -396,7 +396,7 @@ EMS 1.4 Python API
 
 EMS 1.4.8 Improved examples and documentation
 
-EMS 1.5 **[This Release]** Refactored JS-EMS object conversion temporary storage 
+EMS 1.5 **[This Release]** Refactored JS-EMS object conversion temporary storage
 
 EMS 1.6 **[Planned]** Key deletion that frees all resources.  Replace open hashing with chaining.
 
@@ -406,7 +406,7 @@ EMS 1.6 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed m
 EMS 1.7 **[Planned]** Support for NVDIMMs and other technologies that behave
      as [persistent main system memory](http://pmem.io/).
 
-EMS 2.0 **[Planned]** New API which more tightly integrates with 
+EMS 2.0 **[Planned]** New API which more tightly integrates with
 ES6, Python, and other dynamically typed languages languages,
 making atomic operations on persistent memory more transparent.
 
@@ -419,8 +419,8 @@ BSD, other commercial and open source licenses are available.
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
-Jace A Mogill specializes in resource constrained computing at both the largest and smallest scales.  
-He has over 20 years experience optimizing software for distributed, multi-core, and 
+Jace A Mogill specializes in resource constrained computing at both the largest and smallest scales.
+He has over 20 years experience optimizing software for distributed, multi-core, and
 FPGA/GPU/CPU hybrid computer architectures.
 
 ###### Copyright (C)2017 Jace A Mogill
