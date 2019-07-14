@@ -29,7 +29,7 @@ Experimental results are from the BSP version
 
 ## Parallelism Within a Single HTTP Request
 Click here for the [Web Server Parallelism Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/WebServer)
-<img src="http://synsem.com/images/ems/parWebServer.svg" type="image/svg+xml">
+<img src="../Docs/parWebServer.svg" type="image/svg+xml">
 EMS is a memory model and has no daemon process to monitor a network interface
 for operations to execute.
 This example builds on a standard HTTP server to implement
@@ -179,4 +179,4 @@ A variety of synchronization and execution models are shown.
 ### Example
 <img src="../Docs/ems_js_py.gif" />
 
-###### Copyright (C)2017 Jace A Mogill
+###### Copyright (C)2011-2019 Jace A Mogill
