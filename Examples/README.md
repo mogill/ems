@@ -23,7 +23,7 @@ Bulk Synchronous Parallel (BSP), and Fork-Join (FJ).
 Experimental results are from the BSP version
  on an AWS `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
 
-<center><img src="http://synsem.com/images/ems/streams.svg" type="image/svg+xml" height="360px">
+<center><img src="../Docs/streams.svg" type="image/svg+xml" height="360px">
 </center>
 
 
@@ -68,7 +68,7 @@ All processes are started, one enqueues transactions while the others dequeue
 and perform the work.  When all the work has been enqueued, that process also
 begins dequeing and performing work.
 
-<img style="vertical-align:text-top;" src="http://synsem.com/images/ems/tm_from_q.svg" />
+<img style="vertical-align:text-top;" src="../Docs/tm_from_q.svg" />
 
 ### `workQ_and_TM.js`
 ```bash
@@ -164,7 +164,7 @@ This section reports the results of running the Word Count example on
 documents from Project Gutenberg.
 2,981,712,952 words in several languages were parsed, totaling 12,664,852,220 bytes of text.
 
-<img height="300px" src="http://synsem.com/images/ems/wordcount.svg" />
+<img height="300px" src="../Docs/wordcount.svg" />
 
 
 
@@ -177,6 +177,6 @@ A variety of synchronization and execution models are shown.
 
 
 ### Example
-<img src="http://synsem.com/images/ems_js_py.gif" />
+<img src="../Docs/ems_js_py.gif" />
 
 ###### Copyright (C)2017 Jace A Mogill

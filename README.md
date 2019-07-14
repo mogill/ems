@@ -5,7 +5,7 @@ OSX | Linux | Node 4.1-10.x, Python2/3:
 [![NPM](https://nodei.co/npm/ems.png?downloads=true&stars=true&downloadRank=true)](https://www.npmjs.org/package/ems)
 [![NPM](https://nodei.co/npm-dl/ems.png?months=1&height=3)](https://www.npmjs.com/package/ems)
 
-### [API Documentation](Docs/reference.html) | [EMS Website](Docs/index.html)
+### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
 
 
 # EMS WILL STOP WORKING BECAUSE NAN IS OBSOLETE
@@ -52,7 +52,7 @@ can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
-<img src="Docs/Images_js_py.gif" />
+<img src="Docs/js_py.gif" />
 
 Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
 The animated GIF demonstrates the following steps:
@@ -110,7 +110,7 @@ EMS implements several different parallel execution models:
 </table>
 
 
-## Built-in Atomic Operations
+## Built in Atomic Operations
 EMS operations may performed using any JSON data type, read-modify-write operations
 may use any combination of JSON data types.
 like operations on ordinary data.
@@ -135,6 +135,8 @@ available in user defined modes.
     barriers, master and single execution regions
 
 ## Examples and Benchmarks
+
+### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
 
 ### Word Counting Using Atomic Operations
 [Word counting example](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
@@ -240,6 +242,8 @@ only a portion of the total iteration space.
 
 
 ## [Synchronization as a Property of the Data, Not a Duty for Tasks](#Synchronization-Property)
+
+### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
 
 EMS internally stores tags that are used for synchronization of
 user data, allowing synchronization to happen independently of
@@ -414,6 +418,10 @@ making atomic operations on persistent memory more transparent.
 BSD, other commercial and open source licenses are available.
 
 ## Links
+[API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html)
+
+[EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
+
 [Download the NPM](https://www.npmjs.org/package/ems)
 
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
