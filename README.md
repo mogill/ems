@@ -49,7 +49,7 @@ can now be performed entirely in shared memory on a single server
 without using distributed programming.
 
 ## Sharing Persistent Objects Between Python and Javascript
-<img src="Docs/js_py.gif" />
+<img src="Docs/ems_js_py.gif" />
 
 Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
 The animated GIF demonstrates the following steps:
