@@ -1,12 +1,16 @@
 {
   "name": "ems",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "author": "Synthetic Semantics <info@synsem.com>",
   "description": "Persistent Shared Memory and Parallel Programming Model",
   "contributors": [
     {
       "name": "Jace A Mogill",
       "email": "mogill@synsem.com"
+    },
+    {
+      "name": "Aleksander Budzynowski",
+      "email": "aleks@budzynowski.com"
     }
   ],
   "scripts": {
@@ -44,8 +48,6 @@
   },
   "dependencies": {
     "bindings": "^1.3.0",
-    "ffi": "node-ffi/node-ffi",
-    "nan": "^2.10.0",
-    "node-gyp": "^3.7.0"
+    "node-addon-api": "*"
   }
 }
