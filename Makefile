@@ -47,7 +47,7 @@ help:
 help_notice:
 	@echo "=== \"make help\" for list of targets"
 
-test: test_js test_py
+tests: test_js test_py
 
 
 test_js: node
