@@ -187,9 +187,9 @@ static void EMSarrFinalize(char *data, void *hint) {
     // JQM TODO  shoud unlink here?
     fprintf(stderr, "Unmap -- should also unlink\n");
     buffer->handle_->SetIndexedPropertiesToExternalArrayData(NULL, v8::kExternalUnsignedByteArray, 0);
-    buffer->handle_.Set(length_symbol, v8::Integer::NewFromUnsigned(0));
+    buffer->handle_->Set(length_symbol, v8::Integer::NewFromUnsigned(0));
     buffer->handle_.Dispose();
-    args.This().Set(length_symbol, v8::Integer::NewFromUnsigned(0));
+    args.This()->Set(length_symbol, v8::Integer::NewFromUnsigned(0));
     
     return v8::True();
   }

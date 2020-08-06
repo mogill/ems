@@ -1,12 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.6.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
  |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
- |                                                                             |
- |  Updated to replace NAN with N-API                                          |
- |  Copyright (c) 2019 Aleksander J Budzynowski.                               |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -36,45 +33,43 @@
 #define EMSPROJ_NODEJS_H
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
-#include "napi.h"
+#include <node.h>
+#include <v8.h>
+#include "nan.h"
 
 #define QUOTE_ARG(x) #x
 #define QUOTE(x) QUOTE_ARG(x)
 
-#define THROW_ERROR(error) {                                             \
-        Napi::Error::New(env, error)                                     \
-            .ThrowAsJavaScriptException();                               \
-        return env.Null();                                               \
-    }
-
-#define THROW_TYPE_ERROR(error) {                                        \
-        Napi::TypeError::New(env, error)                                 \
-            .ThrowAsJavaScriptException();                               \
-        return env.Null();                                               \
-    }
-
-
-#define ADD_FUNC_TO_NAPI_OBJ(obj, func_name, func) \
+#define ADD_FUNC_TO_V8_OBJ(obj, func_name, func) \
     { \
-        Napi::Function fn = Napi::Function::New(env, func, func_name); \
-        obj.Set(Napi::Value::From(env, func_name), fn);     \
+        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(func); \
+        v8::Local<v8::Function> fn = tpl->GetFunction(); \
+        fn->SetName(Nan::New(func_name).ToLocalChecked()); \
+        obj->Set(Nan::New(func_name).ToLocalChecked(), tpl->GetFunction()); \
     }
 
-#define IS_INTEGER(x) ((double)(int64_t)(x) == (double)x)
 //==================================================================
-//  Determine the EMS type of a Napi argument
-#define NapiObjToEMStype(arg, stringIsJSON)                          \
-(                                                                    \
-   arg.IsNumber() ?                                                  \
-           (IS_INTEGER(arg.As<Napi::Number>()) ? EMS_TYPE_INTEGER :  \
-                                                 EMS_TYPE_FLOAT ) :  \
-   (arg.IsString() && !stringIsJSON) ? EMS_TYPE_STRING  :            \
-   (arg.IsString() &&  stringIsJSON) ? EMS_TYPE_JSON  :              \
-   arg.IsBoolean()                   ? EMS_TYPE_BOOLEAN :            \
-   arg.IsUndefined()                 ? EMS_TYPE_UNDEFINED:           \
-                                       EMS_TYPE_INVALID              \
+//  Determine the EMS type of a V8 argument
+#define NanObjToEMStype(arg, stringIsJSON)                       \
+(                                                               \
+   arg->IsInt32()                     ? EMS_TYPE_INTEGER :      \
+   arg->IsNumber()                    ? EMS_TYPE_FLOAT   :      \
+   (arg->IsString() && !stringIsJSON) ? EMS_TYPE_STRING  :      \
+   (arg->IsString() &&  stringIsJSON) ? EMS_TYPE_JSON  :        \
+   arg->IsBoolean()                   ? EMS_TYPE_BOOLEAN :      \
+   arg->IsUndefined()                 ? EMS_TYPE_UNDEFINED:     \
+   arg->IsUint32()                    ? EMS_TYPE_INTEGER : EMS_TYPE_INVALID   \
 )
 
+
+
+
+//==================================================================
+//  Macro to declare and unwrap the EMS buffer, used to access the
+//  EMSarray object metadata
+#define JS_ARG_TO_OBJ(arg) v8::Handle<v8::Object>::Cast(arg)
+#define JS_PROP_TO_VALUE(obj, property) JS_ARG_TO_OBJ(obj)->Get(Nan::New(property).ToLocalChecked())
+#define JS_PROP_TO_INT(obj, property) (JS_PROP_TO_VALUE(obj, property)->ToInteger()->Value())
 
 #define SOURCE_LOCATION __FILE__ ":" QUOTE(__LINE__)
 
@@ -82,54 +77,55 @@
     NODE_MMAPID_DECL;                                               \
     EMSvalueType key = EMS_VALUE_TYPE_INITIALIZER;                  \
     if (info.Length() < 1) {                                        \
-        Napi::Error::New(env, SOURCE_LOCATION ": missing key argument.").ThrowAsJavaScriptException(); \
+        Nan::ThrowError(SOURCE_LOCATION ": missing key argument."); \
+        return;                                                     \
     } else {                                                        \
-        NAPI_OBJ_2_EMS_OBJ(info[0], key, false);                    \
+        NAN_OBJ_2_EMS_OBJ(info[0], key, false);                     \
     }
 
 
-#define STACK_ALLOC_AND_CHECK_VALUE_ARG(argNum)                         \
+#define STACK_ALLOC_AND_CHECK_VALUE_ARG(argNum)         \
     bool stringIsJSON = false;                                          \
     EMSvalueType value = EMS_VALUE_TYPE_INITIALIZER;                    \
-    if (info.Length() == argNum + 2) {                                  \
-        stringIsJSON = info[argNum + 1].As<Napi::Boolean>();            \
+    if (info.Length() == argNum + 2) {                                \
+        stringIsJSON = info[argNum + 1]->ToBoolean()->Value();        \
     }                                                                   \
-    if (info.Length() < argNum + 1) {                                   \
-        Napi::Error::New(env, SOURCE_LOCATION ": ERROR, wrong number of arguments for value").ThrowAsJavaScriptException(); \
+    if (info.Length() < argNum + 1) {                                 \
+        Nan::ThrowError(SOURCE_LOCATION ": ERROR, wrong number of arguments for value"); \
+        return;                                                         \
     } else {                                                            \
-        NAPI_OBJ_2_EMS_OBJ(info[argNum], value, stringIsJSON);          \
+        NAN_OBJ_2_EMS_OBJ(info[argNum], value, stringIsJSON); \
     }
 
 #define NODE_MMAPID_DECL \
-    const int mmapID = (int) info.This().As<Napi::Object>()             \
-                                 .Get("mmapID").As<Napi::Number>()
+    const int mmapID = JS_PROP_TO_INT(info.This(), "mmapID")
 
 
-Napi::Value NodeJScriticalEnter(const Napi::CallbackInfo& info);
-Napi::Value NodeJScriticalExit(const Napi::CallbackInfo& info);
-Napi::Value NodeJSbarrier(const Napi::CallbackInfo& info);
-Napi::Value NodeJSsingleTask(const Napi::CallbackInfo& info);
-Napi::Value NodeJScas(const Napi::CallbackInfo& info);
-Napi::Value NodeJSfaa(const Napi::CallbackInfo& info);
-Napi::Value NodeJSpush(const Napi::CallbackInfo& info);
-Napi::Value NodeJSpop(const Napi::CallbackInfo& info);
-Napi::Value NodeJSenqueue(const Napi::CallbackInfo& info);
-Napi::Value NodeJSdequeue(const Napi::CallbackInfo& info);
-Napi::Value NodeJSloopInit(const Napi::CallbackInfo& info);
-Napi::Value NodeJSloopChunk(const Napi::CallbackInfo& info);
+void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSsingleTask(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJScas(const Nan::FunctionCallbackInfo<v8::Value> &info);
+void NodeJSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSpush(const Nan::FunctionCallbackInfo<v8::Value> &info);
+void NodeJSpop(const Nan::FunctionCallbackInfo<v8::Value> &info);
+void NodeJSenqueue(const Nan::FunctionCallbackInfo<v8::Value> &info);
+void NodeJSdequeue(const Nan::FunctionCallbackInfo<v8::Value> &info);
+void NodeJSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSloopChunk(const Nan::FunctionCallbackInfo<v8::Value>& info);
 //--------------------------------------------------------------
-Napi::Value NodeJSread(const Napi::CallbackInfo& info);
-Napi::Value NodeJSreadRW(const Napi::CallbackInfo& info);
-Napi::Value NodeJSreleaseRW(const Napi::CallbackInfo& info);
-Napi::Value NodeJSreadFE(const Napi::CallbackInfo& info);
-Napi::Value NodeJSreadFF(const Napi::CallbackInfo& info);
-Napi::Value NodeJSwrite(const Napi::CallbackInfo& info);
-Napi::Value NodeJSwriteEF(const Napi::CallbackInfo& info);
-Napi::Value NodeJSwriteXF(const Napi::CallbackInfo& info);
-Napi::Value NodeJSwriteXE(const Napi::CallbackInfo& info);
-Napi::Value NodeJSsetTag(const Napi::CallbackInfo& info);
-Napi::Value NodeJSsync(const Napi::CallbackInfo& info);
-Napi::Value NodeJSindex2key(const Napi::CallbackInfo& info);
-Napi::Value NodeJSdestroy(const Napi::CallbackInfo& info);
+void NodeJSread(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSreadRW(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSreleaseRW(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSreadFE(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSreadFF(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSwrite(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSwriteEF(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSwriteXF(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSwriteXE(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSsetTag(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSsync(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSindex2key(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void NodeJSdestroy(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
 #endif //EMSPROJ__H

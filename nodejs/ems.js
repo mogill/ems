@@ -1,12 +1,9 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.6.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.4.5   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
  |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
- |                                                                             |
- |  Updated to replace NAN with N-API                                          |
- |  Copyright (c) 2019 Aleksander J Budzynowski.                               |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -364,9 +361,9 @@ function EMScritical(func, timeout) {
     if (typeof timeout === "undefined") {
         timeout = 500000;  // TODO: Magic number -- long enough for errors, not load imbalance
     }
-    EMSglobal.criticalEnter(timeout);
+    this.criticalEnter(timeout);
     var retObj = func();
-    EMSglobal.criticalExit();
+    this.criticalExit();
     return retObj
 }
 
@@ -405,7 +402,7 @@ function EMSbarrier(timeout) {
         if(typeof timeout === "undefined") {
             timeout = 500000;  // TODO: Magic number -- long enough for errors, not load imbalance
         }
-        var remaining_time = EMS.barrier.call(EMSglobal, timeout);
+        var remaining_time = EMS.barrier(timeout);
         if (remaining_time < 0) {
             console.log("EMSbarrier: ERROR -- Barrier timed out after", timeout, "iterations.");
             // TODO: Probably should throw an error
@@ -567,7 +564,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
     //  only operations (ie: unlinking an old file, opening a new
     //  file).  After thread 0 has completed initialization, other
     //  threads can safely share the EMS array.
-    if (!emsDescriptor.useExisting && this.myID !== 0) EMSbarrier();
+    if (!emsDescriptor.useExisting && this.myID !== 0)    EMSbarrier();
     emsDescriptor.data = this.init(emsDescriptor.nElements, emsDescriptor.heapSize,  // 0, 1
         emsDescriptor.useMap, emsDescriptor.filename,  // 2, 3
         emsDescriptor.persist, emsDescriptor.useExisting,  // 4, 5
@@ -577,8 +574,7 @@ function EMSnew(arg0,        //  Maximum number of elements the EMS region can h
         emsDescriptor.setFEtagsFull,  // 10
         this.myID, this.pinThreads, this.nThreads,  // 11, 12, 13
         emsDescriptor.mlock);  // 14
-
-    if (!emsDescriptor.useExisting && this.myID === 0) EMSbarrier();
+    if (!emsDescriptor.useExisting && this.myID === 0)  EMSbarrier();
 
     emsDescriptor.regionN = this.newRegionN;
     emsDescriptor.push = EMSpush;
@@ -736,7 +732,6 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     retObj.loopInit = EMS.loopInit;
     retObj.loopChunk = EMS.loopChunk;
     EMSglobal = retObj;
-    EMSglobal.mmapID = retObj.data.mmapID;
     return retObj;
 }
 
