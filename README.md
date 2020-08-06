@@ -1,9 +1,21 @@
-OSX | Linux | Node 4.1-14.x, Python2/3:
+OSX | Linux | Node 4.1-10.x, Python2/3:
 [![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
 
 ### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
 
+
+# EMS WILL STOP WORKING BECAUSE NAN IS OBSOLETE
+
+ __EMS MUST BE UPDATED TO USE THE N-API NATIVE INTERFACE
+ OTHERWISE IT WILL STOP WORKING WITH FUTURE VERSIONS OF NODE.JS__
+
+ Node.js has deprecated [Native Abstractions for Node (NAN)](https://github.com/nodejs/nan)
+ in favor of
+ [Node API (N-API)](https://nodejs.org/api/en-api.html), their latest portability layer.
+ This port will involve non-trivial work to reconcile N-API's type system with EMS' type system.
+
+ EMS.js needs a volunteer and/or financial sponsor to keep it up to date with current and future Node.js revisions.
 
 
 # Extended Memory Semantics (EMS)
@@ -138,9 +150,9 @@ are printed with their counts.
 
 The performance of this program was measured using an Amazon EC2 instance:<br>
 `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`
-The leveling of scaling around 16 cores despite the presence of ample work
+The leveling of scaling aroung 16 cores despite the presence of ample work
 may be related to the use of non-dedicated hardware:
-Half of the 36 vCPUs are presumably HyperThreads or otherwise shared resource.
+Half of the 36 vCPUs are presumably HyperThreads or otherwise shared resoruce.
 AWS instances are also bandwidth limited to EBS storage, where our Gutenberg
 corpus is stored.
 
@@ -313,8 +325,10 @@ dunlin> make help
 
 
 ### Install via npm
-EMS is available as a NPM Package.  EMS depends on the Node addon API
-(N-API) package.
+EMS is available as a NPM Package.  EMS depends on several other NPM packages
+to compile the native addon:
+the Foreign Function Interface (ffi), C-to-V8 symbol renaming (bindings),
+and the native addon abstraction layer (nan).
 
 ```sh
 npm install ems
@@ -383,16 +397,14 @@ EMS 1.4 Python API
 
 EMS 1.4.8 Improved examples and documentation
 
-EMS 1.5 Refactored JS-EMS object conversion temporary storage
+EMS 1.5 **[This Release]** Refactored JS-EMS object conversion temporary storage
 
-EMS 1.6 **[This Release]** Updated to replace deprecated NodeJS NAN API with the N-API.
+EMS 1.6 **[Planned]** Key deletion that frees all resources.  Replace open hashing with chaining.
 
-EMS 1.7 **[Planned]** Key deletion that frees all resources.  Replace open hashing with chaining.
-
-EMS 1.7 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
+EMS 1.6 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
     low-level EMS diagnostic tools.
 
-EMS 1.8 **[Planned]** Support for NVDIMMs and other technologies that behave
+EMS 1.7 **[Planned]** Support for NVDIMMs and other technologies that behave
      as [persistent main system memory](http://pmem.io/).
 
 EMS 2.0 **[Planned]** New API which more tightly integrates with

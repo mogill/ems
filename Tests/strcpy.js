@@ -32,7 +32,7 @@
 'use strict';
 var ems = require('ems')(parseInt(process.argv[2]));
 var assert = require('assert');
-var maxlen = 5000000;
+var maxlen = 20000000;
 var stats = ems.new({
     filename: '/tmp/EMS_strlen',
     dimensions: [10],
