@@ -1,9 +1,12 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.5.0   |
+ |  Extended Memory Semantics (EMS)                            Version 1.6.0   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
  |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
+ |                                                                             |
+ |  Updated to replace NAN with N-API                                          |
+ |  Copyright (c) 2019 Aleksander J Budzynowski.                               |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |
@@ -34,438 +37,449 @@
 #include "../src/ems_types.h"
 
 /**
- * Convert a NAN object to an EMS object stored on the stack
- * @param nanValue Source NAN object
+ * Convert a NAPI object to an EMS object stored on the stack
+ * @param napiValue Source Napi object
  * @param emsValue Target EMS object
  * @param stringIsJSON You know who
  * @return True if successful converting
  */
-#define NAN_OBJ_2_EMS_OBJ(nanValue, emsValue, stringIsJSON) {           \
-        emsValue.type = NanObjToEMStype(nanValue, stringIsJSON);        \
+#define NAPI_OBJ_2_EMS_OBJ(napiValue, emsValue, stringIsJSON) {         \
+        emsValue.type = NapiObjToEMStype(napiValue, stringIsJSON);      \
         switch (emsValue.type) {                                        \
-        case EMS_TYPE_BOOLEAN:                                          \
-            emsValue.value = (void *) nanValue->ToBoolean(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value();   \
+        case EMS_TYPE_BOOLEAN: {                                        \
+            bool tmp = napiValue.As<Napi::Boolean>();                   \
+            emsValue.value = (void *) tmp;                              \
             break;                                                      \
-        case EMS_TYPE_INTEGER:                                          \
-            emsValue.value = (void *) nanValue->ToInteger(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value();   \
+        }                                                               \
+        case EMS_TYPE_INTEGER: {                                        \
+            int64_t tmp = napiValue.As<Napi::Number>();                 \
+            emsValue.value = (void *) tmp;                              \
+        }                                                               \
             break;                                                      \
         case EMS_TYPE_FLOAT: {                                          \
-            EMSulong_double alias = {.d = nanValue->ToNumber(v8::Isolate::GetCurrent()->GetCurrentContext()).ToLocalChecked()->Value()}; \
+            EMSulong_double alias = {.d = napiValue.As<Napi::Number>()};\
             emsValue.value = (void *) alias.u64;                        \
         }                                                               \
             break;                                                      \
         case EMS_TYPE_JSON:                                             \
         case EMS_TYPE_STRING: {                                         \
-            emsValue.length = strlen(*Nan::Utf8String(nanValue)) + 1;  /* +1 for trailing NULL */ \
+            std::string s = napiValue.As<Napi::String>().Utf8Value();   \
+            emsValue.length = s.length() + 1; /* +1 for trailing NUL */ \
             emsValue.value = alloca(emsValue.length);                   \
             if (!emsValue.value) {                                      \
-                Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: Unable to allocate scratch memory for serialized value"); \
-                return;                                                 \
+                THROW_TYPE_ERROR(QUOTE(__FUNCTION__) " ERROR: Unable to allocate scratch memory for serialized value");\
             }                                                           \
-            memcpy(emsValue.value, *Nan::Utf8String(nanValue), emsValue.length); \
+            memcpy(emsValue.value, s.c_str(), emsValue.length);         \
         }                                                               \
             break;                                                      \
         case EMS_TYPE_UNDEFINED:                                        \
             emsValue.value = (void *) 0xbeeff00d;                       \
             break;                                                      \
         default:                                                        \
-            Nan::ThrowTypeError(QUOTE(__FUNCTION__) " ERROR: Invalid value type"); \
-            return;                                                     \
+            THROW_TYPE_ERROR(QUOTE(__FUNCTION__) " ERROR: Invalid value type");\
         }                                                               \
     }
 
 
-
 /**
- * Convert an EMS object into a NAN object
+ * Convert an EMS object into a Napi object
+ * @param env Napi Env object
  * @param emsValue Source EMS object
- * @param v8Value Target NAN object
- * @return True if successful
+ * @return converted value
  */
-static bool inline
-ems2v8ReturnValue(EMSvalueType *emsValue,
-                  Nan::ReturnValue<v8::Value> v8Value) {
+static Napi::Value inline
+ems2napiReturnValue(Napi::Env env, EMSvalueType *emsValue) {
     switch(emsValue->type) {
         case EMS_TYPE_BOOLEAN: {
-            bool retBool = (bool) emsValue->value;
-            v8Value.Set(Nan::New(retBool));
+            return Napi::Value::From(env, (bool) emsValue->value);
         }
             break;
         case EMS_TYPE_INTEGER: {
             int32_t retInt = ((int64_t) emsValue->value) & 0xffffffff;  /* TODO: Bug -- only 32 bits of 64? */
-            v8Value.Set(Nan::New(retInt));
+            return Napi::Number::New(env, retInt);
         }
             break;
         case EMS_TYPE_FLOAT: {
             EMSulong_double alias = {.u64 = (uint64_t) emsValue->value};
-            v8Value.Set(Nan::New(alias.d));
+            return Napi::Number::New(env, alias.d);
         }
             break;
         case EMS_TYPE_JSON: {
-            v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-            retObj->Set(Nan::New("data").ToLocalChecked(),
-                        Nan::New((char *) emsValue->value).ToLocalChecked());
-            v8Value.Set(retObj);
+            Napi::Object retObj = Napi::Object::New(env);
+            retObj.Set("data", Napi::String::New(env, (char *) emsValue->value));
+            return retObj;
         }
             break;
         case EMS_TYPE_STRING: {
-            v8Value.Set(Nan::New((char *) emsValue->value).ToLocalChecked());
+            return Napi::String::New(env, (char *) emsValue->value);
         }
             break;
         case EMS_TYPE_UNDEFINED: {
-            v8Value.Set(Nan::Undefined());
+            return env.Undefined();
         }
             break;
         default:
-            Nan::ThrowTypeError("ems2v8ReturnValue - ERROR: Invalid type of data read from memory");
-            return false;
+            THROW_TYPE_ERROR("ems2napiReturnValue - ERROR: Invalid type of data read from memory");
     }
-    return true;
 }
 
 
-void NodeJScriticalEnter(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJScriticalEnter(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     int64_t timeout;
-    if(info.Length() == 1) {
-        timeout = info[0]->ToInteger()->Value();
+    if (info.Length() == 1) {
+        timeout = info[0].As<Napi::Number>();
     } else {
-        Nan::ThrowError("NodeJScriticalEner: invalid or missing timeout duration");
-        return;
+        THROW_ERROR("NodeJScriticalEner: invalid or missing timeout duration");
     }
     int timeRemaining = EMScriticalEnter(mmapID, (int) timeout);
     if (timeRemaining <= 0) {
-        Nan::ThrowError("NodeJScriticalEnter: Unable to enter critical region before timeout");
+        THROW_ERROR("NodeJScriticalEnter: Unable to enter critical region before timeout");
     } else {
-        info.GetReturnValue().Set(Nan::New(timeRemaining));
+        return Napi::Value::From(env, timeRemaining);
     }
 }
 
 
-void NodeJScriticalExit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJScriticalExit(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     bool success = EMScriticalExit(mmapID);
     if (!success) {
-        Nan::ThrowError("NodeJScriticalExit: critical region mutex lost while locked?!");
+        THROW_ERROR("NodeJScriticalExit: critical region mutex lost while locked?!");
     } else {
-        info.GetReturnValue().Set(Nan::New(success));
+        return Napi::Value::From(env, success);
     }
 }
 
 
-void NodeJSbarrier(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSbarrier(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     int timeout;
-    if(info.Length() == 1) {
-        timeout = info[0]->ToInteger()->Value();
+    if (info.Length() == 1) {
+        timeout = info[0].As<Napi::Number>();
     } else {
-        Nan::ThrowError("NodeJSbarrier: invalid or missing timeout duration");
-        return;
+        THROW_ERROR("NodeJSbarrier: invalid or missing timeout duration");
     }
     int timeRemaining = EMSbarrier(mmapID, timeout);
     if (timeRemaining <= 0) {
-        Nan::ThrowError("NodeJSbarrer: Failed to sync at barrier");
+        THROW_ERROR("NodeJSbarrer: Failed to sync at barrier");
     } else {
-        info.GetReturnValue().Set(Nan::New(timeRemaining));
+        return Napi::Value::From(env, timeRemaining);
     }
 }
 
 
-void NodeJSsingleTask(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSsingleTask(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     bool did_work = EMSsingleTask(mmapID);
-    info.GetReturnValue().Set(Nan::New(did_work));
+    return Napi::Boolean::New(env, did_work);
 }
 
 
-void NodeJScas(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJScas(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     EMSvalueType oldVal = EMS_VALUE_TYPE_INITIALIZER;
     EMSvalueType newVal = EMS_VALUE_TYPE_INITIALIZER;
     if (info.Length() != 3) {
-        Nan::ThrowError(SOURCE_LOCATION ": Called with wrong number of args.");
-        return;
+        THROW_ERROR(SOURCE_LOCATION ": Called with wrong number of args.");
     }
-    NAN_OBJ_2_EMS_OBJ(info[1],  oldVal, false);
-    NAN_OBJ_2_EMS_OBJ(info[2],  newVal, false);
+    NAPI_OBJ_2_EMS_OBJ(info[1],  oldVal, false);
+    NAPI_OBJ_2_EMS_OBJ(info[2],  newVal, false);
     if (!EMScas(mmapID, &key, &oldVal, &newVal, &returnValue)) {
-        Nan::ThrowError("NodeJScas: Failed to get a valid old value");
-        return;
+        THROW_ERROR("NodeJScas: Failed to get a valid old value");
     }
-    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    return ems2napiReturnValue(env, &returnValue);
 }
 
 
-void NodeJSfaa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSfaa(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
     bool success = EMSfaa(mmapID, &key, &value, &returnValue);
     if (!success) {
-        Nan::ThrowError("NodeJSfaa: Failed to get a valid old value");
-        return;
+        THROW_ERROR("NodeJSfaa: Failed to get a valid old value");
     }
-    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    return ems2napiReturnValue(env, &returnValue);
 }
 
 
-void NodeJSpush(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSpush(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(0);
     int returnValue = EMSpush(mmapID, &value);
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    return Napi::Value::From(env, returnValue);
 }
 
 
-void NodeJSpop(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSpop(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     NODE_MMAPID_DECL;
     bool success = EMSpop(mmapID, &returnValue);
     if (!success) {
-        Nan::ThrowError("NodeJSpop: Failed to pop a value off the stack");
-        return;
+        THROW_ERROR("NodeJSpop: Failed to pop a value off the stack");
     }
-    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    return ems2napiReturnValue(env, &returnValue);
 }
 
 
-void NodeJSenqueue(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSenqueue(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(0);
     int returnValue = EMSenqueue(mmapID, &value);
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    return Napi::Value::From(env, returnValue);
 }
 
 
-void NodeJSdequeue(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSdequeue(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     NODE_MMAPID_DECL;
     bool success = EMSdequeue(mmapID, &returnValue);
     if (!success) {
-        Nan::ThrowError("NodeJSdequeue: Failed to dequeue a value");
-        return;
+        THROW_ERROR("NodeJSdequeue: Failed to dequeue a value");
     }
-    ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+    return ems2napiReturnValue(env, &returnValue);
 }
 
 
-void NodeJSloopInit(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSloopInit(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     if (info.Length() != 4) {
-        Nan::ThrowError("NodeJSloopInit: Wrong number of args");
-        return;
+        THROW_ERROR("NodeJSloopInit: Wrong number of args");
     }
 
-    int32_t start = (int32_t) info[0]->ToInteger()->Value();
-    int32_t end = (int32_t)info[1]->ToInteger()->Value();
+    int32_t start = (int32_t) info[0].As<Napi::Number>();
+    int32_t end = (int32_t) info[1].As<Napi::Number>();
     int schedule_mode;
-    std::string sched_string(*Nan::Utf8String(info[2]));
+    std::string sched_string = info[2].As<Napi::String>().Utf8Value();
     if (sched_string.compare("guided") == 0) {
         schedule_mode = EMS_SCHED_GUIDED;
     } else {
         if (sched_string.compare("dynamic") == 0) {
             schedule_mode = EMS_SCHED_DYNAMIC;
         } else {
-            Nan::ThrowError("NodeJSloopInit: Unknown/invalid schedule mode");
-            return;
+            THROW_ERROR("NodeJSloopInit: Unknown/invalid schedule mode");
         }
     }
-    int32_t minChunk = (int32_t) info[3]->ToInteger()->Value();
+    int32_t minChunk = (int32_t) info[3].As<Napi::Number>();
 
     bool success = EMSloopInit(mmapID, start, end, minChunk, schedule_mode);
     if (!success) {
-        Nan::ThrowError("NodeJSloopInit: Unknown failure to initalize loop");
+        THROW_ERROR("NodeJSloopInit: Unknown failure to initalize loop");
     } else {
-        info.GetReturnValue().Set(Nan::New(success));
+        return Napi::Value::From(env, success);
     }
 }
 
 
-void NodeJSloopChunk(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSloopChunk(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     if (info.Length() != 0) {
-        Nan::ThrowError("NodeJSloopChunk: Arguments provided, but none accepted");
-        return;
+        THROW_ERROR("NodeJSloopChunk: Arguments provided, but none accepted");
     }
     int32_t start, end;
     EMSloopChunk(mmapID, &start, &end);  // Unusued return value
 
-    v8::Local<v8::Object> retObj = Nan::New<v8::Object>();
-    retObj->Set(Nan::New("start").ToLocalChecked(), Nan::New(start));
-    retObj->Set(Nan::New("end").ToLocalChecked(), Nan::New(end));
-    info.GetReturnValue().Set(retObj);
+    Napi::Object retObj = Napi::Object::New(env);
+    retObj.Set("start", Napi::Value::From(env, start));
+    retObj.Set("end", Napi::Value::From(env, end));
+    return retObj;
 }
 
 
 //--------------------------------------------------------------
-void NodeJSread(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSread(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     STACK_ALLOC_AND_CHECK_KEY_ARG;
-    if(!EMSread(mmapID, &key, &returnValue)) {
-        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    if (!EMSread(mmapID, &key, &returnValue)) {
+        THROW_ERROR(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
     } else {
-        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+        return ems2napiReturnValue(env, &returnValue);
     }
 }
 
 
-void NodeJSreadFE(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSreadFE(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     STACK_ALLOC_AND_CHECK_KEY_ARG;
-    if(!EMSreadFE(mmapID, &key, &returnValue)) {
-        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    if (!EMSreadFE(mmapID, &key, &returnValue)) {
+        THROW_ERROR(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
     } else {
-        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+        return ems2napiReturnValue(env, &returnValue);
     }
 }
 
 
-void NodeJSreadFF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSreadFF(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     STACK_ALLOC_AND_CHECK_KEY_ARG;
-    if(!EMSreadFF(mmapID, &key, &returnValue)) {
-        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    if (!EMSreadFF(mmapID, &key, &returnValue)) {
+        THROW_ERROR(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
     } else {
-        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+        return ems2napiReturnValue(env, &returnValue);
     }
 }
 
 
-void NodeJSreadRW(const Nan::FunctionCallbackInfo<v8::Value>& info)  {
+Napi::Value NodeJSreadRW(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     EMSvalueType returnValue = EMS_VALUE_TYPE_INITIALIZER;
     STACK_ALLOC_AND_CHECK_KEY_ARG;
-    if(!EMSreadRW(mmapID, &key, &returnValue)) {
-        Nan::ThrowError(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
+    if (!EMSreadRW(mmapID, &key, &returnValue)) {
+        THROW_ERROR(QUOTE(__FUNCTION__) ": Unable to read (no return value) from EMS.");
     } else {
-        ems2v8ReturnValue(&returnValue, info.GetReturnValue());
+        return ems2napiReturnValue(env, &returnValue);
     }
 }
 
 
-void NodeJSreleaseRW(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSreleaseRW(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     int nReadersActive = EMSreleaseRW(mmapID, &key);
     if (nReadersActive < 0) {
-        Nan::ThrowError("NodeJSreleaseRW: Invalid index for key, or index key in bad state");
+        THROW_ERROR("NodeJSreleaseRW: Invalid index for key, or index key in bad state");
     } else {
-        info.GetReturnValue().Set(Nan::New(nReadersActive));
+        return Napi::Value::From(env, nReadersActive);
     }
 }
 
 // ====================================================
 
-void NodeJSwrite(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSwrite(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
     bool returnValue = EMSwrite(mmapID, &key, &value);
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    return Napi::Value::From(env, returnValue);
 }
 
 
-void NodeJSwriteEF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSwriteEF(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
     bool returnValue = EMSwriteEF(mmapID, &key, &value);
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    return Napi::Value::From(env, returnValue);
 }
 
 
-void NodeJSwriteXF(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSwriteXF(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
     bool returnValue = EMSwriteXF(mmapID, &key, &value);
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    return Napi::Value::From(env, returnValue);
 }
 
 
-void NodeJSwriteXE(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSwriteXE(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(1);
     bool returnValue = EMSwriteXE(mmapID, &key, &value);
-    info.GetReturnValue().Set(Nan::New(returnValue));
+    return Napi::Value::From(env, returnValue);
 }
 
 
-void NodeJSsetTag(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSsetTag(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     STACK_ALLOC_AND_CHECK_KEY_ARG;
     STACK_ALLOC_AND_CHECK_VALUE_ARG(1); // Bool -- is full
     bool success = EMSsetTag(mmapID, &key, (bool)value.value);
-    if(success) {
-        info.GetReturnValue().Set(Nan::New(true));
+    if (success) {
+        return Napi::Value::From(env, true);
     } else {
-        Nan::ThrowError("NodeJSsetTag: Invalid key, unable to set tag");
+        THROW_ERROR("NodeJSsetTag: Invalid key, unable to set tag");
     }
 }
 
 
-void NodeJSsync(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSsync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     fprintf(stderr, "NodeJSsync: WARNING: sync is not implemented\n");
     bool success = EMSsync(mmapID);
-    info.GetReturnValue().Set(Nan::New(success));
+    return Napi::Value::From(env, success);
 }
 
 
-void NodeJSindex2key(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSindex2key(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
     EMSvalueType key = EMS_VALUE_TYPE_INITIALIZER;
-    int idx = (int32_t)  info[0]->ToInteger()->Value();  // TODO: This is just 32bit, should be size_t
-    if( !EMSindex2key(mmapID, idx, &key) ) {
+    int idx = (size_t) (int64_t)  info[0].As<Napi::Number>();
+    if ( !EMSindex2key(mmapID, idx, &key) ) {
         fprintf(stderr, "NodeJSindex2key: Error converting index (%d) to key\n", idx);
     }
-    ems2v8ReturnValue(&key, info.GetReturnValue());
+    return ems2napiReturnValue(env, &key);
 }
 
 
-void NodeJSdestroy(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSdestroy(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     NODE_MMAPID_DECL;
-    bool do_unlink = info[0]->ToBoolean()->Value();
+    bool do_unlink = info[0].As<Napi::Boolean>();
     bool success = EMSdestroy(mmapID, do_unlink);
     if (success) {
-        info.GetReturnValue().Set(Nan::New(true));
+        return Napi::Value::From(env, true);
     } else {
-        Nan::ThrowError("NodeJSdestroy: Failed to destroy EMS array");
+        THROW_ERROR("NodeJSdestroy: Failed to destroy EMS array");
     }
 };
 
 
 //==================================================================
 //  EMS Entry Point:   Allocate and initialize the EMS domain memory
-void NodeJSinitialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+Napi::Value NodeJSinitialize(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
     if (info.Length() != 15) {
-        Nan::ThrowError("NodeJSinitialize: Incorrect number of arguments");
-        return;
+        THROW_ERROR("NodeJSinitialize: Incorrect number of arguments");
     }
     EMSvalueType fillData = EMS_VALUE_TYPE_INITIALIZER;
 
     //  Parse all the arguments
-    int64_t nElements  = info[0]->ToInteger()->Value();
-    size_t  heapSize   = (size_t) info[1]->ToInteger()->Value();
-    bool useMap        = info[2]->ToBoolean()->Value();
-    std::string filestring(*Nan::Utf8String(info[3]));
-    const char *filename = filestring.c_str();
-    bool persist       = info[4]->ToBoolean()->Value();
-    bool useExisting   = info[5]->ToBoolean()->Value();
-    bool doDataFill    = info[6]->ToBoolean()->Value();
-    bool fillIsJSON    = info[7]->ToBoolean()->Value();
+    int64_t nElements  = info[0].As<Napi::Number>();
+    size_t  heapSize   = (int64_t)  info[1].As<Napi::Number>();
+    bool useMap        = info[2].As<Napi::Boolean>();
+    std::string filestr(info[3].As<Napi::String>().Utf8Value());
+    const char *filename = filestr.c_str();
+    bool persist       = info[4].As<Napi::Boolean>();
+    bool useExisting   = info[5].As<Napi::Boolean>();
+    bool doDataFill    = info[6].As<Napi::Boolean>();
+    bool fillIsJSON    = info[7].As<Napi::Boolean>();
     // 8 = Data Fill type TBD during fill
-    bool doSetFEtags   = info[9]->ToBoolean()->Value();
-    bool setFEtags     = info[10]->ToBoolean()->Value();
-    EMSmyID            = (int) info[11]->ToInteger()->Value();
-    bool pinThreads    = info[12]->ToBoolean()->Value();
-    int32_t nThreads   = (int32_t) info[13]->ToInteger()->Value();
-    int32_t pctMLock   = (int32_t) info[14]->ToInteger()->Value();
+    bool doSetFEtags   = info[9].As<Napi::Boolean>();
+    bool setFEtags     = info[10].As<Napi::Boolean>();
+    EMSmyID            = (int)  info[11].As<Napi::Number>();
+    bool pinThreads    = info[12].As<Napi::Boolean>();
+    int32_t nThreads   = info[13].As<Napi::Number>();
+    int32_t pctMLock   = info[14].As<Napi::Number>();
 
-    if(doDataFill) {
-        NAN_OBJ_2_EMS_OBJ(info[8], fillData, fillIsJSON);
+    if (doDataFill) {
+        NAPI_OBJ_2_EMS_OBJ(info[8], fillData, fillIsJSON);
         if (doDataFill  &&  (fillData.type == EMS_TYPE_JSON  ||  fillData.type == EMS_TYPE_STRING)) {
-            // Copy the default values to the heap because nanObj2EMSval copies them to the stack
+            // Copy the default values to the heap because napiObj2EMSval copies them to the stack
             void *valueOnStack = fillData.value;
             fillData.value = malloc(fillData.length + 1);
             if (fillData.value == NULL) {
-                Nan::ThrowError("NodeJSinitialize: failed to allocate the default value's storage on the heap");
-                return;
+                THROW_ERROR("NodeJSinitialize: failed to allocate the default value's storage on the heap");
             }
             memcpy(fillData.value, valueOnStack, fillData.length + 1);
         }
@@ -487,47 +501,47 @@ void NodeJSinitialize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
                                 nThreads,    // 13
                                 pctMLock);   // 14
 
-    if(emsBufN < 0) {
-        Nan::ThrowError("NodeJSinitialize: failed to initialize EMS array");
-        return;
+    if (emsBufN < 0) {
+        THROW_ERROR("NodeJSinitialize: failed to initialize EMS array");
     }
 
     // ========================================================================================
-    v8::Local<v8::Object> obj = Nan::New<v8::Object>();
-    obj->Set(Nan::New("mmapID").ToLocalChecked(), Nan::New(emsBufN));
-    ADD_FUNC_TO_V8_OBJ(obj, "faa", NodeJSfaa);
-    ADD_FUNC_TO_V8_OBJ(obj, "cas", NodeJScas);
-    ADD_FUNC_TO_V8_OBJ(obj, "read", NodeJSread);
-    ADD_FUNC_TO_V8_OBJ(obj, "write", NodeJSwrite);
-    ADD_FUNC_TO_V8_OBJ(obj, "readRW", NodeJSreadRW);
-    ADD_FUNC_TO_V8_OBJ(obj, "releaseRW", NodeJSreleaseRW);
-    ADD_FUNC_TO_V8_OBJ(obj, "readFE", NodeJSreadFE);
-    ADD_FUNC_TO_V8_OBJ(obj, "readFF", NodeJSreadFF);
-    ADD_FUNC_TO_V8_OBJ(obj, "setTag", NodeJSsetTag);
-    ADD_FUNC_TO_V8_OBJ(obj, "writeEF", NodeJSwriteEF);
-    ADD_FUNC_TO_V8_OBJ(obj, "writeXF", NodeJSwriteXF);
-    ADD_FUNC_TO_V8_OBJ(obj, "writeXE", NodeJSwriteXE);
-    ADD_FUNC_TO_V8_OBJ(obj, "push", NodeJSpush);
-    ADD_FUNC_TO_V8_OBJ(obj, "pop", NodeJSpop);
-    ADD_FUNC_TO_V8_OBJ(obj, "enqueue", NodeJSenqueue);
-    ADD_FUNC_TO_V8_OBJ(obj, "dequeue", NodeJSdequeue);
-    ADD_FUNC_TO_V8_OBJ(obj, "sync", NodeJSsync);
-    ADD_FUNC_TO_V8_OBJ(obj, "index2key", NodeJSindex2key);
-    ADD_FUNC_TO_V8_OBJ(obj, "destroy", NodeJSdestroy);
-    info.GetReturnValue().Set(obj);
+    Napi::Object obj = Napi::Object::New(env);
+    obj.Set(Napi::String::New(env, "mmapID"), Napi::Value::From(env, emsBufN));
+    ADD_FUNC_TO_NAPI_OBJ(obj, "faa", NodeJSfaa);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "cas", NodeJScas);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "read", NodeJSread);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "write", NodeJSwrite);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "readRW", NodeJSreadRW);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "releaseRW", NodeJSreleaseRW);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "readFE", NodeJSreadFE);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "readFF", NodeJSreadFF);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "setTag", NodeJSsetTag);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "writeEF", NodeJSwriteEF);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "writeXF", NodeJSwriteXF);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "writeXE", NodeJSwriteXE);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "push", NodeJSpush);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "pop", NodeJSpop);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "enqueue", NodeJSenqueue);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "dequeue", NodeJSdequeue);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "sync", NodeJSsync);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "index2key", NodeJSindex2key);
+    ADD_FUNC_TO_NAPI_OBJ(obj, "destroy", NodeJSdestroy);
+    return obj;
 }
 
 
 //---------------------------------------------------------------
-static void RegisterModule(v8::Handle <v8::Object> target) {
-    ADD_FUNC_TO_V8_OBJ(target, "initialize", NodeJSinitialize);
-    ADD_FUNC_TO_V8_OBJ(target, "barrier", NodeJSbarrier);
-    ADD_FUNC_TO_V8_OBJ(target, "singleTask", NodeJSsingleTask);
-    ADD_FUNC_TO_V8_OBJ(target, "criticalEnter", NodeJScriticalEnter);
-    ADD_FUNC_TO_V8_OBJ(target, "criticalExit", NodeJScriticalExit);
-    ADD_FUNC_TO_V8_OBJ(target, "loopInit", NodeJSloopInit);
-    ADD_FUNC_TO_V8_OBJ(target, "loopChunk", NodeJSloopChunk);
+static Napi::Object RegisterModule(Napi::Env env, Napi::Object exports) {
+    ADD_FUNC_TO_NAPI_OBJ(exports, "initialize", NodeJSinitialize);
+    ADD_FUNC_TO_NAPI_OBJ(exports, "barrier", NodeJSbarrier);
+    ADD_FUNC_TO_NAPI_OBJ(exports, "singleTask", NodeJSsingleTask);
+    ADD_FUNC_TO_NAPI_OBJ(exports, "criticalEnter", NodeJScriticalEnter);
+    ADD_FUNC_TO_NAPI_OBJ(exports, "criticalExit", NodeJScriticalExit);
+    ADD_FUNC_TO_NAPI_OBJ(exports, "loopInit", NodeJSloopInit);
+    ADD_FUNC_TO_NAPI_OBJ(exports, "loopChunk", NodeJSloopChunk);
+    return exports;
 }
 
 
-NODE_MODULE(ems, RegisterModule);
+NODE_API_MODULE(ems, RegisterModule);

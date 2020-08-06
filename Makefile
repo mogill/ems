@@ -1,6 +1,6 @@
 #make
 # *-----------------------------------------------------------------------------+
-# |  Extended Memory Semantics (EMS)                            Version 1.4.1   |
+# |  Extended Memory Semantics (EMS)                            Version 1.6.0   |
 # |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
 # +-----------------------------------------------------------------------------+
 # |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
@@ -47,7 +47,7 @@ help:
 help_notice:
 	@echo "=== \"make help\" for list of targets"
 
-test: test_js test_py
+tests: test_js test_py
 
 
 test_js: node
@@ -64,7 +64,7 @@ test_py2: py2
 node: build/Release/ems.node
 
 build/Release/ems.node:
-	node-gyp rebuild
+	npm install
 	(cd node_modules;  /bin/rm -f ems; ln -s ../ ./ems)
 
 py: py2 py3

@@ -112,6 +112,8 @@ size_t emsMem_alloc(struct emsMem *self, size_t bytesRequested) {
             }
         } else {
             // size < length
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
             switch (self->tree[index]) {
                 case BUDDY_USED:
                 case BUDDY_FULL:
@@ -127,6 +129,7 @@ size_t emsMem_alloc(struct emsMem *self, size_t bytesRequested) {
                     level++;
                     continue;
             }
+#pragma GCC diagnostic pop
         }
         if (index & 1) {
             ++index;
