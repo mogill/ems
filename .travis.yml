@@ -27,9 +27,9 @@ before_script:
   - npm link ../ems
   - sudo apt-get install python-dev python3-dev
   - sudo apt-get install -y build-essential
-  - sudo python2 -m pip install cffi
   - sudo python2 -m pip install --upgrade pip
-#  - sudo python3 -m pip install cffi
+  - sudo python2 -m pip install cffi
+  - sudo python3 -m pip install cffi
 
 script:
   - make test
