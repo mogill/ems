@@ -22,13 +22,13 @@ node_js:
 
 before_script:
   - npm install bindings file-uri-to-path node-addon-api
+  - sudo -H apt-get install libffi-dev
+  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
   - npm link ../ems
-  - apt-get install python-dev python3-dev
-  - apt-get install -y build-essential
-  - apt-get install libffi-dev
+  - sudo apt-get install python-dev python3-dev
+  - sudo apt-get install -y build-essential
   - pip2 install cffi
   - pip3 install cffi
-  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
 
 script:
   - make test

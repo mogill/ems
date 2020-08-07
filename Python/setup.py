@@ -1,6 +1,6 @@
 """
  +-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.4.1   |
+ |  Extended Memory Semantics (EMS)                            Version 1.6.1   |
  |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2016, Jace A Mogill.  All rights reserved.                   |
@@ -48,20 +48,20 @@ else:
 
 setup(
     name="ems",
-    version="1.4.0",
+    version="1.6.1",
     py_modules=["ems"],
     setup_requires=["cffi>=1.0.0"],
     install_requires=["cffi>=1.0.0"],
 
     # Author details
     author='Jace A Mogill',
-    author_email='mogill@synsem.com',
+    author_email='jace@mogill.com',
 
     description='Extended Memory Semantics (EMS) for Python',
     license='BSD',
 
     # The project's main homepage.
-    url='https://github.com/SyntheticSemantics/ems',
+    url='https://github.com/mogill/ems',
 
     ext_modules=[Extension('libems.so',
                            [src_path + filename for filename in
