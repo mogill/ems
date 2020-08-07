@@ -33,10 +33,11 @@ before_script:
   - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
   - npm install bindings file-uri-to-path node-addon-api
   - npm link ../ems
-  - sudo apt-get install python-dev python3-dev
+  - sudo apt-get install python-dev python3-dev python3-pip
   - sudo apt-get install -y build-essential
   - sudo python2 -m pip install --upgrade pip
   - sudo pip install cffi
+  - sudo pip3 install cffi
 #  - sudo python -m pip install cffi
 #  - sudo python3 -m pip install cffi
 
