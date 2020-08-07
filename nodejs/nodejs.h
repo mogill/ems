@@ -1,12 +1,10 @@
 /*-----------------------------------------------------------------------------+
- |  Extended Memory Semantics (EMS)                            Version 1.6.0   |
- |  Synthetic Semantics       http://www.synsem.com/       mogill@synsem.com   |
+ |  Extended Memory Semantics (EMS)                            Version 1.6.1   |
+ |  http://mogill.com/                                       jace@mogill.com   |
  +-----------------------------------------------------------------------------+
  |  Copyright (c) 2011-2014, Synthetic Semantics LLC.  All rights reserved.    |
- |  Copyright (c) 2015-2017, Jace A Mogill.  All rights reserved.              |
- |                                                                             |
- |  Updated to replace NAN with N-API                                          |
- |  Copyright (c) 2019 Aleksander J Budzynowski.                               |
+ |  Copyright (c) 2019 Aleksander J Budzynowski.  Update NAN to N-API.         |
+ |  Copyright (c) 2015-2020, Jace A Mogill.  All rights reserved.              |
  |                                                                             |
  | Redistribution and use in source and binary forms, with or without          |
  | modification, are permitted provided that the following conditions are met: |

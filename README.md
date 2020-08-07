@@ -254,8 +254,8 @@ itself are updated atomically.
         is managed by passing through multiple gates: First mapping a
         key to an index, then accessing user data protected by EMS
         tags, and completing the whole operation atomically.
-      </center>
     </em>
+      </center>
     </td>
     <td width="50%">
       <center>
@@ -389,11 +389,13 @@ EMS 1.6 **[This Release]** Updated to replace deprecated NodeJS NAN API with the
 
 EMS 1.7 **[Planned]** Key deletion that frees all resources.  Replace open hashing with chaining.
 
-EMS 1.7 **[Planned]** Memory allocator improvements (non-power 2 sizes, packed metadata, extensible heap),
-    low-level EMS diagnostic tools.
+EMS 1.8 **[Planned]** Memory allocator based on
+*R. Marotta, M. Ianni, A. Scarselli, A. Pellegrini and F. Quaglia, "NBBS: A Non-Blocking Buddy System for Multi-core Machines," 2019 19th IEEE/ACM International Symposium on Cluster, Cloud and Grid Computing (CCGRID), Larnaca, Cyprus, 2019, pp. 11-20, doi: 10.1109/CCGRID.2019.00011.*
 
-EMS 1.8 **[Planned]** Support for NVDIMMs and other technologies that behave
-     as [persistent main system memory](http://pmem.io/).
+EMS 1.9 **[Planned]** Vectorized JSON indexer.
+
+EMS 1.10 **[Planned]** Support for [persistent main system memory (PMEM)](http://pmem.io/) when
+multiple processes are supported.
 
 EMS 2.0 **[Planned]** New API which more tightly integrates with
 ES6, Python, and other dynamically typed languages languages,
@@ -412,8 +414,9 @@ BSD, other commercial and open source licenses are available.
 [Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
 
 ## About
-Jace A Mogill specializes in resource constrained computing at both the largest and smallest scales.
-He has over 20 years experience optimizing software for distributed, multi-core, and
-FPGA/GPU/CPU hybrid computer architectures.
+Jace A Mogill specializes in hardware/software co-design of
+resource constrained computing at both the largest and smallest scales.
+He has over 20 years experience with distributed, multi-core, FPGA, CGRA, GPU, CPU,
+and custom computer architectures.
 
-###### Copyright (C)2011-2019 Jace A Mogill
+###### Copyright (C)2011-2020 Jace A Mogill
