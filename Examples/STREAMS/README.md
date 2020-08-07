@@ -23,13 +23,13 @@ to serial execution before the next loop.
 <tr>
 <td width="50%">
 <center>
-<img src="http://synsem.com/images/ems/ParallelContextsBSP.svg" type="image/svg+xml" height="500px">
+<img src="Docs/ParallelContextsBSP.svg" type="image/svg+xml" height="500px">
 </center>
 
 </td>
 <td width="50%">
 <center>
-<img src="http://synsem.com/images/ems/ParallelContextsFJ.svg" type="image/svg+xml" height="500px">
+<img src="Docs/ParallelContextsFJ.svg" type="image/svg+xml" height="500px">
 </td>
 </tr>
 </table>
@@ -95,6 +95,6 @@ left as an exercise to the reader.
 Benchmark results for the BSP implementation on an AWS
 `c4.8xlarge (132 ECUs, 36 vCPUs, 2.9 GHz, Intel Xeon E5-2666v3, 60 GiB memory`.
 
-<center><img src="http://synsem.com/images/ems/streams.svg" type="image/svg+xml" height="300px">
+<center><img src="Docs/streams.svg" type="image/svg+xml" height="300px">
 </center>
 

@@ -1,8 +1,8 @@
 OSX | Linux | Node 4.1-14.x, Python2/3:
-[![Build Status](https://travis-ci.org/SyntheticSemantics/ems.svg?branch=master)](https://travis-ci.org/SyntheticSemantics/ems)
+[![Build Status](https://travis-ci.org/mogill/ems.svg?branch=master)](https://travis-ci.org/mogill/ems)
 [![npm version](https://badge.fury.io/js/ems.svg)](https://www.npmjs.com/package/ems)
 
-### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
+### [API Documentation](http://mogill.github.io/ems/Docs/reference.html) | [EMS Website](http://mogill.github.io/ems/Docs/index.html)
 
 
 
@@ -17,12 +17,12 @@ to address several challenges of parallel programming:
 + Provides dynamic load-balancing between processes
 + May substitute or complement other forms of parallelism
 
-## [Examples: Parallel web servers, word counting](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+## [Examples: Parallel web servers, word counting](https://github.com/mogill/ems/tree/master/Examples)
 
 #### Table of Contents
 * [Parallel Execution Models Supported](#Types-of-Concurrency) Fork Join, Bulk Synchronous Parallel, User defined
 * [Atomic Operations](#Built-in-Atomic-Operations) Atomic Read-Modify-Write operations
-* [Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples) Parallel web servers, word counting
+* [Examples](https://github.com/mogill/ems/tree/master/Examples) Parallel web servers, word counting
 * [Benchmarks](#Examples-and-Benchmarks) Bandwidth, Transaction processing
 * [Synchronization as a Property of the Data, Not a Duty for Tasks](#Synchronization-Property) Full/Empty tags
 * [Installation](#Installation) Downloading from Git or NPM
@@ -39,7 +39,7 @@ without using distributed programming.
 ## Sharing Persistent Objects Between Python and Javascript
 <img src="Docs/ems_js_py.gif" />
 
-Inter-language example in [interlanguage.{js,py}](https://github.com/SyntheticSemantics/ems/tree/master/Examples/Interlanguage)
+Inter-language example in [interlanguage.{js,py}](https://github.com/mogill/ems/tree/master/Examples/Interlanguage)
 The animated GIF demonstrates the following steps:
 * Start Node.js REPL, create an EMS memory
 * Store "Hello"
@@ -121,10 +121,10 @@ available in user defined modes.
 
 ## Examples and Benchmarks
 
-### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
+### [API Documentation](http://mogill.github.io/ems/Docs/reference.html) | [EMS Website](http://mogill.github.io/ems/Docs/index.html)
 
 ### Word Counting Using Atomic Operations
-[Word counting example](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+[Word counting example](https://github.com/mogill/ems/tree/master/Examples)
 
 Map-Reduce is often demonstrated using word counting because each document can
 be processed in parallel, and the results of each document's dictionary reduced
@@ -145,7 +145,7 @@ AWS instances are also bandwidth limited to EBS storage, where our Gutenberg
 corpus is stored.
 
 ### Bandwidth Benchmarking
-[STREAMS Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples/STREAMS)
+[STREAMS Example](https://github.com/mogill/ems/tree/master/Examples/STREAMS)
 
 A benchmark similar to [STREAMS](https://www.cs.virginia.edu/stream/)
 gives us the maximum speed EMS double precision
@@ -156,7 +156,7 @@ floating point operations can be performed on a
 
 
 ### Benchmarking of Transactions and Work Queues
-[Transactions and Work Queues Example](https://github.com/SyntheticSemantics/ems/tree/master/Examples)
+[Transactions and Work Queues Example](https://github.com/mogill/ems/tree/master/Examples)
 
 Transactional performance is measured alone, and again with a separate
 process appending new processes as work is removed from the queue.
@@ -228,7 +228,7 @@ only a portion of the total iteration space.
 
 ## [Synchronization as a Property of the Data, Not a Duty for Tasks](#Synchronization-Property)
 
-### [API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html) | [EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
+### [API Documentation](http://mogill.github.io/ems/Docs/reference.html) | [EMS Website](http://mogill.github.io/ems/Docs/index.html)
 
 EMS internally stores tags that are used for synchronization of
 user data, allowing synchronization to happen independently of
@@ -275,7 +275,7 @@ itself are updated atomically.
 For a more complete description of the principles of operation,
 contact the author at ems@rotang.com
 
-[ Complete API reference ](https://github.com/SyntheticSemantics/ems/tree/master/Docs/reference.html)
+[ Complete API reference ](https://github.com/mogill/ems/tree/master/Docs/reference.html)
 
 <br>
 <center>
@@ -324,7 +324,7 @@ npm install ems
 Download the source code, then compile the native code:
 
 ```sh
-git clone https://github.com/SyntheticSemantics/ems.git
+git clone https://github.com/mogill/ems.git
 cd ems
 npm install
 ```
@@ -338,7 +338,7 @@ A pull request is most welcome!
 
 ### Run Some Examples
 
-Click here for __[Detailed Examples](https://github.com/SyntheticSemantics/ems/tree/master/Examples)__.
+Click here for __[Detailed Examples](https://github.com/mogill/ems/tree/master/Examples)__.
 
 On a Mac and most Linux
 distributions EMS will "just work", but
@@ -405,13 +405,13 @@ making atomic operations on persistent memory more transparent.
 BSD, other commercial and open source licenses are available.
 
 ## Links
-[API Documentation](http://syntheticsemantics.github.io/ems/Docs/reference.html)
+[API Documentation](http://mogill.github.io/ems/Docs/reference.html)
 
-[EMS Website](http://syntheticsemantics.github.io/ems/Docs/index.html)
+[EMS Website](http://mogill.github.io/ems/Docs/index.html)
 
 [Download the NPM](https://www.npmjs.org/package/ems)
 
-[Get the source at GitHub](https://github.com/SyntheticSemantics/ems)
+[Get the source at GitHub](https://github.com/mogill/ems)
 
 ## About
 Jace A Mogill specializes in hardware/software co-design of

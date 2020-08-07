@@ -23,7 +23,7 @@ The global shared memory is used for diagnostic counters like the
 number of queries as well as key-value pairs that can be read
 or written from a parallel or serial region of any request or session.
 
-<img src="http://synsem.com/images/ems/parWebServer.svg" type="image/svg+xml">
+<img src="Docs/parWebServer.svg" type="image/svg+xml">
 
 ## REST API
 
@@ -63,13 +63,13 @@ are always executing, barriers can be used to synchronize execution.
     <td>
       <center>
       Fork-Join Parallelism<br>
-      <img src="http://synsem.com/images/ems/tasksAndLoopsFJ.svg" type="image/svg+xml" height="360px">
+      <img src="Docs/tasksAndLoopsFJ.svg" type="image/svg+xml" height="360px">
       </center>
     </td>
     <td>
       <center>
       Bulk Synchronous Parallelism<br>
-      <img src="http://synsem.com/images/ems/tasksAndLoopsBSP.svg" type="image/svg+xml" height="360px">
+      <img src="Docs/tasksAndLoopsBSP.svg" type="image/svg+xml" height="360px">
       </center>
     </td>
   </tr>
