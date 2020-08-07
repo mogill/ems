@@ -21,6 +21,7 @@ node_js:
   - "4.1"
 
 before_script:
+  - echo "THIS IS NEW"
   - sudo npm install bindings file-uri-to-path node-addon-api
   - sudo -H apt-get install libffi-dev
   - sudo bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash"
