@@ -20,6 +20,13 @@ node_js:
   - "5.1"
   - "4.1"
 
+adsmksdf'knclvz
+fxznvxz'CKPV
+bcjvxCHSBCVBCZ bcsvCNZ
+].CXZ
+/XC
+ZX
+ ;,cv kmn
 before_script:
   - sudo npm install bindings file-uri-to-path node-addon-api
   - sudo -H apt-get install libffi-dev
@@ -36,7 +43,7 @@ before_script:
 
 
 script:
-  - sudo make test
+  - make test
 
 env:
   - CXX=g++-4.8
