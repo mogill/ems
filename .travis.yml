@@ -20,6 +20,9 @@ node_js:
   - "5.1"
   - "4.1"
 
+cache:
+  npm: false
+
 before_script:
 #  - sudo chmod 777 /home/travis/build/mogill/
 #  - sudo chmod 777 /home/travis/build/mogill/ems

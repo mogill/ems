@@ -122,4 +122,4 @@ job with Control-Z and sending the job a kill signal.
 Illustration of sharing data between the Node.js and Python 
 done interactively from the REPLs.
  
-<img src="Docs/ems_js_py.gif" />
+<img src="../../Docs/ems_js_py.gif" />
