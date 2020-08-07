@@ -13,7 +13,7 @@ branches:
 node_js:
   - "14.7"
   - "12.18"
-  - "10.13" -- NAPI Introduced
+  - "10.13"   # -- NAPI Introduced
 #  - "8.1"
 #  - "7.1"
 #  - "6.1"
