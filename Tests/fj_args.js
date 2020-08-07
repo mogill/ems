@@ -91,7 +91,7 @@ function attach(useExisting) {
     ephem_filename = '/tmp/EMS_shared_web_data.ems';
     var options = {
         dimensions: [1000],
-        heapSize: [100000],
+        heapSize: 100000,
         useMap: true,
         filename: ephem_filename
     };
