@@ -29,8 +29,8 @@ before_script:
 #  - sudo chmod 777 /home/travis/build/mogill/ems/node_modules/
 #  - sudo chmod 777 /home/travis/build/mogill/ems/node_modules/ems
   - sudo -H apt-get install libffi-dev
-  - sudo bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash"
-#  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+#  - sudo bash -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash"
+  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
   - sudo npm install bindings file-uri-to-path node-addon-api
   - sudo npm link ../ems
   - sudo apt-get install python-dev python3-dev
