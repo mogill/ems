@@ -36,7 +36,8 @@ before_script:
   - sudo apt-get install python-dev python3-dev
   - sudo apt-get install -y build-essential
   - sudo python2 -m pip install --upgrade pip
-  - sudo python -m pip install cffi
+  - sudo pip install cffi
+#  - sudo python -m pip install cffi
 #  - sudo python3 -m pip install cffi
 
 
