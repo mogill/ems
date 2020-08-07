@@ -11,6 +11,8 @@ branches:
   - /.*/
 
 node_js:
+  - "14.7"
+  - "12.18"
   - "10.13"
   - "8.1"
   - "7.1"
@@ -20,12 +22,12 @@ node_js:
 
 before_script:
   - sudo npm link ../ems
-  - sudo -H apt-get install python-pip
-  - sudo -H apt-get install python3-pip
+  - sudo apt-get install python-dev python3-dev
+  - sudo apt-get install -y build-essential
   - sudo -H apt-get install libffi-dev
-  - sudo python3 -m pip install cffi
-  - sudo python -m pip install cffi
-  - sudo -H apt-get install python3-cffi
+  - sudo pip2 install cffi
+  - sudo pip3 install cffi
+  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
 
 script:
   - make test
