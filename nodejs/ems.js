@@ -280,7 +280,7 @@ function EMSenqueue(value) {
 function EMSwrite(indexes, value) {
     var linearIndex = EMSidx(indexes, this);
     if (typeof value === "object") {
-        this.data.write(linearIndex, JSON.stringify(value), true);  
+        this.data.write(linearIndex, JSON.stringify(value), true);
     } else {
         this.data.write(linearIndex, value);
     }
@@ -379,7 +379,7 @@ function EMSmaster(func) {
 
 
 //==================================================================
-//  Perform the function func once by the first thread to reach 
+//  Perform the function func once by the first thread to reach
 //  the function.  The final barrier is required because  a
 //  thread may try to execute the next single-execution region
 //  before other threads have finished this region, which the EMS
@@ -654,6 +654,10 @@ function ems_wrapper(nThreadsArg, pinThreadsArg, threadingType, filename) {
     if (!(nThreads > 0)) {
         if (process.env.EMS_Ntasks !== undefined) {
             nThreads = parseInt(process.env.EMS_Ntasks);
+			if (!(nThreads > 0)) {
+				console.log("EMS: Number of nodes must be > 0. Input:", nThreadsArg, "EnvVar:", nThreads);
+				process.exit(1);
+			}
         } else {
             console.log("EMS: Must declare number of nodes to use.  Input:" + nThreadsArg);
             process.exit(1);
