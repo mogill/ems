@@ -30,6 +30,8 @@
  |    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
  |                                                                             |
  +-----------------------------------------------------------------------------*/
+#include <sys/resource.h>
+
 #include "nodejs.h"
 #include "../src/ems.h"
 #include "../src/ems_types.h"
@@ -63,10 +65,15 @@
         case EMS_TYPE_STRING: {                                         \
             std::string s = napiValue.As<Napi::String>().Utf8Value();   \
             emsValue.length = s.length() + 1; /* +1 for trailing NULL */\
-            emsValue.value = alloca(emsValue.length);                   \
-            if (!emsValue.value) {                                      \
-                THROW_TYPE_ERROR(QUOTE(__FUNCTION__) " ERROR: Unable to allocate scratch memory for serialized value");\
+            struct rlimit rl;                                           \
+            if (getrlimit(RLIMIT_STACK, &rl) == 0) {                    \
+                if (emsValue.length > rl.rlim_cur) {                    \
+                    THROW_TYPE_ERROR(QUOTE(__FUNCTION__) " ERROR: Unable to allocate scratch memory for serialized value. Exceeds current stack size limit."); \
+                }                                                       \
+            } else {                                                    \
+                THROW_ERROR(" ERROR: Unable to get stack limit."); \
             }                                                           \
+            emsValue.value = alloca(emsValue.length);                   \
             memcpy(emsValue.value, s.c_str(), emsValue.length);         \
         }                                                               \
             break;                                                      \
