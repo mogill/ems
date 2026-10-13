@@ -31,6 +31,7 @@
  |                                                                             |
  +-----------------------------------------------------------------------------*/
 #include <sys/resource.h>
+#include <climits>
 
 #include "nodejs.h"
 #include "../src/ems.h"
@@ -461,10 +462,28 @@ Napi::Value NodeJSinitialize(const Napi::CallbackInfo& info) {
 
     //  Parse all the arguments
     int64_t nElements  = info[0].As<Napi::Number>();
-    size_t  heapSize   = (int64_t)  info[1].As<Napi::Number>();
+    int64_t heapSizeArg = info[1].As<Napi::Number>();
+    if (heapSizeArg < 0) {
+        THROW_ERROR("NodeJSinitialize: heapSize must be non-negative");
+    }
+    size_t  heapSize   = (size_t) heapSizeArg;
     bool useMap        = info[2].As<Napi::Boolean>();
     std::string filestr(info[3].As<Napi::String>().Utf8Value());
     const char *filename = filestr.c_str();
+    {
+        size_t nameStart = (!filestr.empty() && filestr[0] == '/') ? 1 : 0;
+        bool nameOk = filestr.size() > nameStart;
+        for (size_t ci = nameStart; nameOk && ci < filestr.size(); ci++) {
+            char nc = filestr[ci];
+            bool safe = (nc >= 'A' && nc <= 'Z') || (nc >= 'a' && nc <= 'z') ||
+                        (nc >= '0' && nc <= '9') || nc == '_' || nc == '.' || nc == '-';
+            if (!safe) nameOk = false;
+        }
+        if (nameOk && filestr.find("..") != std::string::npos) nameOk = false;
+        if (!nameOk) {
+            THROW_ERROR("NodeJSinitialize: invalid context name");
+        }
+    }
     bool persist       = info[4].As<Napi::Boolean>();
     bool useExisting   = info[5].As<Napi::Boolean>();
     bool doDataFill    = info[6].As<Napi::Boolean>();
@@ -475,6 +494,9 @@ Napi::Value NodeJSinitialize(const Napi::CallbackInfo& info) {
     EMSmyID            = (int)  info[11].As<Napi::Number>();
     bool pinThreads    = info[12].As<Napi::Boolean>();
     int32_t nThreads   = info[13].As<Napi::Number>();
+    if (nThreads < 1 || nThreads > INT_MAX - EMS_CB_LOCKS) {
+        THROW_ERROR("NodeJSinitialize: nThreads out of range");
+    }
     int32_t pctMLock   = info[14].As<Napi::Number>();
 
     if (doDataFill) {
